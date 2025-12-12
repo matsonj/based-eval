@@ -50,7 +50,7 @@ jobs:
           if [ -z "$PUZZLES" ]; then
             PUZZLES="1"
           fi
-          uv run connections_eval run --model "${{ inputs.model }}" --puzzles "$PUZZLES"
+          uv run based connections run --model "${{ inputs.model }}" --puzzles "$PUZZLES"
       
       - name: Update docs - Extract summaries
         env:
@@ -58,11 +58,11 @@ jobs:
           MOTHERDUCK_DB: ${{ secrets.MOTHERDUCK_DB }}
         run: |
           export MOTHERDUCK_DB="${MOTHERDUCK_DB:-md:}"
-          uv run python scripts/extract_summaries.py
+          uv run python connections/scripts/extract_summaries.py
       
       - name: Update docs - Create results table
         run: |
-          uv run python scripts/create_results_table_gt.py
+          uv run python connections/scripts/create_results_table_gt.py
       
       - name: Update docs - Generate logs view
         env:
@@ -70,7 +70,7 @@ jobs:
           MOTHERDUCK_DB: ${{ secrets.MOTHERDUCK_DB }}
         run: |
           export MOTHERDUCK_DB="${MOTHERDUCK_DB:-md:}"
-          uv run python scripts/generate_logs_view.py
+          uv run python connections/scripts/generate_logs_view.py
       
       - name: Commit and push docs changes
         run: |

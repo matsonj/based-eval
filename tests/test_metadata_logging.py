@@ -8,9 +8,9 @@ import os
 
 import pytest
 
-from based.adapters.openrouter_adapter import OpenRouterAdapter
-from based.player import AIPlayer
-from based.utils.logging import log_ai_call_metadata
+from codenames.adapters.openrouter_adapter import OpenRouterAdapter
+from codenames.player import AIPlayer
+from codenames.utils.logging import log_ai_call_metadata
 
 
 class TestOpenRouterAdapter:

@@ -5,8 +5,8 @@ from unittest.mock import Mock, patch
 
 import pytest
 
-from based.game import CodenamesGame
-from based.player import AIPlayer, HumanPlayer
+from codenames.game import CodenamesGame
+from codenames.player import AIPlayer, HumanPlayer
 
 
 class TestAIPlayerIntegration:

@@ -7,17 +7,22 @@ BASED (Benchmark for Association, Sorting, and Entity Deduction) is a multi-game
 
 ### Key Commands
 - **Install dependencies**: `uv sync`
-- **Run game**: `uv run based run --red gpt4 --blue claude`
-- **Interactive mode**: `uv run based run --red gpt4 --blue claude --interactive red-spymaster`
-- **Test prompts**: `uv run based prompt spymaster --seed 42`
+- **Run Codenames game**: `uv run based codenames run --red gpt4 --blue claude`
+- **Run Connections**: `uv run based connections run --model gpt4 --puzzles 10`
+- **Interactive mode**: `uv run based codenames run --red gpt4 --blue claude --interactive red-spymaster`
+- **Test prompts**: `uv run based codenames prompt spymaster --seed 42`
+- **Analytics**: `uv run based analytics trial-balance`
 - **Run tests**: `uv run pytest`
 - **Format code**: `uv run black . && uv run isort .`
-- **Type check**: `uv run mypy based/`
+- **Type check**: `uv run mypy codenames/`
 
 ### Project Structure
 ```
-based/                      # Main package
-├── cli.py                  # Typer CLI interface
+codenames/                  # Codenames game package
+├── cli.py                  # Main CLI with subcommands
+├── cli_codenames.py        # Codenames-specific commands
+├── cli_connections.py      # Connections wrapper commands
+├── cli_analytics.py        # Shared analytics commands
 ├── game.py                 # Codenames game logic and board management
 ├── player.py               # AIPlayer and HumanPlayer classes
 ├── prompt_manager.py       # Markdown template loader
@@ -25,6 +30,11 @@ based/                      # Main package
 │   └── openrouter_adapter.py  # OpenRouter API client
 └── utils/
     └── logging.py          # Logging configuration
+
+shared/                     # Shared infrastructure
+├── controllog/             # Double-entry accounting SDK for logging
+├── adapters/               # Shared API adapters
+└── utils/                  # Common utilities (retry, timing, tokens, motherduck)
 
 inputs/
 ├── names.yaml              # Word bank for game boards
@@ -82,14 +92,14 @@ logs/                       # Game logs and analysis data
 ## Common Development Tasks
 
 ### Testing AI Prompts
-- **Test spymaster prompts**: `uv run based prompt spymaster --seed 42 --team red`
-- **Test operative prompts**: `uv run based prompt operative --seed 42 --clue "TOOLS" --number 3`
-- **Test referee prompts**: `uv run based prompt referee --seed 42 --clue "WEAPONS" --number 2`
-- **Test expert clues**: `uv run based prompt operative --clue "ANIMALS" --number 0` or `--number unlimited`
+- **Test spymaster prompts**: `uv run based codenames prompt spymaster --seed 42 --team red`
+- **Test operative prompts**: `uv run based codenames prompt operative --seed 42 --clue "TOOLS" --number 3`
+- **Test referee prompts**: `uv run based codenames prompt referee --seed 42 --clue "WEAPONS" --number 2`
+- **Test expert clues**: `uv run based codenames prompt operative --clue "ANIMALS" --number 0` or `--number unlimited`
 
 ### Adding New AI Models
-1. Update `inputs/model_mappings.yml`
-2. Test with `uv run based run --red NEW_MODEL --blue claude`
+1. Update `shared/inputs/model_mappings.yml`
+2. Test with `uv run based codenames run --red NEW_MODEL --blue claude`
 
 ### Modifying Game Rules
 - Edit board setup logic in `game.py`

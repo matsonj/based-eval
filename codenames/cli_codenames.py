@@ -1,8 +1,9 @@
-"""Command-line interface for BASED Eval - Codenames game."""
+"""CLI subcommand for Codenames game."""
 
 import logging
 import os
 import random
+from datetime import datetime
 from pathlib import Path
 from typing import Optional
 
@@ -11,12 +12,18 @@ import yaml
 from rich.console import Console
 from rich.table import Table
 
-from based.game import CodenamesGame
-from based.player import AIPlayer, HumanPlayer, Player
-from based.prompt_manager import PromptManager
-from based.utils.logging import setup_logging
+from codenames.game import CodenamesGame
+from codenames.player import AIPlayer, HumanPlayer, Player
+from codenames.prompt_manager import PromptManager
+from codenames.utils.logging import setup_logging
+from shared.utils.motherduck import (
+    upload_controllog_to_motherduck,
+    validate_upload,
+    run_trial_balance,
+    cleanup_local_files,
+)
 
-app = typer.Typer(help="BASED Eval - Benchmark for Association, Sorting, and Entity Deduction")
+app = typer.Typer(help="Run Codenames games for AI evaluation")
 console = Console()
 
 
@@ -88,7 +95,7 @@ def _validate_api_keys_and_models(red: Optional[str], blue: Optional[str], refer
         console.print(f"\n[yellow]Available models:[/yellow]")
         for model in sorted(available_models):
             console.print(f"[yellow]  {model}[/yellow]")
-        console.print(f"\n[yellow]Use 'uv run based list-models' for detailed model information[/yellow]")
+        console.print(f"\n[yellow]Use 'uv run based codenames list-models' for detailed model information[/yellow]")
         raise typer.Exit(1)
 
 
@@ -147,6 +154,9 @@ def run(
     ),
     log_path: str = typer.Option("logs", help="Directory for log files"),
     verbose: bool = typer.Option(False, help="Enable verbose logging"),
+    keep_local_files: bool = typer.Option(
+        False, help="Keep local controllog files after uploading to MotherDuck"
+    ),
 ):
     """Run a Codenames game (part of BASED eval)."""
 
@@ -228,8 +238,12 @@ def run(
         console.print(f"[red]Error creating players: {e}[/red]")
         raise typer.Exit(1)
 
+    # Generate run_id for controllog tracking
+    run_id = f"{datetime.utcnow().strftime('%Y-%m-%dT%H-%M-%S')}_codenames_{red or 'human'}_{blue or 'human'}"
+
     # Run games
     results = []
+    game_ids = []
     for game_num in range(num_games):
         console.print(f"\n[bold]Game {game_num + 1}/{num_games}[/bold]")
 
@@ -246,6 +260,10 @@ def run(
                 referee_prompt=referee_prompt,
                 interactive_mode=interactive,
             )
+
+            # Initialize controllog for this game
+            game.init_controllog(log_dir, run_id)
+            game_ids.append(game.game_id)
 
             result = game.play()
             results.append(result)
@@ -264,6 +282,44 @@ def run(
     # Display summary
     if len(results) > 1:
         display_summary(results)
+
+    # Upload to MotherDuck if configured
+    motherduck_db = os.getenv("MOTHERDUCK_DB")
+    if motherduck_db and results:
+        console.print()
+        console.print("📤 Uploading controllog to MotherDuck...", style="bold blue")
+
+        # Upload
+        upload_success = upload_controllog_to_motherduck(log_dir, motherduck_db)
+        if upload_success:
+            console.print("✅ Upload successful", style="green")
+
+            # Validate upload
+            console.print("🔍 Validating upload...", style="dim")
+            validation_success = validate_upload(run_id, motherduck_db)
+            if validation_success:
+                console.print("✅ Validation passed", style="green")
+            else:
+                console.print("⚠️  Validation failed: run_id not found in database", style="yellow")
+
+            # Run trial balance
+            console.print("⚖️  Running trial balance check...", style="dim")
+            trial_balance_success = run_trial_balance(motherduck_db)
+            if trial_balance_success:
+                console.print("✅ Trial balance passed", style="green")
+            else:
+                console.print("⚠️  Trial balance check failed", style="yellow")
+
+            # Cleanup local files if not keeping them
+            if not keep_local_files:
+                console.print("🧹 Cleaning up local files...", style="dim")
+                cleanup_local_files(log_dir, run_id, keep_local_files)
+                console.print("✅ Local files cleaned up", style="green")
+            else:
+                console.print("📁 Keeping local files (--keep-local-files flag set)", style="dim")
+        else:
+            console.print("❌ Upload failed", style="red")
+            console.print("⚠️  Local files retained due to upload failure", style="yellow")
 
 
 def display_summary(results: list):
@@ -289,12 +345,12 @@ def display_summary(results: list):
 
 @app.command()
 def list_models():
-    """List available AI models."""
+    """List available AI models for Codenames."""
     try:
         # Create adapter to load model mappings (without requiring API key for listing)
         import os
 
-        from based.adapters.openrouter_adapter import OpenRouterAdapter
+        from codenames.adapters.openrouter_adapter import OpenRouterAdapter
 
         original_key = os.environ.get("OPENROUTER_API_KEY")
         os.environ["OPENROUTER_API_KEY"] = "dummy"  # Temporary dummy key for loading
@@ -326,7 +382,7 @@ def list_models():
         console.print(table)
         console.print(f"\n✨ Total: {len(models)} models available")
         console.print(
-            "\n💡 Usage: [bold]uv run based run --red [model] --blue [model][/bold]"
+            "\n💡 Usage: [bold]uv run based codenames run --red [model] --blue [model][/bold]"
         )
 
     except Exception as e:
@@ -437,7 +493,7 @@ def prompt(
             assassin = [word for word, identity in board_state["identities"].items() 
                    if identity == "assassin"]
             
-            prompt = prompt_manager.load_prompt(
+            prompt_text = prompt_manager.load_prompt(
                 prompt_file,
                 {
                     "board": board_state["board"],
@@ -465,7 +521,7 @@ def prompt(
             # Format available words as a simple list
             available_words_formatted = ", ".join(available_words)
             
-            prompt = prompt_manager.load_prompt(
+            prompt_text = prompt_manager.load_prompt(
                 prompt_file,
                 {
                     "board": _format_board_for_operative_cli(board_state),
@@ -484,7 +540,7 @@ def prompt(
                 if identity == f"{team}_agent"
             ]
             
-            prompt = prompt_manager.load_prompt(
+            prompt_text = prompt_manager.load_prompt(
                 referee_prompt,
                 {
                     "clue": clue,
@@ -506,10 +562,10 @@ def prompt(
         console.print("[yellow]PROMPT CONTENT:[/yellow]")
         console.print(f"[yellow]{'='*80}[/yellow]\n")
         
-        console.print(prompt)
+        console.print(prompt_text)
         
         console.print(f"\n[yellow]{'='*80}[/yellow]")
-        console.print(f"[green]✅ Prompt generated successfully ({len(prompt)} characters)[/green]")
+        console.print(f"[green]✅ Prompt generated successfully ({len(prompt_text)} characters)[/green]")
         
         # Show board state for context
         if role == "spymaster":
@@ -523,6 +579,3 @@ def prompt(
         console.print(f"[red]Error generating prompt: {e}[/red]")
         raise typer.Exit(1)
 
-
-if __name__ == "__main__":
-    app()

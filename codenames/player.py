@@ -6,9 +6,9 @@ from abc import ABC, abstractmethod
 from datetime import datetime
 from typing import Dict, List, Tuple
 
-from based.adapters.openrouter_adapter import OpenRouterAdapter
-from based.prompt_manager import PromptManager
-from based.utils.logging import log_ai_call_metadata, format_turn_label
+from codenames.adapters.openrouter_adapter import OpenRouterAdapter
+from codenames.prompt_manager import PromptManager
+from codenames.utils.logging import log_ai_call_metadata, format_turn_label
 
 logger = logging.getLogger(__name__)
 

@@ -3,8 +3,8 @@
 
 import random
 
-from based.game import CodenamesGame
-from based.player import HumanPlayer
+from codenames.game import CodenamesGame
+from codenames.player import HumanPlayer
 
 
 # Create a simple demo that doesn't require API keys

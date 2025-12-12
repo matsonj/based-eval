@@ -10,12 +10,14 @@ import yaml
 from rich.console import Console
 from rich.table import Table
 
-from based.player import AIPlayer, HumanPlayer
-from based.utils.logging import (
+from codenames.player import AIPlayer, HumanPlayer
+from codenames.utils.logging import (
     log_game_start, log_spymaster_clue, log_operative_guess, 
     log_game_end, log_box_score, log_turn_end_status, log_referee_rejection, log_referee_penalty,
     log_ai_call_metadata, format_turn_label, log_game_setup_metadata
 )
+# Import shared controllog SDK for unified analytics
+from shared import controllog as cl
 
 console = Console()
 logger = logging.getLogger(__name__)
@@ -76,6 +78,106 @@ class CodenamesGame:
         # Generate unique game ID
         import uuid
         self.game_id = str(uuid.uuid4())[:8]
+        
+        # Controllog state (initialized by CLI)
+        self._controllog_initialized = False
+        self._run_id: Optional[str] = None
+        self._task_id: Optional[str] = None
+
+    def init_controllog(self, log_path: Path, run_id: str) -> None:
+        """Initialize controllog SDK for unified analytics.
+        
+        Args:
+            log_path: Directory for JSONL logs
+            run_id: Unique identifier for this run
+        """
+        try:
+            cl.init(project_id="codenames", log_dir=log_path)
+            self._controllog_initialized = True
+            self._run_id = run_id
+            self._task_id = f"game:{self.game_id}"
+            logger.info(f"Controllog initialized for game {self.game_id}")
+        except Exception as e:
+            logger.warning(f"Failed to initialize controllog: {e}")
+            self._controllog_initialized = False
+
+    def _emit_state_move(self, from_state: str, to_state: str, payload: Optional[Dict] = None) -> None:
+        """Emit a state transition event via controllog."""
+        if not self._controllog_initialized:
+            return
+        try:
+            cl.state_move(
+                task_id=self._task_id,
+                from_=from_state,
+                to=to_state,
+                project_id="codenames",
+                agent_id="agent:codenames",
+                run_id=self._run_id,
+                payload=payload or {"game_id": self.game_id},
+            )
+        except Exception as e:
+            logger.debug(f"Failed to emit state move: {e}")
+
+    def _emit_model_events(
+        self,
+        player: AIPlayer,
+        call_type: str,
+        prompt_tokens: int,
+        completion_tokens: int,
+        latency_ms: float,
+        cost: Optional[float] = None,
+        upstream_cost: Optional[float] = None,
+        payload: Optional[Dict] = None,
+    ) -> None:
+        """Emit model_prompt and model_completion events via controllog."""
+        if not self._controllog_initialized:
+            return
+        try:
+            exchange_id = cl.new_id()
+            model_id = player.adapter.model_mappings.get(player.model_name, player.model_name)
+            
+            # Emit prompt event
+            cl.model_prompt(
+                task_id=self._task_id,
+                agent_id=f"agent:codenames:{call_type}",
+                run_id=self._run_id,
+                project_id="codenames",
+                provider="openrouter",
+                model=model_id,
+                prompt_tokens=prompt_tokens,
+                payload={
+                    "game_id": self.game_id,
+                    "call_type": call_type,
+                    "turn": format_turn_label(self.turn_count, self.current_team, self.starting_team),
+                    "team": self.current_team,
+                    **(payload or {}),
+                },
+                exchange_id=exchange_id,
+            )
+            
+            # Emit completion event
+            cl.model_completion(
+                task_id=self._task_id,
+                agent_id=f"agent:codenames:{call_type}",
+                run_id=self._run_id,
+                project_id="codenames",
+                provider="openrouter",
+                model=model_id,
+                completion_tokens=completion_tokens,
+                wall_ms=int(latency_ms),
+                cost_money=cost,
+                upstream_cost_money=upstream_cost,
+                payload={
+                    "game_id": self.game_id,
+                    "call_type": call_type,
+                    "turn": format_turn_label(self.turn_count, self.current_team, self.starting_team),
+                    "team": self.current_team,
+                    **(payload or {}),
+                },
+                exchange_id=exchange_id,
+            )
+        except Exception as e:
+            logger.debug(f"Failed to emit model events: {e}")
 
     def load_words(self) -> List[str]:
         """Load words from YAML file."""
@@ -314,7 +416,7 @@ class CodenamesGame:
         if is_human_spymaster:
             # Display the spymaster prompt first
             board_state = self.get_board_state(reveal_all=True)
-            from based.prompt_manager import PromptManager
+            from codenames.prompt_manager import PromptManager
             prompt_manager = PromptManager()
             
             # Calculate remaining agents
@@ -423,6 +525,21 @@ class CodenamesGame:
                         game_continues=not self.game_over,
                         is_retry=metadata.get("is_retry", False)
                     )
+                    # Emit controllog model events for spymaster
+                    self._emit_model_events(
+                        player=player,
+                        call_type="spymaster",
+                        prompt_tokens=metadata["input_tokens"],
+                        completion_tokens=metadata["output_tokens"],
+                        latency_ms=metadata["latency_ms"],
+                        cost=metadata.get("openrouter_cost"),
+                        upstream_cost=metadata.get("upstream_cost"),
+                        payload={
+                            "clue": clue,
+                            "number": number if isinstance(number, (int, str)) else str(number),
+                            "is_retry": metadata.get("is_retry", False),
+                        },
+                    )
             
             # Validate clue with referee if available
             if self.referee_player:
@@ -450,7 +567,7 @@ class CodenamesGame:
         if is_human_operative:
             # Display the operative prompt first
             board_state = self.get_board_state(reveal_all=False)
-            from based.prompt_manager import PromptManager
+            from codenames.prompt_manager import PromptManager
             prompt_manager = PromptManager()
             
             # Filter board to only show available (unrevealed) words
@@ -596,6 +713,23 @@ class CodenamesGame:
                         turn_result=turn_result,
                         game_continues=not self.game_over,
                         is_retry=metadata.get("is_retry", False)
+                    )
+                    # Emit controllog model events for operative
+                    self._emit_model_events(
+                        player=player,
+                        call_type="operative",
+                        prompt_tokens=metadata["input_tokens"],
+                        completion_tokens=metadata["output_tokens"],
+                        latency_ms=metadata["latency_ms"],
+                        cost=metadata.get("openrouter_cost"),
+                        upstream_cost=metadata.get("upstream_cost"),
+                        payload={
+                            "clue_given": clue,
+                            "clue_number": number if isinstance(number, (int, str)) else str(number),
+                            "guesses": guesses,
+                            "correct_guesses": turn_result.get("correct_guesses", 0),
+                            "is_retry": metadata.get("is_retry", False),
+                        },
                     )
 
             return guesses
@@ -770,7 +904,7 @@ class CodenamesGame:
         try:
             if self.interactive_mode == "referee":
                 # Human referee validation
-                from based.prompt_manager import PromptManager
+                from codenames.prompt_manager import PromptManager
                 prompt_manager = PromptManager()
                 
                 # Get team's agents
@@ -861,6 +995,21 @@ class CodenamesGame:
                             game_continues=not self.game_over,
                             is_retry=review_metadata.get("is_retry", False)
                         )
+                        # Emit controllog model events for review referee
+                        self._emit_model_events(
+                            player=review_referee,
+                            call_type="review_referee",
+                            prompt_tokens=review_metadata["input_tokens"],
+                            completion_tokens=review_metadata["output_tokens"],
+                            latency_ms=review_metadata["latency_ms"],
+                            cost=review_metadata.get("openrouter_cost"),
+                            upstream_cost=review_metadata.get("upstream_cost"),
+                            payload={
+                                "evaluated_clue": clue,
+                                "evaluated_number": number if isinstance(number, (int, str)) else str(number),
+                                "review_decision": "valid" if review_valid else "invalid",
+                            },
+                        )
                     
                     if review_valid:
                         # Second referee says it's valid - override first decision
@@ -904,6 +1053,22 @@ class CodenamesGame:
                         turn_result=turn_result,
                         game_continues=not self.game_over,
                         is_retry=metadata.get("is_retry", False)
+                    )
+                    # Emit controllog model events for referee
+                    self._emit_model_events(
+                        player=self.referee_player,
+                        call_type="referee",
+                        prompt_tokens=metadata["input_tokens"],
+                        completion_tokens=metadata["output_tokens"],
+                        latency_ms=metadata["latency_ms"],
+                        cost=metadata.get("openrouter_cost"),
+                        upstream_cost=metadata.get("upstream_cost"),
+                        payload={
+                            "evaluated_clue": clue,
+                            "evaluated_number": number if isinstance(number, (int, str)) else str(number),
+                            "referee_decision": "valid" if is_valid else "invalid",
+                            "referee_reasoning": reasoning,
+                        },
                     )
             
             if is_valid:
@@ -987,6 +1152,14 @@ class CodenamesGame:
         
         # Log game setup metadata
         log_game_setup_metadata(self.game_id, red_model, blue_model, self.prompt_files, self.board, self.identities)
+        
+        # Emit controllog state transition: NEW -> WIP
+        self._emit_state_move("NEW", "WIP", {
+            "game_id": self.game_id,
+            "red_model": red_model,
+            "blue_model": blue_model,
+            "starting_team": self.starting_team,
+        })
 
         console.print("[bold]🎯 Codenames Game Starting![/bold]")
         console.print(f"[red]Red Team:[/red] {red_model}")
@@ -1041,6 +1214,15 @@ class CodenamesGame:
         # Log game end and box score
         log_game_end(self.winner or "draw", self.turn_count, duration)
         log_box_score(self.game_id, red_model, blue_model, result)
+        
+        # Emit controllog state transition: WIP -> DONE or WIP -> FAILED
+        final_state = "DONE" if self.winner else "FAILED"
+        self._emit_state_move("WIP", final_state, {
+            "game_id": self.game_id,
+            "winner": self.winner,
+            "turns": self.turn_count,
+            "duration_sec": duration,
+        })
 
         logger.info(f"Game completed. Winner: {self.winner}, Turns: {self.turn_count}")
         return result

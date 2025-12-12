@@ -4,8 +4,8 @@ import random
 
 import pytest
 
-from based.game import CodenamesGame
-from based.player import HumanPlayer
+from codenames.game import CodenamesGame
+from codenames.player import HumanPlayer
 
 
 class MockHumanPlayer(HumanPlayer):

@@ -6,9 +6,9 @@ from pathlib import Path
 
 import pytest
 
-from based.game import CodenamesGame
-from based.player import HumanPlayer
-from based.prompt_manager import PromptManager
+from codenames.game import CodenamesGame
+from codenames.player import HumanPlayer
+from codenames.prompt_manager import PromptManager
 
 
 class TestPromptHydration:
