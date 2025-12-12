@@ -50,13 +50,88 @@ The Codenames game is still using its old custom logging system (`based/utils/lo
 
 ---
 
-## Future Enhancements
+## Unified CLI (`uv run based codenames ...` / `uv run based connections ...`)
 
-### Unified CLI
-- [ ] Create top-level `based` CLI with subcommands:
-  - `based codenames run ...`
-  - `based connections run ...`
-  - `based analytics ...` (shared reports)
+Create a single entry point for all BASED eval games with consistent interface.
+
+### Current State
+- Codenames: `uv run based run --red gemini-flash --blue gemini-flash`
+- Connections: `uv run connections_eval run --model gemini-flash`
+- Two separate CLIs with different interfaces
+
+### Target State
+```bash
+# Codenames
+uv run based codenames run --red gemini-flash --blue gemini-flash
+uv run based codenames run --interactive
+
+# Connections  
+uv run based connections run --model gemini-flash --puzzles 10
+uv run based connections run --interactive
+
+# Shared analytics
+uv run based analytics trial-balance
+uv run based analytics cost-report
+uv run based analytics leaderboard
+```
+
+### Tasks
+
+- [ ] **Restructure `based/cli.py` to use subcommands**
+  ```python
+  app = typer.Typer()
+  codenames_app = typer.Typer()
+  connections_app = typer.Typer()
+  analytics_app = typer.Typer()
+  
+  app.add_typer(codenames_app, name="codenames")
+  app.add_typer(connections_app, name="connections")
+  app.add_typer(analytics_app, name="analytics")
+  ```
+
+- [ ] **Move Codenames CLI commands under `codenames` subcommand**
+  - `based codenames run` - Run Codenames game(s)
+  - `based codenames list-models` - List available models
+
+- [ ] **Integrate Connections CLI under `connections` subcommand**
+  - `based connections run` - Run Connections evaluation
+  - `based connections list-models` - List available models
+  - Import from `connections.src.connections_eval.cli`
+
+- [ ] **Create shared `analytics` subcommand**
+  - `based analytics trial-balance` - Run trial balance check on MotherDuck
+  - `based analytics cost-report` - Show cost breakdown by model/game
+  - `based analytics leaderboard` - Show model performance across games
+
+- [ ] **Update `pyproject.toml` entry point**
+  ```toml
+  [project.scripts]
+  based = "based.cli:app"
+  ```
+
+- [ ] **Shared CLI options**
+  - `--log-path` - Directory for logs (default: `logs/`)
+  - `--verbose` - Enable verbose output
+  - `--motherduck-db` - MotherDuck connection string
+  - `--keep-local-files` - Keep local controllog files after upload
+
+- [ ] **Deprecate standalone `connections_eval` CLI**
+  - Keep for backwards compatibility temporarily
+  - Add deprecation warning pointing to `based connections`
+
+### File Structure After Migration
+```
+based/
+├── cli.py              # Main CLI with subcommands
+├── cli_codenames.py    # Codenames-specific commands
+├── cli_connections.py  # Connections-specific commands (wrapper)
+├── cli_analytics.py    # Shared analytics commands
+└── ...
+```
+
+---
+
+## Future Enhancements
 
 ### Additional Games
 - [ ] Framework for adding new games to BASED eval
