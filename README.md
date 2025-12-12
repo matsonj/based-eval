@@ -2,53 +2,66 @@
 
 **Benchmark for Association, Sorting, and Entity Deduction**
 
-A multi-game AI evaluation framework for testing language model capabilities through strategic games. Currently includes Codenames as the first game module.
+A multi-game AI evaluation framework for testing language model capabilities through strategic word and deduction games.
 
 ## Overview
 
 BASED Eval tests AI models on:
 - **Association**: Finding semantic connections between concepts
-- **Sorting**: Categorizing and prioritizing information
+- **Sorting**: Categorizing and grouping related items
 - **Entity Deduction**: Reasoning about hidden information and making inferences
 
-## Current Games
+## Games
 
 ### 🎯 Codenames
 
-A strategic word association game where AI Spymasters give one-word clues to help AI Operatives identify their team's agents on a 5×5 grid while avoiding enemy agents, innocent bystanders, and the assassin.
+A strategic word association game where AI Spymasters give one-word clues to help AI Operatives identify their team's agents on a 5×5 grid.
+
+```bash
+uv run based run --red gemini-flash --blue gemini-flash
+```
 
 **Game Setup:**
-- **25 words** arranged in a 5×5 grid
-- **Red Team**: 8-9 Agents (9 if starting)
-- **Blue Team**: 8-9 Agents (8 if Red starts)
-- **7 Innocent Bystanders**
-- **1 Assassin** (instant loss if guessed)
+- 25 words in a 5×5 grid
+- Red Team: 8-9 Agents | Blue Team: 8-9 Agents
+- 7 Innocent Bystanders | 1 Assassin (instant loss)
 
-**Turn Structure:**
-1. **Spymaster** gives a one-word clue and number
-2. **Operatives** make up to N+1 guesses based on the clue
-3. First team to find all their agents wins
-4. Guess the Assassin = instant loss
+**Roles:**
+- **Spymaster**: Gives one-word clues with a number
+- **Operative**: Guesses words based on clues
+- **Referee**: Validates clue legality
+
+### 🔗 Connections
+
+Based on the New York Times Connections puzzle. AI models must identify four groups of four related words from a 16-word grid.
+
+```bash
+cd connections && uv run connections_eval run --model gemini-flash --puzzles 10
+```
+
+**Game Setup:**
+- 16 words to sort into 4 groups of 4
+- Each group has a hidden category (e.g., "Types of keys", "Words before 'dog'")
+- 4 mistakes allowed before game over
 
 ## Features
 
+- **Multi-Game Framework**: Unified infrastructure for multiple evaluation games
 - **AI vs AI**: Pit different models against each other
 - **Human vs AI**: Interactive mode for human players
-- **Flexible Configuration**: Separate model assignment per role
-- **External Prompts**: Markdown files for easy prompt tuning
-- **Expert Clue Types**: Support for zero clues (0) and unlimited clues
-- **Referee Validation**: AI-powered clue validation for fair play
-- **Prompt Testing**: Built-in tools to test and debug AI prompts
-- **Comprehensive Logging**: Detailed game logs and statistics
-- **OpenRouter Integration**: Access to 200+ AI models
+- **200+ Models**: OpenRouter integration for broad model coverage
+- **Thinking Model Support**: Automatic detection and configuration for reasoning models (o3, gpt-5, grok-4, etc.)
+- **Structured Logging**: controllog SDK with double-entry accounting
+- **MotherDuck Integration**: Upload results for analytics
+- **Cost Tracking**: Token usage and API cost tracking per call
 
 ## Installation
 
 Requires Python ≥3.12 and [uv](https://github.com/astral-sh/uv).
 
 ```bash
-git clone <repository>
-cd switchboards
+git clone https://github.com/matsonj/based-eval
+cd based-eval
 uv sync
 ```
 
@@ -59,223 +72,147 @@ uv sync
 export OPENROUTER_API_KEY="your-key-here"
 ```
 
-### Run AI vs AI Game
+### Run Codenames (AI vs AI)
 ```bash
 uv run based run --red gpt4 --blue claude
 ```
 
-### Interactive Mode (Human vs AI)
+### Run Codenames (Interactive)
 ```bash
 uv run based run --red gpt4 --blue claude --interactive red-spymaster
 ```
 
-### Multiple Games
+### Run Connections
 ```bash
-uv run based run --red gpt4 --blue claude --num-games 5
+cd connections
+uv run connections_eval run --model gemini-flash --puzzles 5
 ```
 
-### Test AI Prompts
-```bash
-# Test spymaster prompts
-uv run based prompt spymaster --seed 42 --team red
-
-# Test operative prompts with regular clues
-uv run based prompt operative --seed 42 --clue "TOOLS" --number 3
-
-# Test expert clue types
-uv run based prompt operative --clue "ANIMALS" --number 0
-uv run based prompt operative --clue "FRUITS" --number unlimited
-
-# Test referee validation
-uv run based prompt referee --seed 42 --clue "MILITARY" --number 2
-```
-
-## Command Line Options
-
-```bash
-uv run based run [OPTIONS]
-```
-
-| Option | Description |
-|--------|-------------|
-| `--red MODEL` | AI model for Red Team |
-| `--blue MODEL` | AI model for Blue Team |
-| `--interactive MODE` | Enable human player mode (referee, red-spymaster, red-operative, blue-spymaster, blue-operative) |
-| `--num-games N` | Number of games to play (default: 1) |
-| `--seed N` | Random seed for reproducible games |
-| `--words-file PATH` | Path to words YAML file |
-| `--red-spymaster-prompt PATH` | Red spymaster prompt file |
-| `--red-operative-prompt PATH` | Red operative prompt file |
-| `--blue-spymaster-prompt PATH` | Blue spymaster prompt file |
-| `--blue-operative-prompt PATH` | Blue operative prompt file |
-| `--referee MODEL` | AI model for referee validation |
-| `--no-referee` | Disable referee validation |
-| `--log-path PATH` | Directory for log files |
-| `--verbose` | Enable verbose logging |
-
-### Prompt Testing Commands
-
-```bash
-uv run based prompt [spymaster|operative|referee] [OPTIONS]
-```
-
-| Option | Description |
-|--------|-------------|
-| `--team red/blue` | Team color (red or blue) |
-| `--seed N` | Random seed for reproducible boards |
-| `--clue TEXT` | Sample clue for operative/referee testing |
-| `--number N` | Sample number (supports 0, unlimited, or integers) |
-
-## Available Models
-
-The framework supports 45+ models through OpenRouter. Use the `list-models` command to see all available options:
-
+### List Available Models
 ```bash
 uv run based list-models
 ```
 
-**Popular models include:**
-- `gpt4`, `gpt5`, `o3`, `o1` - OpenAI models
-- `claude`, `sonnet`, `opus-4.1` - Anthropic models  
-- `gemini`, `gemini-flash` - Google models
-- `grok3`, `grok4` - xAI models
-- `llama-3.3`, `qwen3`, `deepseek` - Open source models
+## Available Models
 
-**Reasoning models** (o1, o3, grok4, etc.) are automatically detected and configured with appropriate parameters.
+The framework supports 80+ models through OpenRouter, organized by capability:
 
-## Architecture
+**Thinking Models** (reasoning-optimized):
+- `o3`, `o3-mini`, `o4-mini` - OpenAI reasoning
+- `gpt5`, `gpt5.1`, `gpt5.2` - OpenAI GPT-5 family
+- `grok4`, `grok3-mini` - xAI reasoning
+- `gemini-2.5`, `gemini-flash` - Google reasoning
+- `sonnet-4`, `opus-4`, `opus-4.5` - Anthropic reasoning
+- `deepseek-r1` - DeepSeek reasoning
 
-BASED Eval uses a modular design with game-specific modules:
-
-**Core Components:**
-- **Prompt Manager**: Builds formatted prompts from markdown templates with variable substitution
-- **OpenRouter Adapter**: Handles AI API calls with cost tracking and retry logic  
-- **Referee**: Validates spymaster clues for fairness
-
-**Codenames Flow:** Build Prompt → Get AI Response → (Referee Validation for Spymasters) → Process Results
-
-```mermaid
-flowchart TD
-    %% Game Initialization
-    A[Game Start] --> B[Load Words from YAML]
-    B --> C[Random Board Setup<br/>9 Red, 8 Blue, 7 Bystanders, 1 Assassin]
-    C --> D[Choose Starting Team]
-    
-    %% Main Game Loop
-    D --> E{Game Over?}
-    E -->|No| F[Current Team Turn]
-    E -->|Yes| Z[Game End]
-    
-    %% Turn Structure
-    F --> G[SPYMASTER PHASE]
-    G --> H[OPERATIVE PHASE]
-    H --> I[Switch Teams]
-    I --> E
-    
-    %% Spymaster Phase
-    G --> G1[Build Spymaster Prompt]
-    G1 --> G2[Get AI Response]
-    G2 --> G3[Validate Clue with Referee]
-    G3 --> G4{Valid Clue?}
-    G4 -->|Yes| H
-    G4 -->|No| G5[End Turn with Penalty]
-    G5 --> I
-    
-    %% Operative Phase
-    H --> H1[Build Operative Prompt]
-    H1 --> H2[Get AI Response]
-    H2 --> H3[Parse Words]
-    H3 --> H4[Process Each Guess]
-    H4 --> H5{Correct Guess?}
-    H5 -->|Own Agent| H6[Continue Guessing<br/>up to N+1 total]
-    H5 -->|Wrong| H7[End Turn]
-    H5 -->|Assassin| H8[Instant Loss]
-    H6 --> H9{More Guesses<br/>Available?}
-    H9 -->|Yes| H4
-    H9 -->|No| I
-    H7 --> I
-    H8 --> Z
-```
+**Standard Models**:
+- `gpt4`, `gpt4o`, `gpt4.1` - OpenAI standard
+- `claude`, `sonnet-3.5`, `haiku-3.5` - Anthropic standard
+- `grok3` - xAI standard
+- `llama-3.3`, `qwen3`, `deepseek-v3` - Open source
 
 ## Project Structure
 
 ```
-based/
-├── cli.py              # Command-line interface
-├── game.py             # Codenames game logic
-├── player.py           # Player classes (AI & Human)
-├── prompt_manager.py   # Prompt template management
-├── adapters/
-│   └── openrouter_adapter.py  # OpenRouter API integration
-└── utils/
-    └── logging.py      # Logging utilities
-
-inputs/
-├── names.yaml          # Word bank for games
-└── model_mappings.yml  # Model alias configuration
-
-prompts/
-├── red_spymaster.md    # Red team spymaster prompts
-├── red_operative.md    # Red team operative prompts
-├── blue_spymaster.md   # Blue team spymaster prompts
-├── blue_operative.md   # Blue team operative prompts
-├── referee.md          # Referee clue validation prompts
-└── shared/
-    └── game_rules.md   # Shared game rules for all prompts
-
-logs/                   # Game logs and performance analytics
+based-eval/
+├── based/                      # Codenames game
+│   ├── cli.py                  # CLI interface
+│   ├── game.py                 # Game logic
+│   ├── player.py               # AI/Human players
+│   └── prompt_manager.py       # Prompt templates
+│
+├── connections/                # Connections game
+│   └── src/connections_eval/
+│       ├── cli.py              # CLI interface
+│       └── core.py             # Game logic
+│
+├── shared/                     # Shared infrastructure
+│   ├── controllog/             # Double-entry logging SDK
+│   │   ├── sdk.py              # Core event/posting system
+│   │   └── builders.py         # High-level event builders
+│   ├── adapters/
+│   │   └── openrouter_adapter.py  # Unified OpenRouter client
+│   ├── utils/
+│   │   ├── retry.py            # Exponential backoff
+│   │   ├── timing.py           # Performance timing
+│   │   ├── tokens.py           # Token counting
+│   │   ├── logging.py          # JSON logging
+│   │   └── motherduck.py       # MotherDuck integration
+│   ├── inputs/
+│   │   └── model_mappings.yml  # Unified model config
+│   └── scripts/
+│       ├── load_controllog_to_motherduck.py
+│       └── reports_controllog.py
+│
+├── prompts/                    # Codenames prompts
+│   ├── red_spymaster.md
+│   ├── red_operative.md
+│   ├── blue_spymaster.md
+│   ├── blue_operative.md
+│   └── referee.md
+│
+├── inputs/                     # Codenames word bank
+│   └── names.yaml
+│
+└── logs/                       # Game logs & analytics
 ```
 
-## Expert Clue Types
+## Shared Infrastructure
 
-Codenames supports advanced clue strategies:
+### controllog SDK
 
-- **Zero Clues (0)**: "None of our agents relate to this clue" - unlimited guesses, must guess at least one
-- **Unlimited Clues**: Multiple related agents from previous rounds - unlimited guesses, no minimum
+Double-entry accounting system for structured event logging:
+
+```python
+from shared import controllog as cl
+
+cl.init(project_id="codenames", log_dir=Path("logs"))
+
+# Log model calls with balanced postings
+cl.model_prompt(task_id=task_id, agent_id="spymaster", ...)
+cl.model_completion(task_id=task_id, wall_ms=latency, cost_money=cost, ...)
+
+# Track state transitions
+cl.state_move(task_id=task_id, from_="WIP", to="DONE")
+```
+
+### OpenRouter Adapter
+
+Unified API client with thinking model support:
+
+```python
+from shared.adapters import chat, OpenRouterAdapter
+
+# Function-based API
+response = chat(messages, model="google/gemini-2.5-flash")
+
+# Class-based API
+adapter = OpenRouterAdapter()
+content, metadata = adapter.call_model_with_metadata("gemini-flash", prompt)
+```
+
+### MotherDuck Integration
+
+Upload controllog to MotherDuck for analytics:
 
 ```bash
-# Examples in interactive mode
-Red Spymaster: "ANIMALS" (0)        # Zero clue
-Blue Spymaster: "FRUITS" (unlimited) # Unlimited clue
-```
-
-## Referee Validation
-
-AI-powered clue validation ensures fair play by checking:
-- Single word requirement (with exceptions for compound words, proper names, abbreviations)
-- No direct board word matches
-- No variants of board words
-- No letter count references
-- No position references
-
-## Game History Tracking
-
-Operatives receive comprehensive game history showing all previous clues and outcomes:
-
-```
-Turn 1a: Red Clue: "FRUITS" (3)
-  → APPLE ✓, BANANA ✓, COCONUT ○ (bystander)
-
-Turn 1b: Blue Clue: "METALS" (2)
-  → IRON ✓, STEEL ✗ (enemy)
+export MOTHERDUCK_DB="md:based_eval"
+# Logs automatically uploaded after game completion (Connections)
 ```
 
 ## Logging & Analytics
 
-The framework creates comprehensive logs for analysis:
+### controllog (Structured)
+- `logs/controllog/YYYY-MM-DD/events.jsonl` - All events
+- `logs/controllog/YYYY-MM-DD/postings.jsonl` - Balanced ledger entries
 
-1. **Play-by-Play Logs** (`logs/play_by_play_*.log`)
-   - Human-readable game events and board states
+### Codenames Logs
+- `logs/play_by_play_*.log` - Human-readable game events
+- `logs/box_scores_*.jsonl` - Team performance summaries
+- `logs/game_metadata_*.jsonl` - AI call metrics
 
-2. **Box Score Analytics** (`logs/box_scores_*.jsonl`)
-   - Team performance summaries in structured format
-
-3. **AI Call Metadata** (`logs/game_metadata_*.jsonl`)
-   - Detailed metrics for every AI interaction
-   - Tracks tokens used, API costs, response latency
-
-4. **Referee Validation Logs** (`logs/referee_*.log`)
-   - Consolidated clue validation decisions
+### Connections Logs
+- `logs/connections_eval_*.jsonl` - Structured game logs
 
 ## Development
 
@@ -290,23 +227,18 @@ uv run black .
 uv run isort .
 ```
 
-### Type Checking
-```bash
-uv run mypy based/
-```
+## Roadmap
 
-## Contributing
-
-1. Fork the repository
-2. Create a feature branch
-3. Add tests for new functionality
-4. Ensure all tests pass
-5. Submit a pull request
+See [TODO.md](TODO.md) for planned improvements:
+- [ ] Integrate controllog into Codenames
+- [ ] Unified CLI (`uv run based codenames ...` / `uv run based connections ...`)
+- [ ] Shared analytics dashboard
 
 ## License
 
-MIT License - see LICENSE file for details.
+MIT License
 
 ## Credits
 
-Codenames game design by Vlaada Chvátil. [Official Rules](https://czechgames.com/files/rules/codenames-rules-en.pdf)
+- Codenames game design by Vlaada Chvátil. [Official Rules](https://czechgames.com/files/rules/codenames-rules-en.pdf)
+- Connections puzzle by The New York Times
