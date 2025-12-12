@@ -6,12 +6,21 @@ This is the unified CLI entry point for all BASED eval games:
 - `based analytics` - Analytics and reporting tools
 """
 
+import sys
+from pathlib import Path
+
 import typer
 from rich.console import Console
 
+# Add connections/src to path for connections_eval imports
+connections_path = Path(__file__).parent / "connections" / "src"
+if str(connections_path) not in sys.path:
+    sys.path.insert(0, str(connections_path))
+
+# Import game-specific CLIs
 from codenames.cli_codenames import app as codenames_app
-from codenames.cli_connections import app as connections_app
-from codenames.cli_analytics import app as analytics_app
+from connections_eval.cli import app as connections_app
+from shared.cli_analytics import app as analytics_app
 
 # Main application
 app = typer.Typer(
@@ -54,7 +63,7 @@ def version():
     from codenames import __version__ as codenames_version
     from shared import __version__ as shared_version
     
-    console.print(f"[bold]BASED Eval[/bold]")
+    console.print("[bold]BASED Eval[/bold]")
     console.print(f"  codenames: {codenames_version}")
     console.print(f"  shared: {shared_version}")
 

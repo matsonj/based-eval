@@ -122,25 +122,30 @@ The framework supports 80+ models through OpenRouter, organized by capability:
 
 ```
 based-eval/
+├── cli.py                      # Unified CLI entry point
+│
 ├── codenames/                  # Codenames game
-│   ├── cli.py                  # Main CLI with subcommands
-│   ├── cli_codenames.py        # Codenames commands
-│   ├── cli_connections.py      # Connections wrapper
-│   ├── cli_analytics.py        # Analytics commands
+│   ├── cli_codenames.py        # Codenames CLI commands
 │   ├── game.py                 # Game logic
 │   ├── player.py               # AI/Human players
-│   └── prompt_manager.py       # Prompt templates
+│   ├── prompt_manager.py       # Prompt templates
+│   └── prompts/                # Role prompts
+│       ├── red_spymaster.md
+│       ├── blue_spymaster.md
+│       ├── red_operative.md
+│       ├── blue_operative.md
+│       └── referee.md
 │
 ├── connections/                # Connections game
 │   ├── src/connections_eval/
-│   │   ├── cli.py              # CLI interface
+│   │   ├── cli.py              # Connections CLI commands
 │   │   └── core.py             # Game logic
-│   └── scripts/                # Analysis scripts
-│       ├── create_results_table_gt.py
-│       ├── extract_summaries.py
-│       └── generate_logs_view.py
+│   └── inputs/                 # Puzzles and prompts
+│       ├── connections_puzzles.yml
+│       └── prompt_template.xml
 │
 ├── shared/                     # Shared infrastructure
+│   ├── cli_analytics.py        # Analytics CLI commands
 │   ├── controllog/             # Double-entry logging SDK
 │   │   ├── sdk.py              # Core event/posting system
 │   │   └── builders.py         # High-level event builders
@@ -152,25 +157,13 @@ based-eval/
 │   │   ├── tokens.py           # Token counting
 │   │   ├── logging.py          # JSON logging
 │   │   └── motherduck.py       # MotherDuck integration
-│   ├── inputs/
-│   │   └── model_mappings.yml  # Unified model config
-│   └── scripts/
-│       ├── load_controllog_to_motherduck.py
-│       └── reports_controllog.py
-│
-├── docs/                       # GitHub Pages (results, logs)
-├── .github/workflows/          # GitHub Actions
-│
-├── prompts/                    # Codenames prompts
-│   ├── red_spymaster.md
-│   ├── red_operative.md
-│   ├── blue_spymaster.md
-│   ├── blue_operative.md
-│   └── referee.md
+│   └── inputs/
+│       └── model_mappings.yml  # Unified model config
 │
 ├── inputs/                     # Codenames word bank
 │   └── names.yaml
 │
+├── docs/                       # GitHub Pages (results, logs)
 └── logs/                       # Game logs & analytics
 ```
 
@@ -243,7 +236,9 @@ uv run based analytics trial-balance
 
 ### Running Tests
 ```bash
-uv run pytest
+# Run all tests from project root
+PYTHONPATH=".:connections/src" uv run pytest tests/
+PYTHONPATH=".:connections/src" uv run pytest connections/tests/
 ```
 
 ### Code Formatting

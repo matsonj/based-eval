@@ -41,7 +41,7 @@ class TestAIPlayerIntegration:
             
             # Call the spymaster method
             try:
-                clue, number = self.red_ai.get_spymaster_move(board_state, "prompts/red_spymaster.md")
+                clue, number = self.red_ai.get_spymaster_move(board_state, "codenames/prompts/red_spymaster.md")
             except Exception:
                 # We don't care if it fails, we just want to check the prompt
                 pass
@@ -90,7 +90,7 @@ class TestAIPlayerIntegration:
             mock_call.return_value = ("CLUE: TOOLS\nNUMBER: 3", {"tokens": 100, "cost": 0.01})
             
             try:
-                clue, number = self.blue_ai.get_spymaster_move(board_state, "prompts/blue_spymaster.md")
+                clue, number = self.blue_ai.get_spymaster_move(board_state, "codenames/prompts/blue_spymaster.md")
             except Exception:
                 pass
             
@@ -117,7 +117,7 @@ class TestAIPlayerIntegration:
             mock_call.return_value = ("WOLF\nKEY", {"tokens": 50, "cost": 0.005})
             
             try:
-                guesses = self.red_ai.get_operative_moves(board_state, "ANIMALS", 2, "prompts/red_operative.md")
+                guesses = self.red_ai.get_operative_moves(board_state, "ANIMALS", 2, "codenames/prompts/red_operative.md")
             except Exception:
                 pass
             
@@ -150,7 +150,7 @@ class TestAIPlayerIntegration:
             mock_call.return_value = ("RIFLE\nGRENADE", {"tokens": 50, "cost": 0.005})
             
             try:
-                guesses = self.blue_ai.get_operative_moves(board_state, "WEAPONS", 3, "prompts/blue_operative.md")
+                guesses = self.blue_ai.get_operative_moves(board_state, "WEAPONS", 3, "codenames/prompts/blue_operative.md")
             except Exception:
                 pass
             
@@ -176,7 +176,7 @@ class TestAIPlayerIntegration:
             mock_call.return_value = ("PASS", {"tokens": 20, "cost": 0.001})
             
             try:
-                guesses = self.red_ai.get_operative_moves(board_state, "ZERO", 0, "prompts/red_operative.md")
+                guesses = self.red_ai.get_operative_moves(board_state, "ZERO", 0, "codenames/prompts/red_operative.md")
             except Exception:
                 pass
             
@@ -190,7 +190,7 @@ class TestAIPlayerIntegration:
             mock_call.return_value = ("ALL WORDS", {"tokens": 30, "cost": 0.002})
             
             try:
-                guesses = self.red_ai.get_operative_moves(board_state, "ALL", "unlimited", "prompts/red_operative.md")
+                guesses = self.red_ai.get_operative_moves(board_state, "ALL", "unlimited", "codenames/prompts/red_operative.md")
             except Exception:
                 pass
             
@@ -224,7 +224,7 @@ class TestAIPlayerIntegration:
             mock_call.return_value = ("CLUE: RESPONSE\nNUMBER: 1", {"tokens": 100, "cost": 0.01})
             
             try:
-                clue, number = self.blue_ai.get_spymaster_move(board_state, "prompts/blue_spymaster.md")
+                clue, number = self.blue_ai.get_spymaster_move(board_state, "codenames/prompts/blue_spymaster.md")
             except Exception:
                 pass
             

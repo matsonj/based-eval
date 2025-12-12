@@ -312,4 +312,3 @@ def upload(
     else:
         console.print("❌ Upload failed", style="red")
         raise typer.Exit(1)
-
