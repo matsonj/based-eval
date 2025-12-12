@@ -8,9 +8,9 @@ import os
 
 import pytest
 
-from playbook.adapters.openrouter_adapter import OpenRouterAdapter
-from playbook.player import AIPlayer
-from playbook.utils.logging import log_ai_call_metadata
+from based.adapters.openrouter_adapter import OpenRouterAdapter
+from based.player import AIPlayer
+from based.utils.logging import log_ai_call_metadata
 
 
 class TestOpenRouterAdapter:
@@ -139,31 +139,32 @@ class TestAIPlayerMetadata:
         self.player._adapter = self.mock_adapter
         self.player.prompt_manager.load_prompt = Mock(return_value="Test prompt")
 
-    def test_coach_metadata_storage(self):
-        """Test that coach calls store metadata correctly."""
+    def test_spymaster_metadata_storage(self):
+        """Test that spymaster calls store metadata correctly."""
         board_state = {
             "board": ["ALPHA", "BRAVO", "CHARLIE"],
             "revealed": {"ALPHA": False, "BRAVO": False, "CHARLIE": False},
             "current_team": "red",
-            "identities": {"ALPHA": "red_target", "BRAVO": "blue_target", "CHARLIE": "civilian"}
+            "identities": {"ALPHA": "red_agent", "BRAVO": "blue_agent", "CHARLIE": "bystander"}
         }
         
-        play, number = self.player.get_coach_move(board_state, "test_prompt.md")
+        clue, number = self.player.get_spymaster_move(board_state, "test_prompt.md")
         
-        assert play == "ANIMALS"
+        assert clue == "ANIMALS"
         assert number == 3
         
         metadata = self.player.get_last_call_metadata()
-        assert metadata["call_type"] == "coach"
+        assert metadata["call_type"] == "spymaster"
         assert metadata["input_tokens"] == 100
         assert metadata["output_tokens"] == 20
         assert metadata["openrouter_cost"] == 0.005
         assert metadata["upstream_cost"] == 0.003
+        assert metadata["is_retry"] == False
         assert metadata["turn_result"]["clue"] == "ANIMALS"
         assert metadata["turn_result"]["clue_number"] == 3
 
-    def test_lineman_metadata_storage(self):
-        """Test that lineman calls store metadata correctly."""
+    def test_operative_metadata_storage(self):
+        """Test that operative calls store metadata correctly."""
         # Test metadata storage directly without going through complex parsing
         mock_metadata = {
             "input_tokens": 150,
@@ -176,11 +177,11 @@ class TestAIPlayerMetadata:
         
         # Set metadata directly on the player to test metadata storage
         self.player._last_call_metadata = mock_metadata.copy()
-        self.player._last_call_metadata["call_type"] = "lineman"
+        self.player._last_call_metadata["call_type"] = "operative"
         self.player._last_call_metadata["turn_result"] = {"guesses": ["ALPHA", "BRAVO"]}
 
         metadata = self.player.get_last_call_metadata()
-        assert metadata["call_type"] == "lineman"
+        assert metadata["call_type"] == "operative"
         assert metadata["input_tokens"] == 150
         assert metadata["output_tokens"] == 30
         assert metadata["openrouter_cost"] == 0.007
@@ -199,7 +200,7 @@ class TestMetadataLogging:
             log_ai_call_metadata(
                 game_id="test_game_123",
                 model_name="gpt-4",
-                call_type="operator",
+                call_type="operative",
                 team="red",
                 turn="1a",
                 input_tokens=100,
@@ -209,7 +210,8 @@ class TestMetadataLogging:
                 openrouter_cost=0.005,
                 upstream_cost=0.003,
                 turn_result={"clue": "ANIMALS", "clue_number": "3"},
-                game_continues=True
+                game_continues=True,
+                is_retry=False
             )
         
         # Verify the logger was called
@@ -221,7 +223,7 @@ class TestMetadataLogging:
         
         assert logged_data["game_id"] == "test_game_123"
         assert logged_data["model_name"] == "gpt-4"
-        assert logged_data["type"] == "operator"
+        assert logged_data["type"] == "operative"
         assert logged_data["team"] == "red"
         assert logged_data["turn"] == "1a"
         assert logged_data["total_tokens"] == 120
@@ -240,7 +242,7 @@ class TestMetadataLogging:
             log_ai_call_metadata(
                 game_id="test_game_123",
                 model_name="claude-3",
-                call_type="lineman",
+                call_type="operative",
                 team="blue",
                 turn="1b",
                 input_tokens=150,
@@ -250,7 +252,8 @@ class TestMetadataLogging:
                 openrouter_cost=0.007,
                 upstream_cost=0.0,  # No upstream cost
                 turn_result={"guesses": ["ALPHA", "BRAVO"]},
-                game_continues=True
+                game_continues=True,
+                is_retry=False
             )
         
         # Verify the logger was called
@@ -261,6 +264,6 @@ class TestMetadataLogging:
         logged_data = json.loads(logged_json)
         
         assert logged_data["model_name"] == "claude-3"
-        assert logged_data["type"] == "lineman"
+        assert logged_data["type"] == "operative"
         assert logged_data["openrouter_cost"] == 0.007
         assert logged_data["upstream_cost"] == 0.0

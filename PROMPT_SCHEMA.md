@@ -9,57 +9,57 @@ This document defines the expected template variables for each prompt template t
 - The PromptManager automatically converts lowercase context keys to uppercase placeholders
 - Example: context key `"clue"` becomes placeholder `{{CLUE}}`
 
-## Coach Templates
+## Spymaster Templates
 
-### red_coach.md & blue_coach.md
+### red_spymaster.md & blue_spymaster.md
 **Required Variables:**
-- `{{FIELD}}` - Game board as 5x5 grid (list of 25 names)
-- `{{REVEALED}}` - Comma-separated list of revealed target names
+- `{{BOARD}}` - Game board as 5x5 grid (list of 25 words)
+- `{{REVEALED}}` - Comma-separated list of revealed word names
 - `{{TEAM}}` - Team name ("red" or "blue")
-- `{{RED_REMAINING}}` - Number of red targets remaining
-- `{{BLUE_REMAINING}}` - Number of blue targets remaining
-- `{{RED_TARGETS}}` - Comma-separated list of red team targets (hidden from blue coach)
-- `{{BLUE_TARGETS}}` - Comma-separated list of blue team targets (hidden from red coach)
-- `{{FAKES}}` - Comma-separated list of civilian (fake) targets
-- `{{ILLEGAL}}` - The illegal target name
-- `{{PLAY_HISTORY}}` - Game history of previous plays and outcomes
+- `{{RED_REMAINING}}` - Number of red agents remaining
+- `{{BLUE_REMAINING}}` - Number of blue agents remaining
+- `{{RED_AGENTS}}` - Comma-separated list of red team agents
+- `{{BLUE_AGENTS}}` - Comma-separated list of blue team agents
+- `{{BYSTANDERS}}` - Comma-separated list of innocent bystanders
+- `{{ASSASSIN}}` - The assassin word
+- `{{CLUE_HISTORY}}` - Game history of previous clues and outcomes
 
 **Context Keys (from code):**
 ```python
 {
-    "field": board_state["board"],
-    "revealed": ", ".join(revealed_names),
+    "board": board_state["board"],
+    "revealed": ", ".join(revealed_words),
     "team": self.current_team,
     "red_remaining": red_remaining,
     "blue_remaining": blue_remaining,
-    "red_targets": ", ".join(red_subscribers),
-    "blue_targets": ", ".join(blue_subscribers),
-    "fakes": ", ".join(civilians),
-    "illegal": illegal_target[0],
-    "play_history": clue_history
+    "red_agents": ", ".join(red_agents),
+    "blue_agents": ", ".join(blue_agents),
+    "bystanders": ", ".join(bystanders),
+    "assassin": ", ".join(assassin),
+    "clue_history": clue_history
 }
 ```
 
-## Player Templates
+## Operative Templates
 
-### red_player.md & blue_player.md
+### red_operative.md & blue_operative.md
 **Required Variables:**
-- `{{FIELD}}` - Game board as 5x5 grid
-- `{{AVAILABLE_TARGETS}}` - Comma-separated list of unrevealed names
-- `{{PLAY}}` - Current play word from coach
-- `{{NUMBER}}` - Number of targets related to play (int or "unlimited")
+- `{{BOARD}}` - Game board as 5x5 grid
+- `{{AVAILABLE_WORDS}}` - Comma-separated list of unrevealed words
+- `{{CLUE}}` - Current clue word from spymaster
+- `{{NUMBER}}` - Number of words related to clue (int or "unlimited")
 - `{{TEAM}}` - Team name ("red" or "blue")
-- `{{PLAY_HISTORY}}` - Game history of previous plays and outcomes
+- `{{CLUE_HISTORY}}` - Game history of previous clues and outcomes
 
 **Context Keys (from code):**
 ```python
 {
-    "field": board_state["board"],
-    "available_targets": ", ".join(available_names),
-    "play": play,
+    "board": board_state["board"],
+    "available_words": ", ".join(available_words),
+    "clue": clue,
     "number": number,
     "team": team,
-    "play_history": clue_history
+    "clue_history": clue_history
 }
 ```
 
@@ -67,20 +67,20 @@ This document defines the expected template variables for each prompt template t
 
 ### referee.md
 **Required Variables:**
-- `{{PLAY}}` - Proposed play word to validate
+- `{{CLUE}}` - Proposed clue word to validate
 - `{{NUMBER}}` - Proposed number (int or "unlimited")
-- `{{TEAM}}` - Team making the play ("red" or "blue")
-- `{{FIELD}}` - Current board state as comma-separated list
-- `{{ALLIED_TARGETS}}` - Comma-separated list of current team's targets
+- `{{TEAM}}` - Team making the clue ("red" or "blue")
+- `{{BOARD}}` - Current board state as comma-separated list
+- `{{TEAM_AGENTS}}` - Comma-separated list of current team's agents
 
 **Context Keys (from code):**
 ```python
 {
-    "play": play,
+    "clue": clue,
     "number": parsed_number,
     "team": team,
-    "field": ", ".join(field_state["board"]),
-    "allied_targets": ", ".join(allied_targets)
+    "board": ", ".join(board_state["board"]),
+    "team_agents": ", ".join(team_agents)
 }
 ```
 
@@ -103,4 +103,4 @@ When adding new prompt templates:
 1. Use consistent variable naming following the conventions above
 2. Document required variables in this schema
 3. Test with validation enabled to ensure all variables are properly hydrated
-4. Use consistent terminology (prefer "play" over "clue", "targets" over "subscribers" in display text)
+4. Use consistent Codenames terminology (spymaster, operative, clue, guess, agent, bystander, assassin)

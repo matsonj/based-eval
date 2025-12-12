@@ -55,7 +55,7 @@ models:
   deepseek: "deepseek/deepseek-r1"
   deepseek-coder: "deepseek/deepseek-coder"
   deepseek-v3: "deepseek/deepseek-chat-v3-0324"
-  deepseek-r1: "deepseek/deepseek-r1-0528"
+  deepseek-r1: "deepseek/deepseek-r1"
   
   # Cohere models (if available through OpenRouter)
   command-r: "cohere/command-r"

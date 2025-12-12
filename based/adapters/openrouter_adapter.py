@@ -25,8 +25,8 @@ class OpenRouterAdapter:
             base_url="https://openrouter.ai/api/v1",
             api_key=self.api_key,
             default_headers={
-                "HTTP-Referer": "https://github.com/matsonj/eval-connections",
-                "X-Title": "Playbook Game Simulator"
+                "HTTP-Referer": "https://github.com/matsonj/based-eval",
+                "X-Title": "BASED Eval"
             }
         )
 
@@ -209,6 +209,7 @@ class OpenRouterAdapter:
             "gpt-oss-120b",
             "gpt-oss-20b",
             "qwen3",
+            "deepseek-r1",
         ]
         return any(pattern in model_id for pattern in reasoning_patterns)
 

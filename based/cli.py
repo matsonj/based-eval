@@ -1,4 +1,4 @@
-"""Command-line interface for The Playbook AI Game Simulator."""
+"""Command-line interface for BASED Eval - Codenames game."""
 
 import logging
 import os
@@ -11,12 +11,12 @@ import yaml
 from rich.console import Console
 from rich.table import Table
 
-from playbook.game import PlaybookGame
-from playbook.player import AIPlayer, HumanPlayer, Player
-from playbook.prompt_manager import PromptManager
-from playbook.utils.logging import setup_logging
+from based.game import CodenamesGame
+from based.player import AIPlayer, HumanPlayer, Player
+from based.prompt_manager import PromptManager
+from based.utils.logging import setup_logging
 
-app = typer.Typer(help="The Playbook AI Game Simulator")
+app = typer.Typer(help="BASED Eval - Benchmark for Association, Sorting, and Entity Deduction")
 console = Console()
 
 
@@ -88,12 +88,12 @@ def _validate_api_keys_and_models(red: Optional[str], blue: Optional[str], refer
         console.print(f"\n[yellow]Available models:[/yellow]")
         for model in sorted(available_models):
             console.print(f"[yellow]  {model}[/yellow]")
-        console.print(f"\n[yellow]Use 'uv run playbook list-models' for detailed model information[/yellow]")
+        console.print(f"\n[yellow]Use 'uv run based list-models' for detailed model information[/yellow]")
         raise typer.Exit(1)
 
 
-def _format_board_for_player_cli(board_state: dict) -> str:
-    """Format the field for player display with revealed status."""
+def _format_board_for_operative_cli(board_state: dict) -> str:
+    """Format the board for operative display with revealed status."""
     board = board_state["board"]
     revealed = board_state["revealed"]
     
@@ -103,15 +103,15 @@ def _format_board_for_player_cli(board_state: dict) -> str:
         row_items = []
         for col in range(5):
             idx = row * 5 + col
-            name = board[idx]
+            word = board[idx]
             
-            # Mark revealed names with brackets
-            if revealed.get(name, False):
-                display_name = f"[{name}]"
+            # Mark revealed words with brackets
+            if revealed.get(word, False):
+                display_word = f"[{word}]"
             else:
-                display_name = name
+                display_word = word
             
-            row_items.append(f"{display_name:>12}")
+            row_items.append(f"{display_word:>12}")
         
         lines.append(" |".join(row_items))
     
@@ -122,25 +122,25 @@ def _format_board_for_player_cli(board_state: dict) -> str:
 def run(
     red: Optional[str] = typer.Option(None, help="Model for Red Team"),
     blue: Optional[str] = typer.Option(None, help="Model for Blue Team"),
-    referee: Optional[str] = typer.Option("gemini-flash", help="Model for Referee (play validation)"),
+    referee: Optional[str] = typer.Option("gemini-flash", help="Model for Referee (clue validation)"),
     no_referee: bool = typer.Option(False, help="Disable referee validation"),
     interactive: Optional[str] = typer.Option(
-        None, help="Interactive mode: referee, red-coach, red-player, blue-coach, blue-player"
+        None, help="Interactive mode: referee, red-spymaster, red-operative, blue-spymaster, blue-operative"
     ),
-    num_puzzles: int = typer.Option(1, help="Number of games to play"),
+    num_games: int = typer.Option(1, help="Number of games to play"),
     seed: Optional[int] = typer.Option(None, help="Random seed for reproducible games"),
-    names_file: str = typer.Option("inputs/names.yaml", help="Path to names YAML file"),
-    red_coach_prompt: str = typer.Option(
-        "prompts/red_coach.md", help="Red coach prompt file"
+    words_file: str = typer.Option("inputs/names.yaml", help="Path to words YAML file"),
+    red_spymaster_prompt: str = typer.Option(
+        "prompts/red_spymaster.md", help="Red spymaster prompt file"
     ),
-    red_player_prompt: str = typer.Option(
-        "prompts/red_player.md", help="Red player prompt file"
+    red_operative_prompt: str = typer.Option(
+        "prompts/red_operative.md", help="Red operative prompt file"
     ),
-    blue_coach_prompt: str = typer.Option(
-        "prompts/blue_coach.md", help="Blue coach prompt file"
+    blue_spymaster_prompt: str = typer.Option(
+        "prompts/blue_spymaster.md", help="Blue spymaster prompt file"
     ),
-    blue_player_prompt: str = typer.Option(
-        "prompts/blue_player.md", help="Blue player prompt file"
+    blue_operative_prompt: str = typer.Option(
+        "prompts/blue_operative.md", help="Blue operative prompt file"
     ),
     referee_prompt: str = typer.Option(
         "prompts/referee.md", help="Referee prompt file"
@@ -148,7 +148,7 @@ def run(
     log_path: str = typer.Option("logs", help="Directory for log files"),
     verbose: bool = typer.Option(False, help="Enable verbose logging"),
 ):
-    """Run The Playbook game simulation."""
+    """Run a Codenames game (part of BASED eval)."""
 
     # Validate API keys and model names first
     _validate_api_keys_and_models(red, blue, referee, interactive)
@@ -166,7 +166,7 @@ def run(
         logger.info(f"Random seed set to: {seed}")
 
     # Validate interactive mode options
-    valid_interactive_modes = ["referee", "red-coach", "red-player", "blue-coach", "blue-player"]
+    valid_interactive_modes = ["referee", "red-spymaster", "red-operative", "blue-spymaster", "blue-operative"]
     if interactive and interactive not in valid_interactive_modes:
         console.print(
             f"[red]Error: Interactive mode must be one of: {', '.join(valid_interactive_modes)}[/red]"
@@ -230,19 +230,19 @@ def run(
 
     # Run games
     results = []
-    for game_num in range(num_puzzles):
-        console.print(f"\n[bold]Game {game_num + 1}/{num_puzzles}[/bold]")
+    for game_num in range(num_games):
+        console.print(f"\n[bold]Game {game_num + 1}/{num_games}[/bold]")
 
         try:
-            game = PlaybookGame(
-                names_file=names_file,
+            game = CodenamesGame(
+                words_file=words_file,
                 red_player=red_player,
                 blue_player=blue_player,
                 referee_player=referee_player,
-                red_coach_prompt=red_coach_prompt,
-                red_player_prompt=red_player_prompt,
-                blue_coach_prompt=blue_coach_prompt,
-                blue_player_prompt=blue_player_prompt,
+                red_spymaster_prompt=red_spymaster_prompt,
+                red_operative_prompt=red_operative_prompt,
+                blue_spymaster_prompt=blue_spymaster_prompt,
+                blue_operative_prompt=blue_operative_prompt,
                 referee_prompt=referee_prompt,
                 interactive_mode=interactive,
             )
@@ -294,7 +294,7 @@ def list_models():
         # Create adapter to load model mappings (without requiring API key for listing)
         import os
 
-        from playbook.adapters.openrouter_adapter import OpenRouterAdapter
+        from based.adapters.openrouter_adapter import OpenRouterAdapter
 
         original_key = os.environ.get("OPENROUTER_API_KEY")
         os.environ["OPENROUTER_API_KEY"] = "dummy"  # Temporary dummy key for loading
@@ -326,7 +326,7 @@ def list_models():
         console.print(table)
         console.print(f"\n✨ Total: {len(models)} models available")
         console.print(
-            "\n💡 Usage: [bold]uv run playbook run --red [model] --blue [model][/bold]"
+            "\n💡 Usage: [bold]uv run based run --red [model] --blue [model][/bold]"
         )
 
     except Exception as e:
@@ -338,16 +338,16 @@ def list_models():
 
 @app.command()
 def prompt(
-    role: str = typer.Argument(..., help="Role to test: coach, player, or referee"),
+    role: str = typer.Argument(..., help="Role to test: spymaster, operative, or referee"),
     team: str = typer.Option("red", help="Team color: red or blue"),
     seed: Optional[int] = typer.Option(None, help="Random seed for reproducible board generation"),
-    names_file: str = typer.Option("inputs/names.yaml", help="Path to names YAML file"),
-    play: str = typer.Option("EXAMPLE", help="Sample play for player/referee prompts"),
-    number: str = typer.Option("2", help="Sample number for player/referee prompts (can be 'unlimited' or '0')"),
-    red_coach_prompt: str = typer.Option("prompts/red_coach.md", help="Red coach prompt file"),
-    red_player_prompt: str = typer.Option("prompts/red_player.md", help="Red player prompt file"),
-    blue_coach_prompt: str = typer.Option("prompts/blue_coach.md", help="Blue coach prompt file"),
-    blue_player_prompt: str = typer.Option("prompts/blue_player.md", help="Blue player prompt file"),
+    words_file: str = typer.Option("inputs/names.yaml", help="Path to words YAML file"),
+    clue: str = typer.Option("EXAMPLE", help="Sample clue for operative/referee prompts"),
+    number: str = typer.Option("2", help="Sample number for operative/referee prompts (can be 'unlimited' or '0')"),
+    red_spymaster_prompt: str = typer.Option("prompts/red_spymaster.md", help="Red spymaster prompt file"),
+    red_operative_prompt: str = typer.Option("prompts/red_operative.md", help="Red operative prompt file"),
+    blue_spymaster_prompt: str = typer.Option("prompts/blue_spymaster.md", help="Blue spymaster prompt file"),
+    blue_operative_prompt: str = typer.Option("prompts/blue_operative.md", help="Blue operative prompt file"),
     referee_prompt: str = typer.Option("prompts/referee.md", help="Referee prompt file"),
     verbose: bool = typer.Option(False, help="Enable verbose logging"),
 ):
@@ -359,7 +359,7 @@ def prompt(
     setup_logging(temp_dir, verbose)
     
     # Validate role
-    valid_roles = ["coach", "player", "referee"]
+    valid_roles = ["spymaster", "operative", "referee"]
     if role not in valid_roles:
         console.print(f"[red]Error: Role must be one of: {', '.join(valid_roles)}[/red]")
         raise typer.Exit(1)
@@ -379,22 +379,22 @@ def prompt(
         red_player = HumanPlayer()  # Dummy players
         blue_player = HumanPlayer()
         
-        game = PlaybookGame(
-            names_file=names_file,
+        game = CodenamesGame(
+            words_file=words_file,
             red_player=red_player,
             blue_player=blue_player,
-            red_coach_prompt=red_coach_prompt,
-            red_player_prompt=red_player_prompt,
-            blue_coach_prompt=blue_coach_prompt,
-            blue_player_prompt=blue_player_prompt,
+            red_spymaster_prompt=red_spymaster_prompt,
+            red_operative_prompt=red_operative_prompt,
+            blue_spymaster_prompt=blue_spymaster_prompt,
+            blue_operative_prompt=blue_operative_prompt,
             referee_prompt=referee_prompt,
         )
         
         # Setup the board
         game.setup_board()
         
-        # Get field state 
-        field_state = game.get_field_state(reveal_all=(role == "coach"))
+        # Get board state 
+        board_state = game.get_board_state(reveal_all=(role == "spymaster"))
         
         # Initialize prompt manager
         prompt_manager = PromptManager()
@@ -413,94 +413,94 @@ def prompt(
                 raise typer.Exit(1)
         
         # Generate the appropriate prompt
-        if role == "coach":
-            prompt_file = red_coach_prompt if team == "red" else blue_coach_prompt
+        if role == "spymaster":
+            prompt_file = red_spymaster_prompt if team == "red" else blue_spymaster_prompt
             
-            # Calculate remaining targets for coach context
+            # Calculate remaining agents for spymaster context
             red_remaining = sum(
-                1 for name, identity in field_state["identities"].items()
-                if identity == "red_target" and not field_state["revealed"].get(name, False)
+                1 for word, identity in board_state["identities"].items()
+                if identity == "red_agent" and not board_state["revealed"].get(word, False)
             )
             blue_remaining = sum(
-                1 for name, identity in field_state["identities"].items()
-                if identity == "blue_target" and not field_state["revealed"].get(name, False)
+                1 for word, identity in board_state["identities"].items()
+                if identity == "blue_agent" and not board_state["revealed"].get(word, False)
             )
-            revealed_names = [name for name, revealed in field_state["revealed"].items() if revealed]
+            revealed_words = [word for word, revealed in board_state["revealed"].items() if revealed]
             
             # Categorize identities for cleaner prompt formatting
-            red_targets = [name for name, identity in field_state["identities"].items() 
-                             if identity == "red_target"]
-            blue_targets = [name for name, identity in field_state["identities"].items() 
-                              if identity == "blue_target"]
-            fake_targets = [name for name, identity in field_state["identities"].items() 
-                        if identity == "civilian"]
-            illegal_target = [name for name, identity in field_state["identities"].items() 
-                   if identity == "illegal_target"]
+            red_agents = [word for word, identity in board_state["identities"].items() 
+                             if identity == "red_agent"]
+            blue_agents = [word for word, identity in board_state["identities"].items() 
+                              if identity == "blue_agent"]
+            bystanders = [word for word, identity in board_state["identities"].items() 
+                        if identity == "bystander"]
+            assassin = [word for word, identity in board_state["identities"].items() 
+                   if identity == "assassin"]
             
             prompt = prompt_manager.load_prompt(
                 prompt_file,
                 {
-                    "field": field_state["board"],
-                    "revealed": ", ".join(revealed_names) if revealed_names else "None",
+                    "board": board_state["board"],
+                    "revealed": ", ".join(revealed_words) if revealed_words else "None",
                     "team": team,
                     "red_remaining": red_remaining,
                     "blue_remaining": blue_remaining,
-                    "red_targets": ", ".join(red_targets),
-                    "blue_targets": ", ".join(blue_targets),
-                    "fakes": ", ".join(fake_targets),
-                    "illegal": ", ".join(illegal_target),
-                    "play_history": "No previous plays yet",
+                    "red_agents": ", ".join(red_agents),
+                    "blue_agents": ", ".join(blue_agents),
+                    "bystanders": ", ".join(bystanders),
+                    "assassin": ", ".join(assassin),
+                    "clue_history": "No previous clues yet",
                 },
             )
             
-        elif role == "player":
-            prompt_file = red_player_prompt if team == "red" else blue_player_prompt
+        elif role == "operative":
+            prompt_file = red_operative_prompt if team == "red" else blue_operative_prompt
             
-            # Filter field to only show available (unrevealed) names for player
-            available_names = [
-                name for name in field_state["board"] 
-                if not field_state["revealed"].get(name, False)
+            # Filter board to only show available (unrevealed) words for operative
+            available_words = [
+                word for word in board_state["board"] 
+                if not board_state["revealed"].get(word, False)
             ]
             
-            # Format available names as a simple list
-            available_names_formatted = ", ".join(available_names)
+            # Format available words as a simple list
+            available_words_formatted = ", ".join(available_words)
             
             prompt = prompt_manager.load_prompt(
                 prompt_file,
                 {
-                    "field": _format_board_for_player_cli(field_state),
-                    "available_targets": available_names_formatted,
-                    "play_history": field_state.get("play_history", "None (game just started)"),
-                    "play": play,
+                    "board": _format_board_for_operative_cli(board_state),
+                    "available_words": available_words_formatted,
+                    "clue_history": board_state.get("clue_history", "None (game just started)"),
+                    "clue": clue,
                     "number": parsed_number,
                     "team": team,
                 },
             )
             
         elif role == "referee":
-            # Get team's allied targets for referee context
-            allied_targets = [
-                name for name, identity in field_state["identities"].items()
-                if identity == f"{team}_target"
+            # Get team's agents for referee context
+            team_agents = [
+                word for word, identity in board_state["identities"].items()
+                if identity == f"{team}_agent"
             ]
             
             prompt = prompt_manager.load_prompt(
                 referee_prompt,
                 {
-                    "play": play,
+                    "clue": clue,
                     "number": parsed_number,
                     "team": team,
-                    "field": ", ".join(field_state["board"]),
-                    "allied_targets": ", ".join(allied_targets),
+                    "board": ", ".join(board_state["board"]),
+                    "team_agents": ", ".join(team_agents),
                 },
             )
         
         # Display the results
         console.print(f"\n[bold]🎯 {role.title()} Prompt for {team.title()} Team[/bold]")
-        console.print(f"[dim]Seed: {seed}, Field: {len(field_state['board'])} names[/dim]")
+        console.print(f"[dim]Seed: {seed}, Board: {len(board_state['board'])} words[/dim]")
         
-        if role in ["player", "referee"]:
-            console.print(f"[dim]Sample play: '{play}' ({parsed_number})[/dim]")
+        if role in ["operative", "referee"]:
+            console.print(f"[dim]Sample clue: '{clue}' ({parsed_number})[/dim]")
         
         console.print(f"\n[yellow]{'='*80}[/yellow]")
         console.print("[yellow]PROMPT CONTENT:[/yellow]")
@@ -511,12 +511,12 @@ def prompt(
         console.print(f"\n[yellow]{'='*80}[/yellow]")
         console.print(f"[green]✅ Prompt generated successfully ({len(prompt)} characters)[/green]")
         
-        # Show field state for context
-        if role == "coach":
-            console.print(f"\n[bold]📋 Field State (Coach View - All Identities Revealed):[/bold]")
+        # Show board state for context
+        if role == "spymaster":
+            console.print(f"\n[bold]📋 Board State (Spymaster View - All Identities Revealed):[/bold]")
             game.display_board(reveal_all=True)
         else:
-            console.print(f"\n[bold]📋 Field State (Public View):[/bold]")
+            console.print(f"\n[bold]📋 Board State (Public View):[/bold]")
             game.display_board(reveal_all=False)
         
     except Exception as e:

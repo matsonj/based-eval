@@ -1,4 +1,4 @@
-"""Core game logic for The Playbook."""
+"""Core game logic for Codenames (part of BASED eval)."""
 
 import logging
 import random
@@ -10,9 +10,9 @@ import yaml
 from rich.console import Console
 from rich.table import Table
 
-from playbook.player import AIPlayer, HumanPlayer
-from playbook.utils.logging import (
-    log_game_start, log_coach_play, log_player_shot, 
+from based.player import AIPlayer, HumanPlayer
+from based.utils.logging import (
+    log_game_start, log_spymaster_clue, log_operative_guess, 
     log_game_end, log_box_score, log_turn_end_status, log_referee_rejection, log_referee_penalty,
     log_ai_call_metadata, format_turn_label, log_game_setup_metadata
 )
@@ -21,45 +21,45 @@ console = Console()
 logger = logging.getLogger(__name__)
 
 
-class PlaybookGame:
-    """The main game class that manages a complete Playbook game."""
+class CodenamesGame:
+    """The main game class that manages a complete Codenames game."""
 
-    FIELD_SIZE = 25
-    STARTING_TEAM_TARGETS = 9  # Team that goes first gets 9
-    SECOND_TEAM_TARGETS = 8    # Team that goes second gets 8
-    FAKE_TARGETS = 7
-    ILLEGAL_TARGETS = 1
+    BOARD_SIZE = 25
+    STARTING_TEAM_AGENTS = 9  # Team that goes first gets 9
+    SECOND_TEAM_AGENTS = 8    # Team that goes second gets 8
+    BYSTANDERS = 7
+    ASSASSINS = 1
 
     def __init__(
         self,
-        names_file: str,
+        words_file: str,
         red_player,
         blue_player,
         referee_player=None,
-        red_coach_prompt: str = "",
-        red_player_prompt: str = "",
-        blue_coach_prompt: str = "",
-        blue_player_prompt: str = "",
+        red_spymaster_prompt: str = "",
+        red_operative_prompt: str = "",
+        blue_spymaster_prompt: str = "",
+        blue_operative_prompt: str = "",
         referee_prompt: str = "",
         interactive_mode: Optional[str] = None,
     ):
-        self.names_file = names_file
+        self.words_file = words_file
         self.red_player = red_player
         self.blue_player = blue_player
         self.referee_player = referee_player
         self.interactive_mode = interactive_mode
         self.prompt_files = {
-            "red_coach": red_coach_prompt,
-            "red_player": red_player_prompt,
-            "blue_coach": blue_coach_prompt,
-            "blue_player": blue_player_prompt,
+            "red_spymaster": red_spymaster_prompt,
+            "red_operative": red_operative_prompt,
+            "blue_spymaster": blue_spymaster_prompt,
+            "blue_operative": blue_operative_prompt,
             "referee": referee_prompt,
         }
 
         # Game state
-        self.field: List[str] = []
-        self.identities: Dict[str, str] = {}  # name -> identity
-        self.revealed: Dict[str, bool] = {}  # name -> revealed status
+        self.board: List[str] = []
+        self.identities: Dict[str, str] = {}  # word -> identity
+        self.revealed: Dict[str, bool] = {}  # word -> revealed status
         # Randomly choose which team starts first
         self.starting_team = random.choice(["red", "blue"])
         self.current_team = self.starting_team
@@ -71,110 +71,102 @@ class PlaybookGame:
         self.start_time: Optional[float] = None
         self.end_time: Optional[float] = None
         self.moves_log: List[Dict] = []
-        self.play_history: List[Dict] = []
+        self.clue_history: List[Dict] = []
         
         # Generate unique game ID
         import uuid
         self.game_id = str(uuid.uuid4())[:8]
 
-    def load_names(self) -> List[str]:
-        """Load names from YAML file."""
+    def load_words(self) -> List[str]:
+        """Load words from YAML file."""
         try:
-            with open(self.names_file, "r") as f:
+            with open(self.words_file, "r") as f:
                 data = yaml.safe_load(f)
-                names = data.get("names", [])
-                if len(names) < self.FIELD_SIZE:
+                words = data.get("names", [])  # Keep "names" key for backward compatibility
+                if len(words) < self.BOARD_SIZE:
                     raise ValueError(
-                        f"Need at least {self.FIELD_SIZE} names, got {len(names)}"
+                        f"Need at least {self.BOARD_SIZE} words, got {len(words)}"
                     )
-                return names
+                return words
         except FileNotFoundError:
-            logger.error(f"Names file not found: {self.names_file}")
+            logger.error(f"Words file not found: {self.words_file}")
             raise
         except Exception as e:
-            logger.error(f"Error loading names: {e}")
+            logger.error(f"Error loading words: {e}")
             raise
 
-    def setup_field(self):
-        """Initialize the game field with random name assignment."""
-        all_names = self.load_names()
+    def setup_board(self):
+        """Initialize the game board with random word assignment."""
+        all_words = self.load_words()
 
-        # Select 25 random names
-        self.field = random.sample(all_names, self.FIELD_SIZE)
+        # Select 25 random words
+        self.board = random.sample(all_words, self.BOARD_SIZE)
 
         # Assign identities
-        positions = list(range(self.FIELD_SIZE))
+        positions = list(range(self.BOARD_SIZE))
         random.shuffle(positions)
 
-        # Assign allied targets based on who starts first
+        # Assign agents based on who starts first
         if self.starting_team == "red":
-            red_count = self.STARTING_TEAM_TARGETS
-            blue_count = self.SECOND_TEAM_TARGETS
+            red_count = self.STARTING_TEAM_AGENTS
+            blue_count = self.SECOND_TEAM_AGENTS
         else:
-            red_count = self.SECOND_TEAM_TARGETS
-            blue_count = self.STARTING_TEAM_TARGETS
+            red_count = self.SECOND_TEAM_AGENTS
+            blue_count = self.STARTING_TEAM_AGENTS
         
         red_positions = positions[:red_count]
         blue_positions = positions[red_count:red_count + blue_count]
 
-        # Assign illegal target and fake targets
+        # Assign assassin and bystanders
         remaining_positions = positions[red_count + blue_count:]
-        illegal_target_position = remaining_positions[0]
-        fake_target_positions = remaining_positions[1 : 1 + self.FAKE_TARGETS]
+        assassin_position = remaining_positions[0]
+        bystander_positions = remaining_positions[1 : 1 + self.BYSTANDERS]
 
         # Create identity mapping
         self.identities = {}
         self.revealed = {}
 
-        for i, name in enumerate(self.field):
+        for i, word in enumerate(self.board):
             if i in red_positions:
-                self.identities[name] = "red_target"
+                self.identities[word] = "red_agent"
             elif i in blue_positions:
-                self.identities[name] = "blue_target"
-            elif i == illegal_target_position:
-                self.identities[name] = "illegal_target"
+                self.identities[word] = "blue_agent"
+            elif i == assassin_position:
+                self.identities[word] = "assassin"
             else:
-                self.identities[name] = "civilian"
+                self.identities[word] = "bystander"
 
-            self.revealed[name] = False
+            self.revealed[word] = False
 
         logger.info(
-            f"Field setup complete. Starting team: {self.starting_team.upper()}. Red: {len(red_positions)}, Blue: {len(blue_positions)}, Civilians: {len(fake_target_positions)}, Illegal target: 1"
+            f"Board setup complete. Starting team: {self.starting_team.upper()}. Red: {len(red_positions)}, Blue: {len(blue_positions)}, Bystanders: {len(bystander_positions)}, Assassin: 1"
         )
 
-    def get_field_state(self, reveal_all: bool = False) -> Dict[str, Any]:
-        """Get current field state for display."""
+    def get_board_state(self, reveal_all: bool = False) -> Dict[str, Any]:
+        """Get current board state for display."""
         identities: Dict[str, str] = {} if not reveal_all else self.identities.copy()
 
         # Add revealed identities
         if not reveal_all:
-            for name in self.field:
-                if self.revealed.get(name, False):
-                    identities[name] = self.identities[name]
+            for word in self.board:
+                if self.revealed.get(word, False):
+                    identities[word] = self.identities[word]
 
         state = {
-            "board": self.field.copy(),
+            "board": self.board.copy(),
             "revealed": self.revealed.copy(),
             "identities": identities,
             "current_team": self.current_team,
             "turn_count": self.turn_count,
-            "play_history": self.format_play_history(),
+            "clue_history": self.format_clue_history(),
         }
 
         return state
 
-    def setup_board(self):
-        """Compatibility method - calls setup_field."""
-        return self.setup_field()
-
-    def get_board_state(self, reveal_all: bool = False) -> Dict[str, Any]:
-        """Compatibility method - calls get_field_state."""
-        return self.get_field_state(reveal_all)
-
-    def _format_field_for_player_cli(self, field_state: dict) -> str:
-        """Format the field for player display with revealed status."""
-        board = field_state["board"]
-        revealed = field_state["revealed"]
+    def _format_board_for_operative_cli(self, board_state: dict) -> str:
+        """Format the board for operative display with revealed status."""
+        board = board_state["board"]
+        revealed = board_state["revealed"]
         
         # Create a 5x5 grid display
         lines = []
@@ -182,15 +174,15 @@ class PlaybookGame:
             row_items = []
             for col in range(5):
                 idx = row * 5 + col
-                name = board[idx]
+                word = board[idx]
                 
-                # Mark revealed names with brackets
-                if revealed.get(name, False):
-                    display_name = f"[{name}]"
+                # Mark revealed words with brackets
+                if revealed.get(word, False):
+                    display_word = f"[{word}]"
                 else:
-                    display_name = name
+                    display_word = word
                 
-                row_items.append(f"{display_name:>12}")
+                row_items.append(f"{display_word:>12}")
             
             lines.append(" |".join(row_items))
         
@@ -209,21 +201,21 @@ class PlaybookGame:
             row_items = []
             for col in range(5):
                 idx = row * 5 + col
-                name = self.field[idx]
-                row_items.append(f"[white]{name}[/white]")
+                word = self.board[idx]
+                row_items.append(f"[white]{word}[/white]")
             table.add_row(*row_items)
 
         console.print(table)
         
         # Show team info
-        red_total = sum(1 for identity in self.identities.values() if identity == "red_target")
-        blue_total = sum(1 for identity in self.identities.values() if identity == "blue_target")
-        civilian_total = sum(1 for identity in self.identities.values() if identity == "civilian")
+        red_total = sum(1 for identity in self.identities.values() if identity == "red_agent")
+        blue_total = sum(1 for identity in self.identities.values() if identity == "blue_agent")
+        bystander_total = sum(1 for identity in self.identities.values() if identity == "bystander")
         
-        console.print(f"\n[red]Red Team:[/red] {red_total} targets")
-        console.print(f"[blue]Blue Team:[/blue] {blue_total} targets")
-        console.print(f"[dim]Fakes:[/dim] {civilian_total} targets")
-        console.print(f"[black on white]Illegal:[/black on white] 1 target")
+        console.print(f"\n[red]Red Team:[/red] {red_total} agents")
+        console.print(f"[blue]Blue Team:[/blue] {blue_total} agents")
+        console.print(f"[dim]Bystanders:[/dim] {bystander_total}")
+        console.print(f"[black on white]Assassin:[/black on white] 1")
         console.print("")
 
     def display_board(self, reveal_all: bool = False):
@@ -243,28 +235,28 @@ class PlaybookGame:
             row_items = []
             for col in range(5):
                 idx = row * 5 + col
-                name = state["board"][idx]
+                word = state["board"][idx]
 
                 # Color coding based on identity (if revealed or reveal_all)
-                if name in state["identities"]:
-                    identity = state["identities"][name]
-                    if identity == "red_target":
+                if word in state["identities"]:
+                    identity = state["identities"][word]
+                    if identity == "red_agent":
                         color = "red"
-                    elif identity == "blue_target":
+                    elif identity == "blue_agent":
                         color = "blue"
-                    elif identity == "illegal_target":
+                    elif identity == "assassin":
                         color = "black on white"
-                    else:  # civilian
+                    else:  # bystander
                         color = "dim"
                 else:
                     color = "white"
 
                 # Add revealed indicator
-                display_name = name
-                if self.revealed[name]:
-                    display_name = f"[{name}]"
+                display_word = word
+                if self.revealed[word]:
+                    display_word = f"[{word}]"
 
-                row_items.append(f"[{color}]{display_name}[/{color}]")
+                row_items.append(f"[{color}]{display_word}[/{color}]")
 
             table.add_row(*row_items)
 
@@ -273,22 +265,22 @@ class PlaybookGame:
         # Show team counts
         red_remaining = sum(
             1
-            for name, identity in self.identities.items()
-            if identity == "red_target" and not self.revealed[name]
+            for word, identity in self.identities.items()
+            if identity == "red_agent" and not self.revealed[word]
         )
         blue_remaining = sum(
             1
-            for name, identity in self.identities.items()
-            if identity == "blue_target" and not self.revealed[name]
+            for word, identity in self.identities.items()
+            if identity == "blue_agent" and not self.revealed[word]
         )
 
         console.print(
             f"\n[red]Red Team Remaining: {red_remaining}[/red]  [blue]Blue Team Remaining: {blue_remaining}[/blue]"
         )
 
-    def _format_field_for_player_prompt(self, board_state: Dict) -> str:
-        """Format the field for player prompt display with revealed status."""
-        field = board_state["board"]
+    def _format_board_for_operative_prompt(self, board_state: Dict) -> str:
+        """Format the board for operative prompt display with revealed status."""
+        board = board_state["board"]
         revealed = board_state["revealed"]
         
         # Create a 5x5 grid display
@@ -297,54 +289,54 @@ class PlaybookGame:
             row_items = []
             for col in range(5):
                 idx = row * 5 + col
-                name = field[idx]
+                word = board[idx]
                 
-                # Mark revealed names with brackets
-                if revealed.get(name, False):
-                    display_name = f"[{name}]"
+                # Mark revealed words with brackets
+                if revealed.get(word, False):
+                    display_word = f"[{word}]"
                 else:
-                    display_name = name
+                    display_word = word
                 
-                row_items.append(f"{display_name:>12}")
+                row_items.append(f"{display_word:>12}")
             
             lines.append(" |".join(row_items))
         
         return "\n".join(lines)
 
-    def get_coach_turn(self) -> Tuple[Optional[str], Optional[int|str]]:
-        """Get play and number from the current team's coach."""
+    def get_spymaster_turn(self) -> Tuple[Optional[str], Optional[int|str]]:
+        """Get clue and number from the current team's spymaster."""
         player = self.red_player if self.current_team == "red" else self.blue_player
-        prompt_key = f"{self.current_team}_coach"
+        prompt_key = f"{self.current_team}_spymaster"
 
         # Check if this specific role should be human
-        is_human_coach = (self.interactive_mode == f"{self.current_team}-coach")
+        is_human_spymaster = (self.interactive_mode == f"{self.current_team}-spymaster")
         
-        if is_human_coach:
-            # Display the coach prompt first
+        if is_human_spymaster:
+            # Display the spymaster prompt first
             board_state = self.get_board_state(reveal_all=True)
-            from playbook.prompt_manager import PromptManager
+            from based.prompt_manager import PromptManager
             prompt_manager = PromptManager()
             
-            # Calculate remaining targets
+            # Calculate remaining agents
             red_remaining = sum(
-                1 for name, identity in board_state["identities"].items()
-                if identity == "red_target" and not board_state["revealed"].get(name, False)
+                1 for word, identity in board_state["identities"].items()
+                if identity == "red_agent" and not board_state["revealed"].get(word, False)
             )
             blue_remaining = sum(
-                1 for name, identity in board_state["identities"].items()
-                if identity == "blue_target" and not board_state["revealed"].get(name, False)
+                1 for word, identity in board_state["identities"].items()
+                if identity == "blue_agent" and not board_state["revealed"].get(word, False)
             )
-            revealed_names = [name for name, revealed in board_state["revealed"].items() if revealed]
+            revealed_words = [word for word, revealed in board_state["revealed"].items() if revealed]
             
             # Categorize identities for cleaner prompt formatting
-            red_targets = [name for name, identity in board_state["identities"].items() 
-                             if identity == "red_target"]
-            blue_targets = [name for name, identity in board_state["identities"].items() 
-                              if identity == "blue_target"]
-            fake_targets = [name for name, identity in board_state["identities"].items() 
-                        if identity == "civilian"]
-            illegal_target = [name for name, identity in board_state["identities"].items() 
-                   if identity == "illegal_target"]
+            red_agents = [word for word, identity in board_state["identities"].items() 
+                             if identity == "red_agent"]
+            blue_agents = [word for word, identity in board_state["identities"].items() 
+                              if identity == "blue_agent"]
+            bystanders = [word for word, identity in board_state["identities"].items() 
+                        if identity == "bystander"]
+            assassin = [word for word, identity in board_state["identities"].items() 
+                   if identity == "assassin"]
             
             prompt = prompt_manager.load_prompt(
                 self.prompt_files[prompt_key],
@@ -354,26 +346,26 @@ class PlaybookGame:
                     "team": self.current_team,
                     "red_remaining": red_remaining,
                     "blue_remaining": blue_remaining,
-                    "revealed_names": ", ".join(revealed_names) if revealed_names else "None",
-                    "red_targets": ", ".join(red_targets),
-                    "blue_targets": ", ".join(blue_targets),
-                    "fake_targets": ", ".join(fake_targets),
-                    "illegal_target": ", ".join(illegal_target),
+                    "revealed_words": ", ".join(revealed_words) if revealed_words else "None",
+                    "red_agents": ", ".join(red_agents),
+                    "blue_agents": ", ".join(blue_agents),
+                    "bystanders": ", ".join(bystanders),
+                    "assassin": ", ".join(assassin),
                 },
             )
             
-            console.print(f"\n[bold]{self.current_team.title()} Coach Turn (Human)[/bold]")
+            console.print(f"\n[bold]{self.current_team.title()} Spymaster Turn (Human)[/bold]")
             console.print(f"[yellow]{'='*80}[/yellow]")
-            console.print("[yellow]COACH PROMPT:[/yellow]")
+            console.print("[yellow]SPYMASTER PROMPT:[/yellow]")
             console.print(f"[yellow]{'='*80}[/yellow]")
             console.print(prompt)
             console.print(f"[yellow]{'='*80}[/yellow]\n")
 
-            play = console.input("Enter your play: ").strip()
+            clue = console.input("Enter your clue: ").strip()
             number: int|str
             while True:
                 try:
-                    number_input = console.input("Enter number of related names (or 'unlimited'): ").strip().lower()
+                    number_input = console.input("Enter number of related words (or 'unlimited'): ").strip().lower()
                     if number_input == "unlimited":
                         number = "unlimited"
                         break
@@ -386,28 +378,28 @@ class PlaybookGame:
                 except ValueError:
                     console.print("[red]Please enter a valid number or 'unlimited'[/red]")
 
-            # Validate play with referee if available
+            # Validate clue with referee if available
             if self.referee_player:
                 board_state = self.get_board_state(reveal_all=True)
-                validated_play, validated_number, is_valid, reasoning = self._validate_play_with_referee(play, number, board_state)
+                validated_clue, validated_number, is_valid, reasoning = self._validate_clue_with_referee(clue, number, board_state)
                 if not is_valid:
-                    # Record invalid play in history for future reference
-                    self.record_play(self.current_team, play, number, invalid=True, invalid_reason=reasoning)
-                    # Log the rejected play and end turn
-                    log_coach_play(self.current_team, "human", f"REJECTED: {play}", number, self.turn_count, self.starting_team)
+                    # Record invalid clue in history for future reference
+                    self.record_clue(self.current_team, clue, number, invalid=True, invalid_reason=reasoning)
+                    # Log the rejected clue and end turn
+                    log_spymaster_clue(self.current_team, "human", f"REJECTED: {clue}", number, self.turn_count, self.starting_team)
                     return None, None  # Signal that turn should end
             
-            # Log the play
-            log_coach_play(self.current_team, "human", play, number, self.turn_count, self.starting_team)
-            return play, number
+            # Log the clue
+            log_spymaster_clue(self.current_team, "human", clue, number, self.turn_count, self.starting_team)
+            return clue, number
 
         else:  # AI Player
             board_state = self.get_board_state(reveal_all=True)
-            play, number = player.get_coach_move(
+            clue, number = player.get_spymaster_move(
                 board_state, self.prompt_files[prompt_key]
             )
             console.print(
-                f'[{self.current_team}]{self.current_team.title()} Coach[/{self.current_team}]: "{play}" ({number})'
+                f'[{self.current_team}]{self.current_team.title()} Spymaster[/{self.current_team}]: "{clue}" ({number})'
             )
             
             # Log AI call metadata first (before referee validation) if this is an AI player
@@ -428,148 +420,149 @@ class PlaybookGame:
                         openrouter_cost=metadata.get("openrouter_cost", 0.0),
                         upstream_cost=metadata.get("upstream_cost", 0.0),
                         turn_result=metadata.get("turn_result", {}),
-                        game_continues=not self.game_over
+                        game_continues=not self.game_over,
+                        is_retry=metadata.get("is_retry", False)
                     )
             
-            # Validate play with referee if available
+            # Validate clue with referee if available
             if self.referee_player:
-                validated_play, validated_number, is_valid, reasoning = self._validate_play_with_referee(play, number, board_state)
+                validated_clue, validated_number, is_valid, reasoning = self._validate_clue_with_referee(clue, number, board_state)
                 if not is_valid:
-                    # Record invalid play in history for future reference
-                    self.record_play(self.current_team, play, number, invalid=True, invalid_reason=reasoning)
-                    # Log the rejected play and end turn
-                    log_coach_play(self.current_team, player.model_name, f"REJECTED: {play}", number, self.turn_count, self.starting_team)
+                    # Record invalid clue in history for future reference
+                    self.record_clue(self.current_team, clue, number, invalid=True, invalid_reason=reasoning)
+                    # Log the rejected clue and end turn
+                    log_spymaster_clue(self.current_team, player.model_name, f"REJECTED: {clue}", number, self.turn_count, self.starting_team)
                     return None, None  # Signal that turn should end
             
-            # Log the play
-            log_coach_play(self.current_team, player.model_name, play, number, self.turn_count, self.starting_team)
+            # Log the clue
+            log_spymaster_clue(self.current_team, player.model_name, clue, number, self.turn_count, self.starting_team)
             
-            return play, number
+            return clue, number
 
-    def get_player_shots(self, play: str, number: int|str) -> List[str]:
-        """Get shots from the current team's player."""
+    def get_operative_guesses(self, clue: str, number: int|str) -> List[str]:
+        """Get guesses from the current team's operatives."""
         player = self.red_player if self.current_team == "red" else self.blue_player
-        prompt_key = f"{self.current_team}_player"
+        prompt_key = f"{self.current_team}_operative"
 
         # Check if this specific role should be human
-        is_human_player = (self.interactive_mode == f"{self.current_team}-player")
+        is_human_operative = (self.interactive_mode == f"{self.current_team}-operative")
         
-        if is_human_player:
-            # Display the player prompt first
+        if is_human_operative:
+            # Display the operative prompt first
             board_state = self.get_board_state(reveal_all=False)
-            from playbook.prompt_manager import PromptManager
+            from based.prompt_manager import PromptManager
             prompt_manager = PromptManager()
             
-            # Filter board to only show available (unrevealed) names
-            available_names = [
-                name for name in board_state["board"] 
-                if not board_state["revealed"].get(name, False)
+            # Filter board to only show available (unrevealed) words
+            available_words = [
+                word for word in board_state["board"] 
+                if not board_state["revealed"].get(word, False)
             ]
             
-            # Format available names as a simple list
-            available_names_formatted = ", ".join(available_names)
+            # Format available words as a simple list
+            available_words_formatted = ", ".join(available_words)
             
             prompt = prompt_manager.load_prompt(
                 self.prompt_files[prompt_key],
                 {
-                    "FIELD": self._format_field_for_player_prompt(board_state),
-                    "AVAILABLE_TARGETS": available_names_formatted,
-                    "PLAY_HISTORY": board_state.get("play_history", "None (game just started)"),
-                    "PLAY": play,
+                    "BOARD": self._format_board_for_operative_prompt(board_state),
+                    "AVAILABLE_WORDS": available_words_formatted,
+                    "CLUE_HISTORY": board_state.get("clue_history", "None (game just started)"),
+                    "CLUE": clue,
                     "NUMBER": number,
                     "TEAM": self.current_team,
                 },
             )
             
-            console.print(f"\n[bold]{self.current_team.title()} Player Turn (Human)[/bold]")
+            console.print(f"\n[bold]{self.current_team.title()} Operative Turn (Human)[/bold]")
             console.print(f"[yellow]{'='*80}[/yellow]")
-            console.print("[yellow]PLAYER PROMPT:[/yellow]")
+            console.print("[yellow]OPERATIVE PROMPT:[/yellow]")
             console.print(f"[yellow]{'='*80}[/yellow]")
             console.print(prompt)
             console.print(f"[yellow]{'='*80}[/yellow]\n")
 
-            shots: List[str] = []
+            guesses: List[str] = []
             
-            # Determine max shots based on play type
+            # Determine max guesses based on clue type
             if number == "unlimited" or number == 0:
-                max_shots = len([name for name in self.field if not self.revealed[name]])  # All available names
-                min_shots = 1 if number == 0 else 0  # Zero plays require at least one shot
+                max_guesses = len([word for word in self.board if not self.revealed[word]])  # All available words
+                min_guesses = 1 if number == 0 else 0  # Zero clues require at least one guess
             elif isinstance(number, int):
-                max_shots = number + 1  # N+1 rule
-                min_shots = 0
+                max_guesses = number + 1  # Plus-one rule
+                min_guesses = 0
             else:
-                max_shots = 1  # Fallback
-                min_shots = 0
+                max_guesses = 1  # Fallback
+                min_guesses = 0
 
-            for i in range(max_shots):
-                available_names = [
-                    name for name in self.field if not self.revealed[name]
+            for i in range(max_guesses):
+                available_words = [
+                    word for word in self.board if not self.revealed[word]
                 ]
 
-                console.print(f"\nAvailable names: {', '.join(available_names)}")
+                console.print(f"\nAvailable words: {', '.join(available_words)}")
                 
                 # Show appropriate prompt based on clue type
                 if number == "unlimited":
-                    prompt = f"Shot {i+1} (or 'done' to stop): "
+                    prompt = f"Guess {i+1} (or 'done' to stop): "
                 elif number == 0:
                     if i == 0:
-                        prompt = f"Shot {i+1} (required for zero play): "
+                        prompt = f"Guess {i+1} (required for zero clue): "
                     else:
-                        prompt = f"Shot {i+1} (or 'done' to stop): "
+                        prompt = f"Guess {i+1} (or 'done' to stop): "
                 else:
-                    prompt = f"Shot {i+1}/{max_shots} (or 'done' to stop): "
+                    prompt = f"Guess {i+1}/{max_guesses} (or 'done' to stop): "
                 
                 guess = console.input(prompt).strip()
 
                 if guess.lower() == "done":
-                    # Check minimum shot requirement for zero plays
-                    if number == 0 and len(shots) == 0:
-                        console.print(f"[red]Zero plays require at least one shot[/red]")
+                    # Check minimum guess requirement for zero clues
+                    if number == 0 and len(guesses) == 0:
+                        console.print(f"[red]Zero clues require at least one guess[/red]")
                         continue
                     break
 
-                if guess not in available_names:
+                if guess not in available_words:
                     console.print(f"[red]'{guess}' is not available. Try again.[/red]")
                     continue
 
-                shots.append(guess)
+                guesses.append(guess)
 
-                # Process shot immediately
+                # Process guess immediately
                 result = self.process_guess(guess)
-                if not result:  # Wrong shot ends turn
+                if not result:  # Wrong guess ends turn
                     break
 
-            return shots
+            return guesses
 
         else:  # AI Player
             board_state = self.get_board_state(reveal_all=False)
-            shots = player.get_player_moves(
-                board_state, play, number, self.prompt_files[prompt_key]
+            guesses = player.get_operative_moves(
+                board_state, clue, number, self.prompt_files[prompt_key]
             )
 
-            # Track shot results for metadata logging
-            shot_results = []
+            # Track guess results for metadata logging
+            guess_results = []
             
-            # Process shots one by one
-            for guess in shots:
+            # Process guesses one by one
+            for guess in guesses:
                 console.print(
-                    f"[{self.current_team}]{self.current_team.title()} Player[/{self.current_team}] shoots: {guess}"
+                    f"[{self.current_team}]{self.current_team.title()} Operative[/{self.current_team}] guesses: {guess}"
                 )
                 result = self.process_guess(guess)
                 
                 # Track result for metadata
                 if guess in self.identities:
                     identity = self.identities[guess]
-                    if identity == f"{self.current_team}_target":
-                        shot_results.append({"shot": guess, "result": "correct"})
-                    elif identity == "illegal_target":
-                        shot_results.append({"shot": guess, "result": "illegal_target"})
-                    elif identity == "civilian":
-                        shot_results.append({"shot": guess, "result": "civilian"})
-                    else:  # enemy target
-                        shot_results.append({"shot": guess, "result": "enemy"})
+                    if identity == f"{self.current_team}_agent":
+                        guess_results.append({"guess": guess, "result": "correct"})
+                    elif identity == "assassin":
+                        guess_results.append({"guess": guess, "result": "assassin"})
+                    elif identity == "bystander":
+                        guess_results.append({"guess": guess, "result": "bystander"})
+                    else:  # enemy agent
+                        guess_results.append({"guess": guess, "result": "enemy"})
                 
-                if not result:  # Wrong shot ends turn
+                if not result:  # Wrong guess ends turn
                     break
 
             # Log AI call metadata if this is an AI player
@@ -578,14 +571,14 @@ class PlaybookGame:
                 if metadata:
                     turn_label = format_turn_label(self.turn_count, self.current_team, self.starting_team)
                     
-                    # Add detailed results from processing shots
+                    # Add detailed results from processing guesses
                     turn_result = metadata.get("turn_result", {})
                     turn_result.update({
-                        "correct_shots": sum(1 for r in shot_results if r["result"] == "correct"),
-                        "civilian_hits": sum(1 for r in shot_results if r["result"] == "civilian"),
-                        "enemy_hits": sum(1 for r in shot_results if r["result"] == "enemy"),
-                        "illegal_target_hits": sum(1 for r in shot_results if r["result"] == "illegal_target"),
-                        "shot_details": shot_results
+                        "correct_guesses": sum(1 for r in guess_results if r["result"] == "correct"),
+                        "bystander_hits": sum(1 for r in guess_results if r["result"] == "bystander"),
+                        "enemy_hits": sum(1 for r in guess_results if r["result"] == "enemy"),
+                        "assassin_hits": sum(1 for r in guess_results if r["result"] == "assassin"),
+                        "guess_details": guess_results
                     })
                     
                     log_ai_call_metadata(
@@ -601,55 +594,56 @@ class PlaybookGame:
                         openrouter_cost=metadata.get("openrouter_cost", 0.0),
                         upstream_cost=metadata.get("upstream_cost", 0.0),
                         turn_result=turn_result,
-                        game_continues=not self.game_over
+                        game_continues=not self.game_over,
+                        is_retry=metadata.get("is_retry", False)
                     )
 
-            return shots
+            return guesses
 
-    def process_guess(self, name: str) -> bool:
+    def process_guess(self, word: str) -> bool:
         """Process a single guess and return True if correct, False if wrong."""
-        if name not in self.identities:
-            logger.warning(f"Invalid guess: {name}")
+        if word not in self.identities:
+            logger.warning(f"Invalid guess: {word}")
             return False
 
-        identity = self.identities[name]
-        self.revealed[name] = True
+        identity = self.identities[word]
+        self.revealed[word] = True
 
         # Log the move
         move = {
             "team": self.current_team,
-            "name": name,
+            "word": word,
             "identity": identity,
-            "correct": identity == f"{self.current_team}_target",
+            "correct": identity == f"{self.current_team}_agent",
         }
         self.moves_log.append(move)
 
         # Record guess outcome for clue history
-        correct = identity == f"{self.current_team}_target"
-        self.record_shot_outcome(name, identity, correct)
+        correct = identity == f"{self.current_team}_agent"
+        self.record_guess_outcome(word, identity, correct)
 
         # Determine result type for logging
         player = self.red_player if self.current_team == "red" else self.blue_player
         model_name = player.model_name if hasattr(player, 'model_name') else "human"
 
-        if identity == "illegal_target":
+        if identity == "assassin":
             console.print(
-                f"[black on white]💀 THE ILLEGAL TARGET! {self.current_team.title()} team loses![/black on white]"
+                f"[black on white]💀 THE ASSASSIN! {self.current_team.title()} team loses![/black on white]"
             )
-            log_player_shot(self.current_team, model_name, name, "illegal_target", self.turn_count, self.starting_team)
+            log_operative_guess(self.current_team, model_name, word, "assassin", self.turn_count, self.starting_team)
             self.game_over = True
             self.winner = "blue" if self.current_team == "red" else "red"
             return False
 
-        elif identity == f"{self.current_team}_target":
-            console.print(f"[green]✓ Correct! {name} scores 1 goal![/green]")
-            log_player_shot(self.current_team, model_name, name, "correct", self.turn_count, self.starting_team)
+        elif identity == f"{self.current_team}_agent":
+            console.print(f"[green]✓ Correct! {word} is one of your agents![/green]")
+            log_operative_guess(self.current_team, model_name, word, "correct", self.turn_count, self.starting_team)
 
             # Check win condition
             remaining = sum(
                 1
-                for n, i in self.identities.items()
-                if i == f"{self.current_team}_target" and not self.revealed[n]
+                for w, i in self.identities.items()
+                if i == f"{self.current_team}_agent" and not self.revealed[w]
             )
             if remaining == 0:
                 console.print(
@@ -661,19 +655,19 @@ class PlaybookGame:
             return True
 
         else:
-            if identity == "civilian":
-                console.print(f"[yellow]✗ {name} is a fake.[/yellow]")
-                log_player_shot(self.current_team, model_name, name, "civilian", self.turn_count, self.starting_team)
+            if identity == "bystander":
+                console.print(f"[yellow]✗ {word} is an innocent bystander.[/yellow]")
+                log_operative_guess(self.current_team, model_name, word, "bystander", self.turn_count, self.starting_team)
             else:
-                console.print(f"[dim]✗ {name} is an own goal.[/dim]")
-                log_player_shot(self.current_team, model_name, name, "enemy", self.turn_count, self.starting_team)
+                console.print(f"[dim]✗ {word} is an enemy agent![/dim]")
+                log_operative_guess(self.current_team, model_name, word, "enemy", self.turn_count, self.starting_team)
                 
-                # Check if the opposing team just won by having this team hit their target
+                # Check if the opposing team just won by having this team hit their agent
                 opposing_team = "blue" if self.current_team == "red" else "red"
                 remaining = sum(
                     1
-                    for n, i in self.identities.items()
-                    if i == f"{opposing_team}_target" and not self.revealed[n]
+                    for w, i in self.identities.items()
+                    if i == f"{opposing_team}_agent" and not self.revealed[w]
                 )
                 if remaining == 0:
                     console.print(
@@ -684,21 +678,21 @@ class PlaybookGame:
                     
             return False
 
-    def get_remaining_targets(self):
-        """Get remaining target counts for both teams."""
+    def get_remaining_agents(self):
+        """Get remaining agent counts for both teams."""
         red_remaining = sum(
-            1 for name, identity in self.identities.items()
-            if identity == "red_target" and not self.revealed[name]
+            1 for word, identity in self.identities.items()
+            if identity == "red_agent" and not self.revealed[word]
         )
         blue_remaining = sum(
-            1 for name, identity in self.identities.items()
-            if identity == "blue_target" and not self.revealed[name]
+            1 for word, identity in self.identities.items()
+            if identity == "blue_agent" and not self.revealed[word]
         )
         return red_remaining, blue_remaining
 
     def display_game_status(self):
-        """Display the current game status showing remaining targets."""
-        red_remaining, blue_remaining = self.get_remaining_targets()
+        """Display the current game status showing remaining agents."""
+        red_remaining, blue_remaining = self.get_remaining_agents()
         
         # Always show starting team first
         if self.starting_team == "red":
@@ -707,98 +701,98 @@ class PlaybookGame:
             console.print(f"[bold]Status:[/bold] [blue]Blue {blue_remaining}[/blue], [red]Red {red_remaining}[/red]")
         console.print("")
 
-    def record_play(self, team: str, play: str, number: int|str, invalid: bool = False, invalid_reason: str = ""):
-        """Record a play for the game history."""
-        play_entry = {
+    def record_clue(self, team: str, clue: str, number: int|str, invalid: bool = False, invalid_reason: str = ""):
+        """Record a clue for the game history."""
+        clue_entry = {
             "turn": self.turn_count,
             "team": team,
-            "play": play,
+            "clue": clue,
             "number": number,
-            "shots": [],
+            "guesses": [],
             "invalid": invalid,
             "invalid_reason": invalid_reason
         }
-        self.play_history.append(play_entry)
+        self.clue_history.append(clue_entry)
 
-    def record_shot_outcome(self, name: str, identity: str, correct: bool):
-        """Record the outcome of a shot for the current play."""
-        if self.play_history:
-            current_play = self.play_history[-1]
-            outcome = "correct" if correct else ("enemy" if identity.endswith("_target") else ("civilian" if identity == "civilian" else "illegal_target"))
-            current_play["shots"].append({
-                "name": name,
+    def record_guess_outcome(self, word: str, identity: str, correct: bool):
+        """Record the outcome of a guess for the current clue."""
+        if self.clue_history:
+            current_clue = self.clue_history[-1]
+            outcome = "correct" if correct else ("enemy" if identity.endswith("_agent") else ("bystander" if identity == "bystander" else "assassin"))
+            current_clue["guesses"].append({
+                "word": word,
                 "identity": identity,
                 "outcome": outcome
             })
 
-    def format_play_history(self) -> str:
-        """Format the play history for display to players."""
-        if not self.play_history:
+    def format_clue_history(self) -> str:
+        """Format the clue history for display to operatives."""
+        if not self.clue_history:
             return "None (game just started)"
         
         history_lines = []
-        for entry in self.play_history:
+        for entry in self.clue_history:
             turn_letter = "a" if entry["team"] == self.starting_team else "b"
             turn_label = f"Turn {entry['turn'] + 1}{turn_letter}"
             
             # Format the clue line
             if entry.get("invalid", False):
-                play_line = f"{turn_label}: {entry['team'].title()} Play: \"{entry['play']}\" ({entry['number']}) [INVALID: {entry.get('invalid_reason', 'rule violation')}]"
+                clue_line = f"{turn_label}: {entry['team'].title()} Clue: \"{entry['clue']}\" ({entry['number']}) [INVALID: {entry.get('invalid_reason', 'rule violation')}]"
             else:
-                play_line = f"{turn_label}: {entry['team'].title()} Play: \"{entry['play']}\" ({entry['number']})"
-            history_lines.append(play_line)
+                clue_line = f"{turn_label}: {entry['team'].title()} Clue: \"{entry['clue']}\" ({entry['number']})"
+            history_lines.append(clue_line)
             
             # Format the outcomes
             if entry.get("invalid", False):
-                history_lines.append("  → Turn ended due to invalid play")
-            elif entry["shots"]:
+                history_lines.append("  → Turn ended due to invalid clue")
+            elif entry["guesses"]:
                 outcomes = []
-                for shot in entry["shots"]:
-                    if shot["outcome"] == "correct":
-                        outcomes.append(f"{shot['name']} ✓")
-                    elif shot["outcome"] == "enemy":
-                        outcomes.append(f"{shot['name']} ✗ (enemy)")
-                    elif shot["outcome"] == "civilian":
-                        outcomes.append(f"{shot['name']} ○ (civilian)")
-                    # Note: illegal_target outcomes end the game, so we don't need to handle them here
+                for guess in entry["guesses"]:
+                    if guess["outcome"] == "correct":
+                        outcomes.append(f"{guess['word']} ✓")
+                    elif guess["outcome"] == "enemy":
+                        outcomes.append(f"{guess['word']} ✗ (enemy)")
+                    elif guess["outcome"] == "bystander":
+                        outcomes.append(f"{guess['word']} ○ (bystander)")
+                    # Note: assassin outcomes end the game, so we don't need to handle them here
                 
                 if outcomes:
                     history_lines.append(f"  → {', '.join(outcomes)}")
             else:
-                history_lines.append("  → No shots taken")
+                history_lines.append("  → No guesses made")
             
             history_lines.append("")  # Empty line for spacing
         
         return "\n".join(history_lines).strip()
 
-    def _validate_play_with_referee(self, play: str, number: int|str, board_state: Dict) -> Tuple[str, int|str, bool, str]:
-        """Validate play with referee and handle invalid plays. Returns (play, number, is_valid, reasoning)."""
+    def _validate_clue_with_referee(self, clue: str, number: int|str, board_state: Dict) -> Tuple[str, int|str, bool, str]:
+        """Validate clue with referee and handle invalid clues. Returns (clue, number, is_valid, reasoning)."""
         try:
             if self.interactive_mode == "referee":
                 # Human referee validation
-                from playbook.prompt_manager import PromptManager
+                from based.prompt_manager import PromptManager
                 prompt_manager = PromptManager()
                 
-                # Get team's allied targets
-                allied_targets = [
-                    name for name, identity in board_state["identities"].items()
-                    if identity == f"{self.current_team}_target"
+                # Get team's agents
+                team_agents = [
+                    word for word, identity in board_state["identities"].items()
+                    if identity == f"{self.current_team}_agent"
                 ]
                 
                 prompt = prompt_manager.load_prompt(
                     self.prompt_files["referee"],
                     {
-                        "play": play,
+                        "clue": clue,
                         "number": number,
                         "team": self.current_team,
                         "board": board_state["board"],
-                        "allied_targets": ", ".join(allied_targets),
+                        "team_agents": ", ".join(team_agents),
                     },
                 )
                 
                 console.print(f"\n[bold]Referee Validation (Human)[/bold]")
                 console.print(f"Team: {self.current_team.title()}")
-                console.print(f'Play: "{play}" ({number})')
+                console.print(f'Clue: "{clue}" ({number})')
                 console.print(f"[yellow]{'='*80}[/yellow]")
                 console.print("[yellow]REFEREE PROMPT:[/yellow]")
                 console.print(f"[yellow]{'='*80}[/yellow]")
@@ -806,9 +800,9 @@ class PlaybookGame:
                 console.print(f"[yellow]{'='*80}[/yellow]\n")
                 
                 while True:
-                    decision = console.input("Is this play valid? (y/n): ").strip().lower()
+                    decision = console.input("Is this clue valid? (y/n): ").strip().lower()
                     if decision in ['y', 'yes']:
-                        reasoning = console.input("Reasoning (optional): ").strip() or "Play approved by human referee"
+                        reasoning = console.input("Reasoning (optional): ").strip() or "Clue approved by human referee"
                         is_valid = True
                         break
                     elif decision in ['n', 'no']:
@@ -820,19 +814,19 @@ class PlaybookGame:
             else:
                 # AI referee validation
                 is_valid, reasoning = self.referee_player.get_referee_validation(
-                    play, number, self.current_team, board_state, self.prompt_files["referee"]
+                    clue, number, self.current_team, board_state, self.prompt_files["referee"]
                 )
                 
                 # If first referee flags as invalid, do second review with Gemini 2.5 Pro
                 if not is_valid and self.referee_player is not None:
-                    console.print(f"[yellow]🔄 First referee flagged play as invalid. Getting second opinion from Gemini 2.5 Pro...[/yellow]")
+                    console.print(f"[yellow]🔄 First referee flagged clue as invalid. Getting second opinion from Gemini 2.5 Pro...[/yellow]")
                     
                     # Create a temporary Gemini 2.5 Pro player for second review
                     review_referee = AIPlayer("gemini-2.5")
                     
                     # Get second opinion with same prompt
                     review_valid, review_reasoning = review_referee.get_referee_validation(
-                        play, number, self.current_team, board_state, self.prompt_files["referee"]
+                        clue, number, self.current_team, board_state, self.prompt_files["referee"]
                     )
                     
                     # Log the review referee metadata
@@ -843,7 +837,7 @@ class PlaybookGame:
                         # Update turn result with review referee validation outcome
                         turn_result = review_metadata.get("turn_result", {})
                         turn_result.update({
-                            "evaluated_play": play,
+                            "evaluated_clue": clue,
                             "evaluated_number": number,
                             "review_referee": True,
                             "first_referee_model": self.referee_player.model_name,
@@ -864,7 +858,8 @@ class PlaybookGame:
                             openrouter_cost=review_metadata.get("openrouter_cost", 0.0),
                             upstream_cost=review_metadata.get("upstream_cost", 0.0),
                             turn_result=turn_result,
-                            game_continues=not self.game_over
+                            game_continues=not self.game_over,
+                            is_retry=review_metadata.get("is_retry", False)
                         )
                     
                     if review_valid:
@@ -875,8 +870,8 @@ class PlaybookGame:
                         is_valid = True
                         reasoning = f"Approved on review by Gemini 2.5 Pro: {review_reasoning}"
                     else:
-                        # Both referees say invalid - reject the play
-                        console.print(f"[yellow]❌ The ruling on the play stands![/yellow]")
+                        # Both referees say invalid - reject the clue
+                        console.print(f"[yellow]❌ The ruling on the clue stands![/yellow]")
                         console.print(f"[dim]First referee ({self.referee_player.model_name}): {reasoning}[/dim]")
                         console.print(f"[dim]Review referee: {review_reasoning}[/dim]")
                         reasoning = f"Upheld on review. First: {reasoning}. Review: {review_reasoning}"
@@ -890,7 +885,7 @@ class PlaybookGame:
                     # Update turn result with referee validation outcome
                     turn_result = metadata.get("turn_result", {})
                     turn_result.update({
-                        "evaluated_play": play,
+                        "evaluated_clue": clue,
                         "evaluated_number": number
                     })
                     
@@ -898,7 +893,7 @@ class PlaybookGame:
                         game_id=self.game_id,
                         model_name=self.referee_player.model_name,
                         call_type=metadata["call_type"],
-                        team=f"referee_{self.current_team}",  # Include which team's play was evaluated
+                        team=f"referee_{self.current_team}",  # Include which team's clue was evaluated
                         turn=turn_label,
                         input_tokens=metadata["input_tokens"],
                         output_tokens=metadata["output_tokens"],
@@ -907,55 +902,69 @@ class PlaybookGame:
                         openrouter_cost=metadata.get("openrouter_cost", 0.0),
                         upstream_cost=metadata.get("upstream_cost", 0.0),
                         turn_result=turn_result,
-                        game_continues=not self.game_over
+                        game_continues=not self.game_over,
+                        is_retry=metadata.get("is_retry", False)
                     )
             
             if is_valid:
-                return play, number, True, reasoning
+                return clue, number, True, reasoning
             else:
-                #console.print(f"[red]🔴 Referee: Play REJECTED - {reasoning}[/red]")
-                console.print(f"⚠️  Turn ended due to invalid play")
-                log_referee_rejection(self.current_team, play, number, reasoning)
-                return play, number, False, reasoning
+                console.print(f"⚠️  Turn ended due to invalid clue")
+                log_referee_rejection(self.current_team, clue, number, reasoning)
+                return clue, number, False, reasoning
                 
         except Exception as e:
             logger.error(f"Error in referee validation: {e}")
-            console.print(f"[yellow]⚠️  Referee error, allowing original play[/yellow]")
-            return play, number, True, "Referee error - play allowed"
+            console.print(f"[yellow]⚠️  Referee error, allowing original clue[/yellow]")
+            return clue, number, True, "Referee error - clue allowed"
 
-    def apply_invalid_play_penalty(self):
-        """Apply penalty for invalid play: remove one of the opposing team's targets."""
+    def apply_invalid_clue_penalty(self):
+        """Apply penalty for invalid clue: reveal one of the opposing team's agents."""
         # Get opposing team
         opposing_team = "blue" if self.current_team == "red" else "red"
         
-        # Find unrevealed opposing team targets
-        opposing_targets = [
-            name for name, identity in self.identities.items()
-            if identity == f"{opposing_team}_target" and not self.revealed[name]
+        # Find unrevealed opposing team agents
+        opposing_agents = [
+            word for word, identity in self.identities.items()
+            if identity == f"{opposing_team}_agent" and not self.revealed[word]
         ]
         
-        if opposing_targets:
-            # Randomly select one to remove
-            penalty_target = random.choice(opposing_targets)
-            self.revealed[penalty_target] = True
+        if opposing_agents:
+            # Randomly select one to reveal
+            penalty_word = random.choice(opposing_agents)
+            self.revealed[penalty_word] = True
             
-            console.print(f"[dim]⚖️  PENALTY: {penalty_target} revealed for {opposing_team.upper()} team due to invalid play[/dim]")
+            console.print(f"[dim]⚖️  PENALTY: {penalty_word} revealed for {opposing_team.upper()} team due to invalid clue[/dim]")
             
             # Log the penalty action
-            log_referee_penalty(self.current_team, opposing_team, penalty_target)
+            log_referee_penalty(self.current_team, opposing_team, penalty_word)
             
-            logger.info(f"Invalid play penalty applied: revealed {penalty_target} for {opposing_team} team")
+            logger.info(f"Invalid clue penalty applied: revealed {penalty_word} for {opposing_team} team")
             
-            return penalty_target
+            # Check if the violating team wins (opposing team has no agents left)
+            remaining_opposing_agents = sum(
+                1
+                for word, identity in self.identities.items()
+                if identity == f"{opposing_team}_agent" and not self.revealed[word]
+            )
+            
+            if remaining_opposing_agents == 0:
+                console.print(
+                    f"[green]🎉 {self.current_team.title()} team wins![/green]"
+                )
+                self.game_over = True
+                self.winner = self.current_team
+            
+            return penalty_word
         else:
-            console.print(f"[yellow]⚖️  PENALTY: No unrevealed {opposing_team.upper()} targets to remove[/yellow]")
-            logger.info(f"Invalid play penalty: no unrevealed {opposing_team} targets available")
+            console.print(f"[yellow]⚖️  PENALTY: No unrevealed {opposing_team.upper()} agents to reveal[/yellow]")
+            logger.info(f"Invalid clue penalty: no unrevealed {opposing_team} agents available")
             return None
 
     def switch_teams(self):
         """Switch to the other team."""
         # Log status before switching
-        red_remaining, blue_remaining = self.get_remaining_targets()
+        red_remaining, blue_remaining = self.get_remaining_agents()
         log_turn_end_status(red_remaining, blue_remaining)
         
         # Display game status to terminal
@@ -968,24 +977,24 @@ class PlaybookGame:
         """Play a complete game and return results."""
         self.start_time = time.time()
 
-        logger.info("Starting new Switchboard game")
+        logger.info("Starting new Codenames game")
         self.setup_board()
         
         # Log game start
         red_model = self.red_player.model_name if hasattr(self.red_player, 'model_name') else "human"
         blue_model = self.blue_player.model_name if hasattr(self.blue_player, 'model_name') else "human"
-        log_game_start(self.game_id, red_model, blue_model, self.field, self.identities)
+        log_game_start(self.game_id, red_model, blue_model, self.board, self.identities)
         
         # Log game setup metadata
-        log_game_setup_metadata(self.game_id, red_model, blue_model, self.prompt_files, self.field, self.identities)
+        log_game_setup_metadata(self.game_id, red_model, blue_model, self.prompt_files, self.board, self.identities)
 
-        console.print("[bold]🎯 The Playbook Game Starting![/bold]")
+        console.print("[bold]🎯 Codenames Game Starting![/bold]")
         console.print(f"[red]Red Team:[/red] {red_model}")
-        console.print(f"  • Coach: {self.prompt_files.get('red_coach', 'default')}")
-        console.print(f"  • Player: {self.prompt_files.get('red_player', 'default')}")
+        console.print(f"  • Spymaster: {self.prompt_files.get('red_spymaster', 'default')}")
+        console.print(f"  • Operative: {self.prompt_files.get('red_operative', 'default')}")
         console.print(f"[blue]Blue Team:[/blue] {blue_model}")
-        console.print(f"  • Coach: {self.prompt_files.get('blue_coach', 'default')}")
-        console.print(f"  • Player: {self.prompt_files.get('blue_player', 'default')}")
+        console.print(f"  • Spymaster: {self.prompt_files.get('blue_spymaster', 'default')}")
+        console.print(f"  • Operative: {self.prompt_files.get('blue_operative', 'default')}")
         if self.referee_player:
             referee_model = self.referee_player.model_name if hasattr(self.referee_player, 'model_name') else "human"
             console.print(f"[yellow]Referee:[/yellow] {referee_model} ({self.prompt_files.get('referee', 'default')})")
@@ -998,21 +1007,21 @@ class PlaybookGame:
         self.display_board_start()
 
         while not self.game_over:
-            # Coach phase
-            play, number = self.get_coach_turn()
+            # Spymaster phase
+            clue, number = self.get_spymaster_turn()
             
-            # Check if play was rejected by referee
-            if play is None or number is None:
-                # Play was rejected, apply penalty and end turn immediately
-                self.apply_invalid_play_penalty()
+            # Check if clue was rejected by referee
+            if clue is None or number is None:
+                # Clue was rejected, apply penalty and end turn immediately
+                self.apply_invalid_clue_penalty()
                 self.switch_teams()
                 continue
 
-            # Record the play for history tracking
-            self.record_play(self.current_team, play, number)
+            # Record the clue for history tracking
+            self.record_clue(self.current_team, clue, number)
 
-            # Player phase - play and number are guaranteed to be non-None at this point
-            shots = self.get_player_shots(play, number)
+            # Operative phase - clue and number are guaranteed to be non-None at this point
+            guesses = self.get_operative_guesses(clue, number)
 
             if not self.game_over:
                 self.switch_teams()
@@ -1035,3 +1044,7 @@ class PlaybookGame:
 
         logger.info(f"Game completed. Winner: {self.winner}, Turns: {self.turn_count}")
         return result
+
+
+# Backward compatibility alias
+PlaybookGame = CodenamesGame

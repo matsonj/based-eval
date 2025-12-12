@@ -1,11 +1,11 @@
-"""Tests for the core game logic."""
+"""Tests for the core Codenames game logic."""
 
 import random
 
 import pytest
 
-from playbook.game import PlaybookGame
-from playbook.player import HumanPlayer
+from based.game import CodenamesGame
+from based.player import HumanPlayer
 
 
 class MockHumanPlayer(HumanPlayer):
@@ -23,16 +23,16 @@ class MockHumanPlayer(HumanPlayer):
         return "ALPHA"  # Default fallback
 
 
-class TestPlaybookGame:
-    """Test cases for PlaybookGame."""
+class TestCodenamesGame:
+    """Test cases for CodenamesGame."""
 
     def setup_method(self):
         """Setup for each test."""
         random.seed(42)  # Reproducible tests
         self.red_player = MockHumanPlayer()
         self.blue_player = MockHumanPlayer()
-        self.game = PlaybookGame(
-            names_file="inputs/names.yaml",
+        self.game = CodenamesGame(
+            words_file="inputs/names.yaml",
             red_player=self.red_player,
             blue_player=self.blue_player,
         )
@@ -42,32 +42,32 @@ class TestPlaybookGame:
         self.game.setup_board()
 
         # Check board size
-        assert len(self.game.field) == 25
+        assert len(self.game.board) == 25
 
         # Check identity counts
         red_count = sum(
             1
             for identity in self.game.identities.values()
-            if identity == "red_target"
+            if identity == "red_agent"
         )
         blue_count = sum(
             1
             for identity in self.game.identities.values()
-            if identity == "blue_target"
+            if identity == "blue_agent"
         )
-        civilian_count = sum(
-            1 for identity in self.game.identities.values() if identity == "civilian"
+        bystander_count = sum(
+            1 for identity in self.game.identities.values() if identity == "bystander"
         )
-        illegal_target_count = sum(
-            1 for identity in self.game.identities.values() if identity == "illegal_target"
+        assassin_count = sum(
+            1 for identity in self.game.identities.values() if identity == "assassin"
         )
 
         assert red_count == 9
         assert blue_count == 8
-        assert civilian_count == 7
-        assert illegal_target_count == 1
+        assert bystander_count == 7
+        assert assassin_count == 1
 
-        # Check all names are initially unrevealed
+        # Check all words are initially unrevealed
         assert all(not revealed for revealed in self.game.revealed.values())
 
     def test_board_state(self):
@@ -85,68 +85,68 @@ class TestPlaybookGame:
         full_state = self.game.get_board_state(reveal_all=True)
         assert len(full_state["identities"]) == 25  # All identities shown
 
-    def test_process_shot_correct(self):
-        """Test processing a correct shot."""
+    def test_process_guess_correct(self):
+        """Test processing a correct guess."""
         self.game.setup_board()
 
-        # Find a target of the current team to shoot
-        current_team_target = None
-        for name, identity in self.game.identities.items():
-            if identity == f"{self.game.current_team}_target":
-                current_team_target = name
+        # Find an agent of the current team to guess
+        current_team_agent = None
+        for word, identity in self.game.identities.items():
+            if identity == f"{self.game.current_team}_agent":
+                current_team_agent = word
                 break
 
-        assert current_team_target is not None
+        assert current_team_agent is not None
 
-        # Process the shot
-        result = self.game.process_guess(current_team_target)
+        # Process the guess
+        result = self.game.process_guess(current_team_agent)
 
         assert result is True
-        assert self.game.revealed[current_team_target] is True
+        assert self.game.revealed[current_team_agent] is True
         assert len(self.game.moves_log) == 1
         assert self.game.moves_log[0]["correct"] is True
 
-    def test_process_shot_civilian(self):
-        """Test processing a civilian shot."""
+    def test_process_guess_bystander(self):
+        """Test processing a bystander guess."""
         self.game.setup_board()
 
-        # Find a civilian to shoot
-        civilian = None
-        for name, identity in self.game.identities.items():
-            if identity == "civilian":
-                civilian = name
+        # Find a bystander to guess
+        bystander = None
+        for word, identity in self.game.identities.items():
+            if identity == "bystander":
+                bystander = word
                 break
 
-        assert civilian is not None
+        assert bystander is not None
 
-        # Process the shot
-        result = self.game.process_guess(civilian)
+        # Process the guess
+        result = self.game.process_guess(bystander)
 
         assert result is False
-        assert self.game.revealed[civilian] is True
+        assert self.game.revealed[bystander] is True
         assert len(self.game.moves_log) == 1
         assert self.game.moves_log[0]["correct"] is False
 
-    def test_process_shot_illegal_target(self):
-        """Test processing an illegal target shot (instant loss)."""
+    def test_process_guess_assassin(self):
+        """Test processing an assassin guess (instant loss)."""
         self.game.setup_board()
 
-        # Find the illegal target
-        illegal_target = None
-        for name, identity in self.game.identities.items():
-            if identity == "illegal_target":
-                illegal_target = name
+        # Find the assassin
+        assassin = None
+        for word, identity in self.game.identities.items():
+            if identity == "assassin":
+                assassin = word
                 break
 
-        assert illegal_target is not None
+        assert assassin is not None
 
-        # Process the shot
-        result = self.game.process_guess(illegal_target)
+        # Process the guess
+        result = self.game.process_guess(assassin)
 
         assert result is False
         assert self.game.game_over is True
         assert self.game.winner == "blue"  # Red team loses
-        assert self.game.revealed[illegal_target] is True
+        assert self.game.revealed[assassin] is True
 
     def test_switch_teams(self):
         """Test team switching."""
@@ -167,19 +167,19 @@ class TestPlaybookGame:
         """Test win condition detection."""
         self.game.setup_board()
 
-        # Reveal all red targets except one
-        red_targets = [
-            name
-            for name, identity in self.game.identities.items()
-            if identity == "red_target"
+        # Reveal all red agents except one
+        red_agents = [
+            word
+            for word, identity in self.game.identities.items()
+            if identity == "red_agent"
         ]
 
         # Reveal all but the last one
-        for name in red_targets[:-1]:
-            self.game.revealed[name] = True
+        for word in red_agents[:-1]:
+            self.game.revealed[word] = True
 
-        # Process the last red target
-        result = self.game.process_guess(red_targets[-1])
+        # Process the last red agent
+        result = self.game.process_guess(red_agents[-1])
 
         assert result is True
         assert self.game.game_over is True

@@ -1,30 +1,43 @@
-# The Playbook AI Game Simulator
+# BASED Eval
 
-A Python simulation of **The Playbook**, a strategic deduction game where Coaches give cryptic plays to their Players to help them identify Allied Targets while avoiding The Illegal Target.
+**Benchmark for Association, Sorting, and Entity Deduction**
 
-## Game Overview
+A multi-game AI evaluation framework for testing language model capabilities through strategic games. Currently includes Codenames as the first game module.
 
-In The Playbook:
-- **25 names** are arranged on a board with hidden identities
-- **Red Team**: 9 Allied Targets
-- **Blue Team**: 8 Allied Targets  
-- **7 Innocent Civilians**
-- **1 The Illegal Target** (instant loss if shot)
+## Overview
 
-Teams alternate turns:
-1. **Coach** gives a cryptic play and number
-2. **Player** takes up to N+1 shots based on the play
-3. First team to find all their Allied Targets wins
-4. Hit The Illegal Target = instant loss
+BASED Eval tests AI models on:
+- **Association**: Finding semantic connections between concepts
+- **Sorting**: Categorizing and prioritizing information
+- **Entity Deduction**: Reasoning about hidden information and making inferences
+
+## Current Games
+
+### 🎯 Codenames
+
+A strategic word association game where AI Spymasters give one-word clues to help AI Operatives identify their team's agents on a 5×5 grid while avoiding enemy agents, innocent bystanders, and the assassin.
+
+**Game Setup:**
+- **25 words** arranged in a 5×5 grid
+- **Red Team**: 8-9 Agents (9 if starting)
+- **Blue Team**: 8-9 Agents (8 if Red starts)
+- **7 Innocent Bystanders**
+- **1 Assassin** (instant loss if guessed)
+
+**Turn Structure:**
+1. **Spymaster** gives a one-word clue and number
+2. **Operatives** make up to N+1 guesses based on the clue
+3. First team to find all their agents wins
+4. Guess the Assassin = instant loss
 
 ## Features
 
-- **AI vs AI**: Different models for each team
+- **AI vs AI**: Pit different models against each other
 - **Human vs AI**: Interactive mode for human players
-- **Flexible AI Configuration**: Separate model assignment per team
-- **External Prompt Templates**: Markdown files for easy prompt tuning
-- **Expert Play Types**: Support for zero plays (0) and unlimited plays
-- **Referee Validation**: AI-powered play validation for fair play
+- **Flexible Configuration**: Separate model assignment per role
+- **External Prompts**: Markdown files for easy prompt tuning
+- **Expert Clue Types**: Support for zero clues (0) and unlimited clues
+- **Referee Validation**: AI-powered clue validation for fair play
 - **Prompt Testing**: Built-in tools to test and debug AI prompts
 - **Comprehensive Logging**: Detailed game logs and statistics
 - **OpenRouter Integration**: Access to 200+ AI models
@@ -48,53 +61,53 @@ export OPENROUTER_API_KEY="your-key-here"
 
 ### Run AI vs AI Game
 ```bash
-uv run playbook run --red gpt4 --blue claude
+uv run based run --red gpt4 --blue claude
 ```
 
 ### Interactive Mode (Human vs AI)
 ```bash
-uv run playbook run --red gpt4 --interactive
+uv run based run --red gpt4 --blue claude --interactive red-spymaster
 ```
 
 ### Multiple Games
 ```bash
-uv run playbook run --red gpt4 --blue claude --num-puzzles 5
+uv run based run --red gpt4 --blue claude --num-games 5
 ```
 
 ### Test AI Prompts
 ```bash
-# Test coach prompts
-uv run playbook prompt coach --seed 42 --team red
+# Test spymaster prompts
+uv run based prompt spymaster --seed 42 --team red
 
-# Test player prompts with regular plays
-uv run playbook prompt player --seed 42 --play "TOOLS" --number 3
+# Test operative prompts with regular clues
+uv run based prompt operative --seed 42 --clue "TOOLS" --number 3
 
-# Test expert play types
-uv run playbook prompt player --play "ANIMALS" --number 0
-uv run playbook prompt player --play "FRUITS" --number unlimited
+# Test expert clue types
+uv run based prompt operative --clue "ANIMALS" --number 0
+uv run based prompt operative --clue "FRUITS" --number unlimited
 
 # Test referee validation
-uv run playbook prompt referee --seed 42 --play "MILITARY" --number 2
+uv run based prompt referee --seed 42 --clue "MILITARY" --number 2
 ```
 
 ## Command Line Options
 
 ```bash
-uv run playbook run [OPTIONS]
+uv run based run [OPTIONS]
 ```
 
 | Option | Description |
 |--------|-------------|
 | `--red MODEL` | AI model for Red Team |
 | `--blue MODEL` | AI model for Blue Team |
-| `--interactive` | Enable human player mode |
-| `--num-puzzles N` | Number of games to play (default: 1) |
+| `--interactive MODE` | Enable human player mode (referee, red-spymaster, red-operative, blue-spymaster, blue-operative) |
+| `--num-games N` | Number of games to play (default: 1) |
 | `--seed N` | Random seed for reproducible games |
-| `--names-file PATH` | Path to names YAML file |
-| `--red-coach-prompt PATH` | Red coach prompt file |
-| `--red-player-prompt PATH` | Red player prompt file |
-| `--blue-coach-prompt PATH` | Blue coach prompt file |
-| `--blue-player-prompt PATH` | Blue player prompt file |
+| `--words-file PATH` | Path to words YAML file |
+| `--red-spymaster-prompt PATH` | Red spymaster prompt file |
+| `--red-operative-prompt PATH` | Red operative prompt file |
+| `--blue-spymaster-prompt PATH` | Blue spymaster prompt file |
+| `--blue-operative-prompt PATH` | Blue operative prompt file |
 | `--referee MODEL` | AI model for referee validation |
 | `--no-referee` | Disable referee validation |
 | `--log-path PATH` | Directory for log files |
@@ -103,22 +116,22 @@ uv run playbook run [OPTIONS]
 ### Prompt Testing Commands
 
 ```bash
-uv run playbook prompt [coach|player|referee] [OPTIONS]
+uv run based prompt [spymaster|operative|referee] [OPTIONS]
 ```
 
 | Option | Description |
 |--------|-------------|
 | `--team red/blue` | Team color (red or blue) |
 | `--seed N` | Random seed for reproducible boards |
-| `--play TEXT` | Sample play for player/referee testing |
+| `--clue TEXT` | Sample clue for operative/referee testing |
 | `--number N` | Sample number (supports 0, unlimited, or integers) |
 
 ## Available Models
 
-The simulator supports 45+ models through OpenRouter. Use the `list-models` command to see all available options:
+The framework supports 45+ models through OpenRouter. Use the `list-models` command to see all available options:
 
 ```bash
-uv run playbook list-models
+uv run based list-models
 ```
 
 **Popular models include:**
@@ -132,20 +145,20 @@ uv run playbook list-models
 
 ## Architecture
 
-The Playbook simulator uses a modular design with three key submodules that handle different aspects of AI-driven gameplay:
+BASED Eval uses a modular design with game-specific modules:
 
-**Key Submodules:**
+**Core Components:**
 - **Prompt Manager**: Builds formatted prompts from markdown templates with variable substitution
 - **OpenRouter Adapter**: Handles AI API calls with cost tracking and retry logic  
-- **Referee**: Validates coach plays for fairness (coach phase only)
+- **Referee**: Validates spymaster clues for fairness
 
-**Flow:** Build Prompt → Get AI Response → (Referee Validation for Coaches) → Process Results
+**Codenames Flow:** Build Prompt → Get AI Response → (Referee Validation for Spymasters) → Process Results
 
 ```mermaid
 flowchart TD
     %% Game Initialization
-    A[Game Start] --> B[Load Names from YAML]
-    B --> C[Random Field Setup<br/>9 Red, 8 Blue, 7 Civilians, 1 Illegal Target]
+    A[Game Start] --> B[Load Words from YAML]
+    B --> C[Random Board Setup<br/>9 Red, 8 Blue, 7 Bystanders, 1 Assassin]
     C --> D[Choose Starting Team]
     
     %% Main Game Loop
@@ -154,86 +167,42 @@ flowchart TD
     E -->|Yes| Z[Game End]
     
     %% Turn Structure
-    F --> G[COACH PHASE]
-    G --> H[PLAYER PHASE]
+    F --> G[SPYMASTER PHASE]
+    G --> H[OPERATIVE PHASE]
     H --> I[Switch Teams]
     I --> E
     
-    %% Coach Phase
-    G --> G1[Build Coach Prompt]
+    %% Spymaster Phase
+    G --> G1[Build Spymaster Prompt]
     G1 --> G2[Get AI Response]
-    G2 --> G3[Validate Play with Referee]
-    G3 --> G4{Valid Play?}
+    G2 --> G3[Validate Clue with Referee]
+    G3 --> G4{Valid Clue?}
     G4 -->|Yes| H
     G4 -->|No| G5[End Turn with Penalty]
     G5 --> I
     
-    %% Player Phase
-    H --> H1[Build Player Prompt]
+    %% Operative Phase
+    H --> H1[Build Operative Prompt]
     H1 --> H2[Get AI Response]
-    H2 --> H3[Parse Field Names]
-    H3 --> H4[Process Each Shot]
-    H4 --> H5{Correct Shot?}
-    H5 -->|Allied Target| H6[Continue Shooting<br/>up to N+1 total]
-    H5 -->|Wrong Target| H7[End Turn]
-    H5 -->|The Illegal Target| H8[Instant Loss]
-    H6 --> H9{More Shots<br/>Available?}
+    H2 --> H3[Parse Words]
+    H3 --> H4[Process Each Guess]
+    H4 --> H5{Correct Guess?}
+    H5 -->|Own Agent| H6[Continue Guessing<br/>up to N+1 total]
+    H5 -->|Wrong| H7[End Turn]
+    H5 -->|Assassin| H8[Instant Loss]
+    H6 --> H9{More Guesses<br/>Available?}
     H9 -->|Yes| H4
     H9 -->|No| I
     H7 --> I
     H8 --> Z
-    
-    %% Referee Validation Details
-    G6 --> U1[Load Referee Prompt Template]
-    U1 --> U2[PromptManager:<br/>Insert Play,<br/>Number,<br/>Field Names,<br/>Validation Rules]
-    U2 --> U3[AI Player: Call OpenRouter API]
-    U3 --> U4[Parse Response:<br/>VALID/INVALID + Reasoning]
-    U4 --> G7
-    
-    %% OpenRouter Integration
-    G3 --> API[OpenRouterAdapter]
-    H3 --> API
-    U3 --> API
-    API --> API1[Map Model Name<br/>gpt4 → openai/gpt-4]
-    API1 --> API2[Build API Request<br/>with Usage Tracking]
-    API2 --> API3[Call OpenRouter API<br/>with Retry Logic]
-    API3 --> API4[Parse Response +<br/>Extract Metadata]
-    API4 --> API5[Log AI Call Metrics:<br/>Tokens, Cost, Latency]
-    API5 --> API6[Return Response + Metadata]
-    
-    %% Prompt Template System
-    G1 --> PM[PromptManager]
-    H1 --> PM
-    U1 --> PM
-    PM --> PM1[Load Markdown Template]
-    PM1 --> PM2[Process VARIABLES:<br/>FIELD, IDENTITIES,<br/>PLAY_HISTORY, etc.]
-    PM2 --> PM3[Handle include:shared/game_rules.md]
-    PM3 --> PM4[Return Formatted Prompt]
-    
-    %% Logging System
-    API5 --> L1[Game Metadata JSONL<br/>Tokens, Costs, Latency]
-    H5 --> L2[Play-by-Play Log<br/>Human Readable Events]
-    Z --> L3[Box Score JSONL<br/>Team Performance + Field]
-    U4 --> L4[Referee Log<br/>Validation Decisions]
-    
-    %% Styling
-    classDef gameLogic fill:#1f2937,stroke:#10b981,color:#fff
-    classDef aiSystem fill:#1e293b,stroke:#3b82f6,color:#fff
-    classDef promptSystem fill:#292524,stroke:#f59e0b,color:#fff
-    classDef logging fill:#1c1917,stroke:#ef4444,color:#fff
-    
-    class A,B,C,D,E,F,G,H,I,Z gameLogic
-    class G3,H3,U3,API,API1,API2,API3,API4,API5,API6 aiSystem
-    class G1,G2,H1,H2,U1,U2,PM,PM1,PM2,PM3,PM4 promptSystem
-    class L1,L2,L3,L4 logging
 ```
 
 ## Project Structure
 
 ```
-playbook/
+based/
 ├── cli.py              # Command-line interface
-├── game.py             # Core game logic
+├── game.py             # Codenames game logic
 ├── player.py           # Player classes (AI & Human)
 ├── prompt_manager.py   # Prompt template management
 ├── adapters/
@@ -242,184 +211,71 @@ playbook/
     └── logging.py      # Logging utilities
 
 inputs/
-└── names.yaml          # Name bank for games
+├── names.yaml          # Word bank for games
+└── model_mappings.yml  # Model alias configuration
 
 prompts/
-├── red_coach.md        # Red team coach prompts
-├── red_player.md       # Red team player prompts
-├── blue_coach.md       # Blue team coach prompts
-├── blue_player.md      # Blue team player prompts
-├── referee.md          # Referee play validation prompts
+├── red_spymaster.md    # Red team spymaster prompts
+├── red_operative.md    # Red team operative prompts
+├── blue_spymaster.md   # Blue team spymaster prompts
+├── blue_operative.md   # Blue team operative prompts
+├── referee.md          # Referee clue validation prompts
 └── shared/
     └── game_rules.md   # Shared game rules for all prompts
 
 logs/                   # Game logs and performance analytics
 ```
 
-## Advanced Game Features
+## Expert Clue Types
 
-### Expert Play Types
+Codenames supports advanced clue strategies:
 
-The Playbook supports advanced play strategies:
-
-- **Zero Plays (0)**: "None of our targets relate to this play" - unlimited shots, must shoot at least one
-- **Unlimited Plays**: Multiple related targets from previous rounds - unlimited shots, no minimum
+- **Zero Clues (0)**: "None of our agents relate to this clue" - unlimited guesses, must guess at least one
+- **Unlimited Clues**: Multiple related agents from previous rounds - unlimited guesses, no minimum
 
 ```bash
 # Examples in interactive mode
-Red Coach: "ANIMALS" (0)        # Zero play
-Blue Coach: "FRUITS" (unlimited) # Unlimited play
+Red Spymaster: "ANIMALS" (0)        # Zero clue
+Blue Spymaster: "FRUITS" (unlimited) # Unlimited clue
 ```
 
-### Referee Validation
+## Referee Validation
 
-AI-powered play validation ensures fair play by checking:
+AI-powered clue validation ensures fair play by checking:
 - Single word requirement (with exceptions for compound words, proper names, abbreviations)
-- No direct field name matches
-- No variants of field words
+- No direct board word matches
+- No variants of board words
 - No letter count references
 - No position references
 
-### Game History Tracking
+## Game History Tracking
 
-Players receive comprehensive game history showing all previous plays and outcomes:
+Operatives receive comprehensive game history showing all previous clues and outcomes:
 
 ```
-Turn 1a: Red Play: "FRUITS" (3)
-  → APPLE ✓, BANANA ✓, COCONUT ○ (civilian)
+Turn 1a: Red Clue: "FRUITS" (3)
+  → APPLE ✓, BANANA ✓, COCONUT ○ (bystander)
 
-Turn 1b: Blue Play: "METALS" (2)
+Turn 1b: Blue Clue: "METALS" (2)
   → IRON ✓, STEEL ✗ (enemy)
-```
-
-## Customization
-
-### Prompt Templates
-
-Modify the Markdown files in `prompts/` to customize AI behavior. Templates support variable substitution:
-
-**Coach Prompts:**
-- `{{RED_TARGETS}}` - Your allied targets
-- `{{BLUE_TARGETS}}` - Enemy targets  
-- `{{CIVILIANS}}` - Innocent civilians
-- `{{ILLEGAL_TARGET}}` - The dangerous illegal target
-
-**Player Prompts:**
-- `{{FIELD}}` - Current 5x5 field grid
-- `{{AVAILABLE_NAMES}}` - Available names to shoot
-- `{{PLAY_HISTORY}}` - Formatted game history
-- `{{PLAY}}` - Current play
-- `{{NUMBER}}` - Current number (supports 0, unlimited)
-
-**Shared Rules:**
-Use `{{include:shared/game_rules.md}}` to include common game rules across prompts.
-
-### Model Configuration
-
-Add new models by editing `inputs/model_mappings.yml`:
-
-```yaml
-models:
-  # Add custom model mappings
-  my-model: "provider/model-id"
-  custom-gpt: "openai/gpt-4-custom"
-  # ... etc
-```
-
-### Name Banks
-
-Edit `inputs/names.yaml` to customize the name pool:
-
-```yaml
-names:
-  - ALPHA
-  - BRAVO
-  - CHARLIE
-  # ... add more names
-```
-
-## Example Game
-
-```bash
-$ uv run playbook run --red gpt4 --blue claude --verbose
-
-🎯 The Playbook Game Starting!
-
-Turn 1 - Red Team
-┏━━━━━━━━━━━━━┳━━━━━━━━━━━━━┳━━━━━━━━━━━━━┳━━━━━━━━━━━━━┳━━━━━━━━━━━━━┓
-┃    ALPHA    ┃    BRAVO    ┃   CHARLIE   ┃    DELTA    ┃     ECHO    ┃
-┃   FOXTROT   ┃     GOLF    ┃    HOTEL    ┃    INDIA    ┃   JULIET    ┃
-┃     KILO    ┃     LIMA    ┃     MIKE    ┃  NOVEMBER   ┃    OSCAR    ┃
-┃     PAPA    ┃    QUEBEC   ┃    ROMEO    ┃   SIERRA    ┃    TANGO    ┃
-┃   UNIFORM   ┃    VICTOR   ┃   WHISKEY   ┃     XRAY    ┃   YANKEE    ┃
-┗━━━━━━━━━━━━━┻━━━━━━━━━━━━━┻━━━━━━━━━━━━━┻━━━━━━━━━━━━━┻━━━━━━━━━━━━━┛
-
-Red Team Remaining: 9  Blue Team Remaining: 8
-
-Red Coach: "Military phonetic alphabet" (3)
-Red Player shoots: ALPHA
-✓ Correct! ALPHA is an Allied Target
-Red Player shoots: BRAVO
-✓ Correct! BRAVO is an Allied Target
-Red Player shoots: CHARLIE
-✗ CHARLIE is an Innocent Civilian
-
-Turn 2 - Blue Team
-...
 ```
 
 ## Logging & Analytics
 
-The simulator creates comprehensive logs for analysis and debugging:
-
-### Log Types
+The framework creates comprehensive logs for analysis:
 
 1. **Play-by-Play Logs** (`logs/play_by_play_*.log`)
-   - Human-readable game events and field states
-   - Perfect for understanding game progression
-   - Shows plays, shots, results, and team performance
+   - Human-readable game events and board states
 
 2. **Box Score Analytics** (`logs/box_scores_*.jsonl`)
    - Team performance summaries in structured format
-   - Includes accuracy metrics, move counts, win/loss data
-   - Features formatted 5x5 fields showing all revealed names
-   - Ideal for comparing model performance across games
 
 3. **AI Call Metadata** (`logs/game_metadata_*.jsonl`)
    - Detailed metrics for every AI interaction
    - Tracks tokens used, API costs, response latency
-   - Turn-by-turn success/failure analysis
-   - Essential for cost optimization and model comparison
 
 4. **Referee Validation Logs** (`logs/referee_*.log`)
-   - Consolidated play validation decisions
-   - Shows reasoning for accepting/rejecting plays
-   - Helps debug prompt quality and game fairness
-
-5. **Debug Logs** (`logs/playbook_*.log`)
-   - Technical debug information
-   - Full API request/response details when using `--verbose`
-
-### Performance Tracking
-
-The JSONL logs enable powerful analysis:
-
-```bash
-# Analyze model costs across games
-cat logs/game_metadata_*.jsonl | jq '.cost_usd' | awk '{sum+=$1} END {print "Total cost: $" sum}'
-
-# Compare model accuracy by team
-cat logs/box_scores_*.jsonl | jq '{team: .team, accuracy: .accuracy, model: .model}'
-
-# Track token usage patterns
-cat logs/game_metadata_*.jsonl | jq '{model: .model, tokens: .tokens_used, role: .role}'
-```
-
-## Security Features
-
-- **Context Separation**: Each AI call is stateless and independent
-- **No Conversation History**: Prevents information leakage between calls
-- **Role-based Access**: Coaches see all identities, Players see only public field
+   - Consolidated clue validation decisions
 
 ## Development
 
@@ -436,26 +292,7 @@ uv run isort .
 
 ### Type Checking
 ```bash
-uv run mypy playbook/
-```
-
-### Debugging AI Prompts
-
-Use the built-in prompt testing tools to debug and optimize AI behavior:
-
-```bash
-# Test with different seeds to see various field configurations
-uv run playbook prompt coach --seed 42
-uv run playbook prompt coach --seed 100
-
-# Test different play scenarios
-uv run playbook prompt player --play "WEAPONS" --number 2
-uv run playbook prompt player --play "NATURE" --number unlimited
-uv run playbook prompt player --play "FOOD" --number 0
-
-# Test referee validation with edge cases
-uv run playbook prompt referee --play "DELTA" --number 1  # Should be invalid (field name)
-uv run playbook prompt referee --play "MILITARY" --number 3  # Should be valid
+uv run mypy based/
 ```
 
 ## Contributing
@@ -469,3 +306,7 @@ uv run playbook prompt referee --play "MILITARY" --number 3  # Should be valid
 ## License
 
 MIT License - see LICENSE file for details.
+
+## Credits
+
+Codenames game design by Vlaada Chvátil. [Official Rules](https://czechgames.com/files/rules/codenames-rules-en.pdf)

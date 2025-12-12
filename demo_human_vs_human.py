@@ -1,16 +1,16 @@
 #!/usr/bin/env python3
-"""Demo of human vs human gameplay."""
+"""Demo of human vs human Codenames gameplay."""
 
 import random
 
-from playbook.game import PlaybookGame
-from playbook.player import HumanPlayer
+from based.game import CodenamesGame
+from based.player import HumanPlayer
 
 
 # Create a simple demo that doesn't require API keys
 def demo_human_vs_human():
     """Run a demonstration of human vs human gameplay."""
-    print("🎯 The Switchboard - Human vs Human Demo")
+    print("🎯 BASED Eval - Codenames Demo")
     print("=" * 50)
 
     # Set seed for reproducible demo
@@ -21,8 +21,8 @@ def demo_human_vs_human():
     blue_player = HumanPlayer()
 
     # Create game
-    game = SwitchboardGame(
-        names_file="inputs/names.yaml",
+    game = CodenamesGame(
+        words_file="inputs/names.yaml",
         red_player=red_player,
         blue_player=blue_player,
     )
@@ -31,35 +31,35 @@ def demo_human_vs_human():
     game.setup_board()
 
     print("\nBoard created with hidden identities!")
-    print("In a real game, only the Operator would see all identities.")
+    print("In a real game, only the Spymaster would see all identities.")
     print("\nHere's the board with all identities revealed (for demo purposes):")
 
     game.display_board(reveal_all=True)
 
     print("\nIdentity Summary:")
-    red_subs = [
-        name
-        for name, identity in game.identities.items()
-        if identity == "red_subscriber"
+    red_agents = [
+        word
+        for word, identity in game.identities.items()
+        if identity == "red_agent"
     ]
-    blue_subs = [
-        name
-        for name, identity in game.identities.items()
-        if identity == "blue_subscriber"
+    blue_agents = [
+        word
+        for word, identity in game.identities.items()
+        if identity == "blue_agent"
     ]
-    civilians = [
-        name for name, identity in game.identities.items() if identity == "civilian"
+    bystanders = [
+        word for word, identity in game.identities.items() if identity == "bystander"
     ]
-    mole = [name for name, identity in game.identities.items() if identity == "mole"][0]
+    assassin = [word for word, identity in game.identities.items() if identity == "assassin"][0]
 
-    print(f"🔴 Red Subscribers ({len(red_subs)}): {', '.join(red_subs)}")
-    print(f"🔵 Blue Subscribers ({len(blue_subs)}): {', '.join(blue_subs)}")
-    print(f"😐 Civilians ({len(civilians)}): {', '.join(civilians)}")
-    print(f"💀 The Mole: {mole}")
+    print(f"🔴 Red Agents ({len(red_agents)}): {', '.join(red_agents)}")
+    print(f"🔵 Blue Agents ({len(blue_agents)}): {', '.join(blue_agents)}")
+    print(f"😐 Bystanders ({len(bystanders)}): {', '.join(bystanders)}")
+    print(f"💀 Assassin: {assassin}")
 
     print("\n" + "=" * 50)
-    print("In a real game, the Linemen would only see unrevealed names")
-    print("and receive clues from their Operators.")
+    print("In a real game, the Operatives would only see unrevealed words")
+    print("and receive clues from their Spymasters.")
     print("Demo complete!")
 
 
