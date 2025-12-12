@@ -8,11 +8,11 @@ from pathlib import Path
 from typing import Dict, List, Optional, Set, Tuple, Any
 from dataclasses import dataclass
 
-from .utils.timing import Timer
-from .utils.tokens import count_tokens, extract_token_usage, extract_cost_info
-from .utils.logging import log_exchange, log_summary, setup_logger
-import controllog as cl
-from .adapters import openrouter_adapter
+# Use shared infrastructure from BASED eval framework
+from shared.utils import Timer, count_tokens, extract_token_usage, extract_cost_info
+from shared.utils.logging import log_exchange, log_summary, setup_logger
+from shared import controllog as cl
+from shared.adapters import openrouter_adapter
 
 
 @dataclass
@@ -119,19 +119,27 @@ class ConnectionsGame:
             return f.read()
     
     def _load_model_mappings(self) -> Dict[str, str]:
-        """Load model mappings from YAML file."""
-        mappings_file = self.inputs_path / "model_mappings.yml"
+        """Load model mappings from shared YAML file."""
+        # Use shared model mappings from BASED eval framework
+        shared_mappings_file = Path(__file__).parent.parent.parent.parent.parent / "shared" / "inputs" / "model_mappings.yml"
+        
+        # Fallback to local if shared not found
+        if not shared_mappings_file.exists():
+            shared_mappings_file = self.inputs_path / "model_mappings.yml"
+        
         try:
-            with open(mappings_file, 'r') as f:
+            with open(shared_mappings_file, 'r') as f:
                 data = yaml.safe_load(f)
             
             # Flatten the nested structure (thinking + non_thinking)
             models = {}
-            models.update(data["models"]["thinking"])
-            models.update(data["models"]["non_thinking"])
+            if "thinking" in data.get("models", {}):
+                models.update(data["models"]["thinking"])
+            if "non_thinking" in data.get("models", {}):
+                models.update(data["models"]["non_thinking"])
             return models
         except (FileNotFoundError, KeyError, yaml.YAMLError) as e:
-            raise FileNotFoundError(f"Could not load model mappings from {mappings_file}: {e}")
+            raise FileNotFoundError(f"Could not load model mappings from {shared_mappings_file}: {e}")
     
     def run_evaluation(
         self,

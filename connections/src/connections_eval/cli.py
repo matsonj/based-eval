@@ -10,7 +10,8 @@ from rich.console import Console
 from rich.table import Table
 
 from .core import ConnectionsGame
-from .utils.motherduck import (
+# Use shared infrastructure from BASED eval framework
+from shared.utils.motherduck import (
     upload_controllog_to_motherduck,
     validate_upload,
     run_trial_balance,
