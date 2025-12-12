@@ -18,7 +18,7 @@ BASED Eval tests AI models on:
 A strategic word association game where AI Spymasters give one-word clues to help AI Operatives identify their team's agents on a 5×5 grid.
 
 ```bash
-uv run based run --red gemini-flash --blue gemini-flash
+uv run based codenames run --red gemini-flash --blue gemini-flash
 ```
 
 **Game Setup:**
@@ -36,7 +36,7 @@ uv run based run --red gemini-flash --blue gemini-flash
 Based on the New York Times Connections puzzle. AI models must identify four groups of four related words from a 16-word grid.
 
 ```bash
-cd connections && uv run connections_eval run --model gemini-flash --puzzles 10
+uv run based connections run --model gemini-flash --puzzles 10
 ```
 
 **Game Setup:**
@@ -74,23 +74,30 @@ export OPENROUTER_API_KEY="your-key-here"
 
 ### Run Codenames (AI vs AI)
 ```bash
-uv run based run --red gpt4 --blue claude
+uv run based codenames run --red gpt4 --blue claude
 ```
 
 ### Run Codenames (Interactive)
 ```bash
-uv run based run --red gpt4 --blue claude --interactive red-spymaster
+uv run based codenames run --red gpt4 --blue claude --interactive red-spymaster
 ```
 
 ### Run Connections
 ```bash
-cd connections
-uv run connections_eval run --model gemini-flash --puzzles 5
+uv run based connections run --model gemini-flash --puzzles 5
 ```
 
 ### List Available Models
 ```bash
-uv run based list-models
+uv run based codenames list-models
+uv run based connections list-models
+```
+
+### Analytics
+```bash
+uv run based analytics trial-balance
+uv run based analytics cost-report
+uv run based analytics leaderboard
 ```
 
 ## Available Models
@@ -115,16 +122,23 @@ The framework supports 80+ models through OpenRouter, organized by capability:
 
 ```
 based-eval/
-├── based/                      # Codenames game
-│   ├── cli.py                  # CLI interface
+├── codenames/                  # Codenames game
+│   ├── cli.py                  # Main CLI with subcommands
+│   ├── cli_codenames.py        # Codenames commands
+│   ├── cli_connections.py      # Connections wrapper
+│   ├── cli_analytics.py        # Analytics commands
 │   ├── game.py                 # Game logic
 │   ├── player.py               # AI/Human players
 │   └── prompt_manager.py       # Prompt templates
 │
 ├── connections/                # Connections game
-│   └── src/connections_eval/
-│       ├── cli.py              # CLI interface
-│       └── core.py             # Game logic
+│   ├── src/connections_eval/
+│   │   ├── cli.py              # CLI interface
+│   │   └── core.py             # Game logic
+│   └── scripts/                # Analysis scripts
+│       ├── create_results_table_gt.py
+│       ├── extract_summaries.py
+│       └── generate_logs_view.py
 │
 ├── shared/                     # Shared infrastructure
 │   ├── controllog/             # Double-entry logging SDK
@@ -143,6 +157,9 @@ based-eval/
 │   └── scripts/
 │       ├── load_controllog_to_motherduck.py
 │       └── reports_controllog.py
+│
+├── docs/                       # GitHub Pages (results, logs)
+├── .github/workflows/          # GitHub Actions
 │
 ├── prompts/                    # Codenames prompts
 │   ├── red_spymaster.md
@@ -197,7 +214,15 @@ Upload controllog to MotherDuck for analytics:
 
 ```bash
 export MOTHERDUCK_DB="md:based_eval"
-# Logs automatically uploaded after game completion (Connections)
+
+# Automatic upload after Codenames game completion
+uv run based codenames run --red gemini-flash --blue gemini-flash
+
+# Manual upload for all logs
+uv run based analytics upload
+
+# Run trial balance to verify double-entry accounting
+uv run based analytics trial-balance
 ```
 
 ## Logging & Analytics
@@ -227,12 +252,25 @@ uv run black .
 uv run isort .
 ```
 
-## Roadmap
+## Unified CLI
 
-See [TODO.md](TODO.md) for planned improvements:
-- [ ] Integrate controllog into Codenames
-- [ ] Unified CLI (`uv run based codenames ...` / `uv run based connections ...`)
-- [ ] Shared analytics dashboard
+The BASED framework provides a unified CLI for all games:
+
+```bash
+# Codenames
+uv run based codenames run --red MODEL --blue MODEL
+uv run based codenames list-models
+uv run based codenames prompt --role red-spymaster
+
+# Connections  
+uv run based connections run --model MODEL --puzzles N
+uv run based connections list-models
+uv run based connections upload  # Upload logs to MotherDuck
+
+# Analytics
+uv run based analytics trial-balance  # Verify double-entry accounting
+uv run based analytics upload         # Upload all logs to MotherDuck
+```
 
 ## License
 
