@@ -201,7 +201,7 @@ class TestUtilities:
     
     def test_timer(self):
         """Test Timer utility."""
-        from connections_eval.utils.timing import Timer
+        from shared.utils.timing import Timer
         import time
         
         with Timer() as timer:
@@ -212,7 +212,7 @@ class TestUtilities:
     
     def test_token_counting(self):
         """Test token counting utilities."""
-        from connections_eval.utils.tokens import count_tokens, extract_token_usage
+        from shared.utils.tokens import count_tokens, extract_token_usage
         
         # Basic token counting
         count = count_tokens("Hello world")

@@ -21,6 +21,38 @@ from shared.utils.motherduck import (
 app = typer.Typer(help="Evaluate AI models on New York Times Connections puzzles")
 console = Console()
 
+
+def _resolve_inputs_path(inputs_path: Path, is_default: bool = False) -> Path:
+    """Resolve inputs path, checking multiple locations for required files.
+    
+    Args:
+        inputs_path: The path to resolve
+        is_default: If True, try alternative locations. If False, use path as-is.
+    """
+    required_file = "connections_puzzles.yml"
+    
+    # If the path has the required file, use it
+    if (inputs_path / required_file).exists():
+        return inputs_path
+    
+    # Only try alternative locations if using default path
+    if not is_default:
+        return inputs_path
+    
+    # Try connections/inputs (when running from monorepo root)
+    monorepo_path = Path("connections/inputs")
+    if (monorepo_path / required_file).exists():
+        return monorepo_path
+    
+    # Try relative to this file's location
+    cli_dir = Path(__file__).parent.parent.parent  # connections/src/connections_eval -> connections
+    relative_path = cli_dir / "inputs"
+    if (relative_path / required_file).exists():
+        return relative_path
+    
+    # Return original path (will error later with helpful message)
+    return inputs_path
+
 def main():
     """Entry point for CLI."""
     app()
@@ -47,10 +79,10 @@ def run(
         "--seed",
         help="Random seed for reproducibility"
     ),
-    inputs_path: Path = typer.Option(
-        Path("inputs"),
+    inputs_path: Optional[Path] = typer.Option(
+        None,
         "--inputs-path",
-        help="Path to inputs directory"
+        help="Path to inputs directory (default: auto-detect)"
     ),
     log_path: Path = typer.Option(
         Path("logs"),
@@ -84,9 +116,17 @@ def run(
         console.print("❌ Cannot specify both --model and --interactive", style="red") 
         raise typer.Exit(1)
     
-    # Validate inputs path first
+    # Resolve inputs path (handles running from monorepo root vs connections dir)
+    is_default_path = inputs_path is None
+    if is_default_path:
+        inputs_path = Path("inputs")
+    inputs_path = _resolve_inputs_path(inputs_path, is_default=is_default_path)
+    
+    # Validate inputs path
     if not inputs_path.exists():
         console.print(f"❌ Inputs path does not exist: {inputs_path}", style="red")
+        if is_default_path:
+            console.print("[dim]Try running from the connections directory or specifying --inputs-path[/dim]")
         raise typer.Exit(1)
     
     # Validate model (create temporary instance to load model config)
@@ -247,11 +287,21 @@ def _display_summary(summary: dict, interactive: bool):
 @app.command()
 def list_models():
     """List available models."""
+    from shared.adapters.openrouter_adapter import _load_model_mappings
+    
     console.print("Available models:", style="bold blue")
     
-    # Create temporary instance to load model config
-    temp_game = ConnectionsGame(Path("inputs"), Path("logs"))
-    for model_name in temp_game.MODEL_CONFIG.keys():
+    # Load model mappings from shared infrastructure
+    mappings = _load_model_mappings()
+    
+    # Flatten and display
+    all_models = {}
+    if "thinking" in mappings:
+        all_models.update(mappings["thinking"])
+    if "non_thinking" in mappings:
+        all_models.update(mappings["non_thinking"])
+    
+    for model_name in sorted(all_models.keys()):
         console.print(f"  {model_name}")
 
 

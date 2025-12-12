@@ -23,26 +23,22 @@ class TestOpenRouterAdapter:
             self.adapter = OpenRouterAdapter()
 
     def test_cost_extraction_with_object_attributes(self):
-        """Test cost extraction when response has object attributes."""
-        # Mock response with object-style attributes
-        mock_response = Mock()
-        mock_response.choices = [Mock(message=Mock(content="Test response"))]
-        
-        # Mock usage with object attributes
-        mock_usage = Mock()
-        mock_usage.prompt_tokens = 100
-        mock_usage.completion_tokens = 50
-        mock_usage.total_tokens = 150
-        mock_usage.cost = 0.005  # OpenRouter cost
-        
-        # Mock cost_details with object attributes
-        mock_cost_details = Mock()
-        mock_cost_details.upstream_inference_cost = 0.003  # Upstream cost
-        mock_usage.cost_details = mock_cost_details
-        
-        mock_response.usage = mock_usage
+        """Test cost extraction when response has usage dict with cost info."""
+        # Mock response in dict format (shared adapter uses requests, not openai SDK)
+        mock_api_response = {
+            "choices": [{"message": {"content": "Test response"}}],
+            "usage": {
+                "prompt_tokens": 100,
+                "completion_tokens": 50,
+                "total_tokens": 150,
+                "cost": 0.005,
+                "cost_details": {
+                    "upstream_inference_cost": 0.003
+                }
+            }
+        }
 
-        with patch.object(self.adapter.client.chat.completions, 'create', return_value=mock_response):
+        with patch('shared.adapters.openrouter_adapter.chat', return_value=mock_api_response):
             response, metadata = self.adapter.call_model_with_metadata("gpt-4", "Test prompt")
 
         assert response == "Test response"
@@ -54,24 +50,19 @@ class TestOpenRouterAdapter:
 
     def test_cost_extraction_with_dictionary_access(self):
         """Test cost extraction when cost_details supports dictionary access."""
-        # Mock response
-        mock_response = Mock()
-        mock_response.choices = [Mock(message=Mock(content="Test response"))]
-        
-        # Mock usage
-        mock_usage = Mock()
-        mock_usage.prompt_tokens = 100
-        mock_usage.completion_tokens = 50
-        mock_usage.total_tokens = 150
-        mock_usage.cost = 0.005
-        
-        # Mock cost_details that supports dictionary access (like eval-connections)
-        mock_cost_details = {"upstream_inference_cost": 0.003}
-        mock_usage.cost_details = mock_cost_details
-        
-        mock_response.usage = mock_usage
+        # Mock response in dict format
+        mock_api_response = {
+            "choices": [{"message": {"content": "Test response"}}],
+            "usage": {
+                "prompt_tokens": 100,
+                "completion_tokens": 50,
+                "total_tokens": 150,
+                "cost": 0.005,
+                "cost_details": {"upstream_inference_cost": 0.003}
+            }
+        }
 
-        with patch.object(self.adapter.client.chat.completions, 'create', return_value=mock_response):
+        with patch('shared.adapters.openrouter_adapter.chat', return_value=mock_api_response):
             response, metadata = self.adapter.call_model_with_metadata("gpt-4", "Test prompt")
 
         assert metadata["openrouter_cost"] == 0.005
@@ -79,19 +70,18 @@ class TestOpenRouterAdapter:
 
     def test_cost_extraction_no_upstream_cost(self):
         """Test cost extraction when only OpenRouter cost is available."""
-        mock_response = Mock()
-        mock_response.choices = [Mock(message=Mock(content="Test response"))]
-        
-        mock_usage = Mock()
-        mock_usage.prompt_tokens = 100
-        mock_usage.completion_tokens = 50
-        mock_usage.total_tokens = 150
-        mock_usage.cost = 0.005
-        mock_usage.cost_details = None  # No cost_details
-        
-        mock_response.usage = mock_usage
+        mock_api_response = {
+            "choices": [{"message": {"content": "Test response"}}],
+            "usage": {
+                "prompt_tokens": 100,
+                "completion_tokens": 50,
+                "total_tokens": 150,
+                "cost": 0.005,
+                "cost_details": {}
+            }
+        }
 
-        with patch.object(self.adapter.client.chat.completions, 'create', return_value=mock_response):
+        with patch('shared.adapters.openrouter_adapter.chat', return_value=mock_api_response):
             response, metadata = self.adapter.call_model_with_metadata("gpt-4", "Test prompt")
 
         assert metadata["openrouter_cost"] == 0.005
@@ -100,11 +90,12 @@ class TestOpenRouterAdapter:
 
     def test_cost_extraction_no_usage_info(self):
         """Test cost extraction when no usage information is available."""
-        mock_response = Mock()
-        mock_response.choices = [Mock(message=Mock(content="Test response"))]
-        mock_response.usage = None
+        mock_api_response = {
+            "choices": [{"message": {"content": "Test response"}}],
+            "usage": {}
+        }
 
-        with patch.object(self.adapter.client.chat.completions, 'create', return_value=mock_response):
+        with patch('shared.adapters.openrouter_adapter.chat', return_value=mock_api_response):
             response, metadata = self.adapter.call_model_with_metadata("gpt-4", "Test prompt")
 
         assert response == "Test response"

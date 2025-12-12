@@ -302,7 +302,9 @@ class OpenRouterAdapter:
         # Extract upstream cost from cost_details
         cost_details = usage.get("cost_details", {})
         if cost_details and "upstream_inference_cost" in cost_details:
-            metadata["upstream_cost"] = float(cost_details["upstream_inference_cost"])
+            upstream_cost = cost_details["upstream_inference_cost"]
+            if upstream_cost is not None:
+                metadata["upstream_cost"] = float(upstream_cost)
         
         logger.info(
             f"Model call completed. Tokens: {metadata['total_tokens']}, "

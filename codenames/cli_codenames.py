@@ -8,7 +8,6 @@ from pathlib import Path
 from typing import Optional
 
 import typer
-import yaml
 from rich.console import Console
 from rich.table import Table
 
@@ -22,34 +21,29 @@ from shared.utils.motherduck import (
     run_trial_balance,
     cleanup_local_files,
 )
+from shared.adapters.openrouter_adapter import _load_model_mappings as _shared_load_model_mappings
 
 app = typer.Typer(help="Run Codenames games for AI evaluation")
 console = Console()
 
 
 def _load_model_mappings(mappings_file: Optional[str] = None) -> dict:
-    """Load model mappings from YAML configuration file."""
-    if mappings_file is None:
-        file_path = Path("inputs/model_mappings.yml")
-    else:
-        file_path = Path(mappings_file)
-
+    """Load model mappings from shared infrastructure."""
     try:
-        with open(file_path, "r") as f:
-            data = yaml.safe_load(f)
-        return data.get("models", {})
-    except FileNotFoundError:
-        # Fallback to basic mappings
-        return {
-            "gpt4": "openai/gpt-4",
-            "claude": "anthropic/claude-3.5-sonnet",
-            "gemini": "google/gemini-2.5-pro",
-        }
+        # Use the shared model mappings loader (doesn't require API key)
+        mappings = _shared_load_model_mappings()
+        # Flatten the hierarchical structure
+        flat = {}
+        if "thinking" in mappings:
+            flat.update(mappings["thinking"])
+        if "non_thinking" in mappings:
+            flat.update(mappings["non_thinking"])
+        return flat
     except Exception:
         # Fallback to basic mappings
         return {
             "gpt4": "openai/gpt-4",
-            "claude": "anthropic/claude-3.5-sonnet", 
+            "claude": "anthropic/claude-3.5-sonnet",
             "gemini": "google/gemini-2.5-pro",
         }
 
@@ -347,23 +341,8 @@ def display_summary(results: list):
 def list_models():
     """List available AI models for Codenames."""
     try:
-        # Create adapter to load model mappings (without requiring API key for listing)
-        import os
-
-        from codenames.adapters.openrouter_adapter import OpenRouterAdapter
-
-        original_key = os.environ.get("OPENROUTER_API_KEY")
-        os.environ["OPENROUTER_API_KEY"] = "dummy"  # Temporary dummy key for loading
-
-        try:
-            adapter = OpenRouterAdapter()
-            models = adapter.get_available_models()
-        finally:
-            # Restore original key
-            if original_key:
-                os.environ["OPENROUTER_API_KEY"] = original_key
-            else:
-                os.environ.pop("OPENROUTER_API_KEY", None)
+        # Load model mappings directly (doesn't require API key)
+        model_mappings = _load_model_mappings()
 
         # Create a nice table
         table = Table(title="Available AI Models")
@@ -371,16 +350,16 @@ def list_models():
         table.add_column("OpenRouter Model ID", style="magenta", min_width=30)
         table.add_column("Provider", style="green", min_width=12)
 
-        # Sort models by provider then name
-        sorted_models = sorted(models)
+        # Sort models by name
+        sorted_models = sorted(model_mappings.keys())
 
         for model_name in sorted_models:
-            model_id = adapter.model_mappings[model_name]
+            model_id = model_mappings[model_name]
             provider = model_id.split("/")[0] if "/" in model_id else "Unknown"
             table.add_row(model_name, model_id, provider)
 
         console.print(table)
-        console.print(f"\n✨ Total: {len(models)} models available")
+        console.print(f"\n✨ Total: {len(model_mappings)} models available")
         console.print(
             "\n💡 Usage: [bold]uv run based codenames run --red [model] --blue [model][/bold]"
         )
@@ -388,7 +367,7 @@ def list_models():
     except Exception as e:
         console.print(f"[red]Error loading models: {e}[/red]")
         console.print(
-            "Make sure the model mappings file exists at inputs/model_mappings.yml"
+            "Make sure the model mappings file exists at shared/inputs/model_mappings.yml"
         )
 
 
