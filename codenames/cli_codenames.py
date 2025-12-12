@@ -132,19 +132,19 @@ def run(
     seed: Optional[int] = typer.Option(None, help="Random seed for reproducible games"),
     words_file: str = typer.Option("inputs/names.yaml", help="Path to words YAML file"),
     red_spymaster_prompt: str = typer.Option(
-        "prompts/red_spymaster.md", help="Red spymaster prompt file"
+        "codenames/prompts/red_spymaster.md", help="Red spymaster prompt file"
     ),
     red_operative_prompt: str = typer.Option(
-        "prompts/red_operative.md", help="Red operative prompt file"
+        "codenames/prompts/red_operative.md", help="Red operative prompt file"
     ),
     blue_spymaster_prompt: str = typer.Option(
-        "prompts/blue_spymaster.md", help="Blue spymaster prompt file"
+        "codenames/prompts/blue_spymaster.md", help="Blue spymaster prompt file"
     ),
     blue_operative_prompt: str = typer.Option(
-        "prompts/blue_operative.md", help="Blue operative prompt file"
+        "codenames/prompts/blue_operative.md", help="Blue operative prompt file"
     ),
     referee_prompt: str = typer.Option(
-        "prompts/referee.md", help="Referee prompt file"
+        "codenames/prompts/referee.md", help="Referee prompt file"
     ),
     log_path: str = typer.Option("logs", help="Directory for log files"),
     verbose: bool = typer.Option(False, help="Enable verbose logging"),
@@ -379,11 +379,11 @@ def prompt(
     words_file: str = typer.Option("inputs/names.yaml", help="Path to words YAML file"),
     clue: str = typer.Option("EXAMPLE", help="Sample clue for operative/referee prompts"),
     number: str = typer.Option("2", help="Sample number for operative/referee prompts (can be 'unlimited' or '0')"),
-    red_spymaster_prompt: str = typer.Option("prompts/red_spymaster.md", help="Red spymaster prompt file"),
-    red_operative_prompt: str = typer.Option("prompts/red_operative.md", help="Red operative prompt file"),
-    blue_spymaster_prompt: str = typer.Option("prompts/blue_spymaster.md", help="Blue spymaster prompt file"),
-    blue_operative_prompt: str = typer.Option("prompts/blue_operative.md", help="Blue operative prompt file"),
-    referee_prompt: str = typer.Option("prompts/referee.md", help="Referee prompt file"),
+    red_spymaster_prompt: str = typer.Option("codenames/prompts/red_spymaster.md", help="Red spymaster prompt file"),
+    red_operative_prompt: str = typer.Option("codenames/prompts/red_operative.md", help="Red operative prompt file"),
+    blue_spymaster_prompt: str = typer.Option("codenames/prompts/blue_spymaster.md", help="Blue spymaster prompt file"),
+    blue_operative_prompt: str = typer.Option("codenames/prompts/blue_operative.md", help="Blue operative prompt file"),
+    referee_prompt: str = typer.Option("codenames/prompts/referee.md", help="Referee prompt file"),
     verbose: bool = typer.Option(False, help="Enable verbose logging"),
 ):
     """Test and display the exact prompt sent to AI agents."""

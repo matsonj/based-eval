@@ -128,7 +128,13 @@ based-eval/
 │   ├── cli_codenames.py        # Codenames CLI commands
 │   ├── game.py                 # Game logic
 │   ├── player.py               # AI/Human players
-│   └── prompt_manager.py       # Prompt templates
+│   ├── prompt_manager.py       # Prompt templates
+│   └── prompts/                # Role prompts
+│       ├── red_spymaster.md
+│       ├── blue_spymaster.md
+│       ├── red_operative.md
+│       ├── blue_operative.md
+│       └── referee.md
 │
 ├── connections/                # Connections game
 │   ├── src/connections_eval/
@@ -153,13 +159,6 @@ based-eval/
 │   │   └── motherduck.py       # MotherDuck integration
 │   └── inputs/
 │       └── model_mappings.yml  # Unified model config
-│
-├── prompts/                    # Codenames prompts
-│   ├── red_spymaster.md
-│   ├── blue_spymaster.md
-│   ├── red_operative.md
-│   ├── blue_operative.md
-│   └── referee.md
 │
 ├── inputs/                     # Codenames word bank
 │   └── names.yaml

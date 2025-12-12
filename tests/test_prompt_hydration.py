@@ -77,7 +77,7 @@ class TestPromptHydration:
             "clue_history": "No previous clues yet",
         }
         
-        prompt = self.prompt_manager.load_prompt("prompts/red_spymaster.md", context)
+        prompt = self.prompt_manager.load_prompt("codenames/prompts/red_spymaster.md", context)
         
         # Verify key variables are replaced (should not contain {{}} patterns)
         assert "{{RED_AGENTS}}" not in prompt, "RED_AGENTS variable not replaced"
@@ -118,7 +118,7 @@ class TestPromptHydration:
             "revealed_words": "None",
         }
         
-        prompt = self.prompt_manager.load_prompt("prompts/blue_spymaster.md", context)
+        prompt = self.prompt_manager.load_prompt("codenames/prompts/blue_spymaster.md", context)
         
         # Verify no unreplaced variables
         assert "{{RED_AGENTS}}" not in prompt
@@ -159,7 +159,7 @@ class TestPromptHydration:
             "team": "red",
         }
         
-        prompt = self.prompt_manager.load_prompt("prompts/red_operative.md", context)
+        prompt = self.prompt_manager.load_prompt("codenames/prompts/red_operative.md", context)
         
         # Verify key variables are replaced
         assert "{{BOARD}}" not in prompt, "BOARD variable not replaced"
@@ -186,7 +186,7 @@ class TestPromptHydration:
             "team": "blue",
         }
         
-        prompt = self.prompt_manager.load_prompt("prompts/blue_operative.md", context)
+        prompt = self.prompt_manager.load_prompt("codenames/prompts/blue_operative.md", context)
         
         # Verify no unreplaced variables
         assert "{{BOARD}}" not in prompt
@@ -213,7 +213,7 @@ class TestPromptHydration:
             "team": "red",
         }
         
-        prompt = self.prompt_manager.load_prompt("prompts/red_operative.md", context)
+        prompt = self.prompt_manager.load_prompt("codenames/prompts/red_operative.md", context)
         assert "0" in prompt, "Zero should be displayed in prompt"
         assert "ZERO_TEST" in prompt, "Clue should be in prompt"
         
@@ -221,7 +221,7 @@ class TestPromptHydration:
         context["number"] = "unlimited"
         context["clue"] = "UNLIMITED_TEST"
         
-        prompt = self.prompt_manager.load_prompt("prompts/red_operative.md", context)
+        prompt = self.prompt_manager.load_prompt("codenames/prompts/red_operative.md", context)
         assert "unlimited" in prompt, "Unlimited should be displayed in prompt"
         assert "UNLIMITED_TEST" in prompt, "Clue should be in prompt"
 
@@ -241,7 +241,7 @@ class TestPromptHydration:
             "team_agents": ", ".join(team_agents),
         }
         
-        prompt = self.prompt_manager.load_prompt("prompts/referee.md", context)
+        prompt = self.prompt_manager.load_prompt("codenames/prompts/referee.md", context)
         
         # Verify key variables are replaced
         assert "{{CLUE}}" not in prompt, "CLUE variable not replaced"
@@ -273,7 +273,7 @@ class TestPromptHydration:
             "team_agents": "AGENT1, AGENT2",
         }
         
-        prompt = self.prompt_manager.load_prompt("prompts/referee.md", context)
+        prompt = self.prompt_manager.load_prompt("codenames/prompts/referee.md", context)
         
         # Verify special values are handled
         assert "unlimited" in prompt, "Unlimited should be in prompt"
@@ -285,9 +285,9 @@ class TestPromptHydration:
         # All our prompts include shared/game_rules.md
         context = {"test": "value"}
         
-        spymaster_prompt = self.prompt_manager.load_prompt("prompts/red_spymaster.md", context)
-        operative_prompt = self.prompt_manager.load_prompt("prompts/red_operative.md", context)
-        referee_prompt = self.prompt_manager.load_prompt("prompts/referee.md", context)
+        spymaster_prompt = self.prompt_manager.load_prompt("codenames/prompts/red_spymaster.md", context)
+        operative_prompt = self.prompt_manager.load_prompt("codenames/prompts/red_operative.md", context)
+        referee_prompt = self.prompt_manager.load_prompt("codenames/prompts/referee.md", context)
         
         # Check that game rules content appears in all prompts
         game_rules_content = "Codenames"
@@ -310,9 +310,9 @@ class TestPromptHydration:
         }
         
         # Should not raise exceptions even with missing variables
-        spymaster_prompt = self.prompt_manager.load_prompt("prompts/red_spymaster.md", context)
-        operative_prompt = self.prompt_manager.load_prompt("prompts/red_operative.md", context)
-        referee_prompt = self.prompt_manager.load_prompt("prompts/referee.md", context)
+        spymaster_prompt = self.prompt_manager.load_prompt("codenames/prompts/red_spymaster.md", context)
+        operative_prompt = self.prompt_manager.load_prompt("codenames/prompts/red_operative.md", context)
+        referee_prompt = self.prompt_manager.load_prompt("codenames/prompts/referee.md", context)
         
         # Should still contain basic content
         assert "Red Team Spymaster" in spymaster_prompt
