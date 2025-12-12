@@ -4,7 +4,7 @@ import logging
 import os
 import time
 from pathlib import Path
-from typing import Dict, Optional, Tuple
+from typing import Dict, Optional, Set, Tuple
 
 import yaml
 from openai import OpenAI
@@ -32,21 +32,36 @@ class OpenRouterAdapter:
 
         # Load model mappings from YAML file
         self.model_mappings = self._load_model_mappings(model_mappings_file)
+        
+        # Load thinking models set for reasoning model detection
+        self.thinking_models = self._load_thinking_models(model_mappings_file)
 
     def _load_model_mappings(
         self, mappings_file: Optional[str] = None
     ) -> Dict[str, str]:
         """Load model mappings from YAML configuration file."""
         if mappings_file is None:
-            # Default to inputs/model_mappings.yml
-            file_path = Path("inputs/model_mappings.yml")
+            # Default to shared/inputs/model_mappings.yml
+            file_path = Path(__file__).parent.parent.parent / "shared" / "inputs" / "model_mappings.yml"
         else:
             file_path = Path(mappings_file)
 
         try:
             with open(file_path, "r") as f:
                 data = yaml.safe_load(f)
-            mappings = data.get("models", {})
+            raw_mappings = data.get("models", {})
+            
+            # Flatten hierarchical structure (thinking/non_thinking)
+            mappings = {}
+            if "thinking" in raw_mappings:
+                mappings.update(raw_mappings["thinking"])
+            if "non_thinking" in raw_mappings:
+                mappings.update(raw_mappings["non_thinking"])
+            # Also include any flat entries (legacy format)
+            for k, v in raw_mappings.items():
+                if k not in ("thinking", "non_thinking") and isinstance(v, str):
+                    mappings[k] = v
+            
             logger.info(f"Loaded {len(mappings)} model mappings from {file_path}")
             return mappings
         except FileNotFoundError:
@@ -65,6 +80,25 @@ class OpenRouterAdapter:
                 "claude": "anthropic/claude-3.5-sonnet",
                 "gemini": "google/gemini-2.5-pro",
             }
+
+    def _load_thinking_models(
+        self, mappings_file: Optional[str] = None
+    ) -> Set[str]:
+        """Load the set of thinking model IDs from model_mappings.yml."""
+        if mappings_file is None:
+            file_path = Path(__file__).parent.parent.parent / "shared" / "inputs" / "model_mappings.yml"
+        else:
+            file_path = Path(mappings_file)
+        
+        try:
+            with open(file_path, "r") as f:
+                data = yaml.safe_load(f)
+            raw_mappings = data.get("models", {})
+            thinking_models = raw_mappings.get("thinking", {})
+            return set(thinking_models.values())
+        except (FileNotFoundError, KeyError, yaml.YAMLError):
+            # Fallback to empty set if config loading fails
+            return set()
 
     @retry(
         stop=stop_after_attempt(3), wait=wait_exponential(multiplier=1, min=4, max=10)
@@ -198,7 +232,15 @@ class OpenRouterAdapter:
 
 
     def _is_reasoning_model(self, model_id: str) -> bool:
-        """Check if model is a reasoning model that doesn't support standard parameters."""
+        """Check if model is a reasoning model that doesn't support standard parameters.
+        
+        Uses the thinking models from model_mappings.yml as the source of truth.
+        """
+        # First check if model_id is directly in thinking models set
+        if model_id in self.thinking_models:
+            return True
+        
+        # Fallback patterns for models not in mappings (e.g., direct model IDs)
         reasoning_patterns = [
             "o1",
             "o3",
@@ -208,7 +250,6 @@ class OpenRouterAdapter:
             "grok-3-mini",
             "gpt-oss-120b",
             "gpt-oss-20b",
-            "qwen3",
             "deepseek-r1",
         ]
         return any(pattern in model_id for pattern in reasoning_patterns)
