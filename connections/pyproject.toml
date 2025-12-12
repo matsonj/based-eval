@@ -1,0 +1,34 @@
+[project]
+name = "connections-eval"
+version = "2.0.2"
+description = "Evaluate AI models on New York Times Connections puzzles"
+authors = [
+    {name = "connections-eval", email = "dev@example.com"},
+]
+dependencies = [
+    "requests>=2.31.0",
+    "pyyaml>=6.0",
+    "tiktoken==0.12.0",
+    "typer>=0.9.0",
+    "rich>=13.0.0",
+    "pandas>=2.0.0",
+    "matplotlib>=3.7.0",
+    "great-tables>=0.8.0",
+    "selenium>=4.0.0",
+    "duckdb==1.4.1",
+]
+requires-python = ">=3.12"
+readme = "README.md"
+license = {text = "MIT"}
+
+[project.scripts]
+connections_eval = "connections_eval.cli:main"
+
+[dependency-groups]
+dev = [
+    "pytest>=7.4.0",
+]
+
+[build-system]
+requires = ["hatchling"]
+build-backend = "hatchling.build"
