@@ -1,7 +1,11 @@
+# Canonical puzzles are the 20 hardest as determined by gemini-3-flash ranking
+# Use --canonical flag to run only these puzzles for consistent cross-model comparison
+
 puzzles:
   - id: 246
     date: 2024-09-03
     difficulty: 4.2
+    canonical: true
     words: [GENIE, MONKEY, PARROT, PRINCESS, DROP, ECHO, FREEZE, LAG,
             MIME, PRISONER, REFEREE, SAILOR, APOLLO, CANDLES, FANTASTIC, SAMURAI]
     groups:
@@ -21,6 +25,7 @@ puzzles:
   - id: 283
     date: 2024-10-09
     difficulty: 4.3
+    canonical: true
     words: [BOLOGNESE, NEAPOLITAN, PARMESAN, VENETIAN, FUJIFILM, HASSELBLAD, OLYMPUS, POLAROID,
             ASTROTURF, JUMBOTRON, SCOREBOARD, SKYBOX, CREAMSICLE, JOURNEYMAN, KISSCAM, RUSHMORE]
     groups:
@@ -97,6 +102,7 @@ puzzles:
   - id: 351
     date: 2024-12-16
     difficulty: 3.9
+    canonical: true
     words: [CHOICE, SAY, VOICE, VOTE, DOWN, HEEL, SHAKE, SPEAK,
             FLAT, NATURAL, QUARTER, WHOLE, PUMP, STEAM, TIRE, WAFFLE]
     groups:
@@ -116,6 +122,7 @@ puzzles:
   - id: 392
     date: 2025-01-07
     difficulty: 4.4
+    canonical: true
     words: [ALTERNATE, BACKUP, COVER, SUB, CONDENSE, FREEZE, MELT, VAPORIZE,
             COPPER, HACK, SHRINK, SUIT, FANTASY, HERO, HONEY, SOMEDAY]
     groups:
@@ -154,6 +161,7 @@ puzzles:
   - id: 475
     date: 2025-01-20
     difficulty: 4.3
+    canonical: true
     words: [BLEND, COMPOUND, CROSS, HYBRID, LODGE, PLANT, STICK, WEDGE,
             BIRTH, CRUISE, QUALITY, REMOTE, DEED, HOTEL, HOUSE, TOKEN]
     groups:
@@ -211,6 +219,7 @@ puzzles:
   - id: 842
     date: 2025-09-30
     difficulty: 4.0
+    canonical: true
     words: [AWKWARD, STIFF, STILTED, WOODEN, CHUCK, COULD, WOOD, WOODCHUCK, FOGHORN, SCROOGE, WOODSTOCK, WOODY, CLASSICS, CREATE, GUTHRIE, THEREFORE]
     groups:
       - name: UNNATURAL, AS MANNERISMS
@@ -230,6 +239,7 @@ puzzles:
   - id: 841
     date: 2025-09-29
     difficulty: 4.0
+    canonical: true
     words: [BOXER, BRIEF, HIPSTER, THONG, FOOL, PRANK, PUNK, TRICK, CHAIN, FLAPPER, FLOAT, HANDLE, BABA, BOHEMIAN, HOTEL, STAIRWAY]
     groups:
       - name: KINDS OF UNDERWEAR
@@ -287,6 +297,7 @@ puzzles:
   - id: 838
     date: 2025-09-26
     difficulty: 4.0
+    canonical: true
     words: [BEAT, CREAM, WHIP, WHISK, DIM, FAINT, LIGHT, PALE, BLACK, BROWN, POLAR, SUN, BLONDE, POOL, RICE, WORD]
     groups:
       - name: STIR VIGOROUSLY
@@ -344,6 +355,7 @@ puzzles:
   - id: 835
     date: 2025-09-23
     difficulty: 4.0
+    canonical: true
     words: [BOUNCY, BRIGHT, MERRY, SUNNY, BABY, BUGGY, BUMPER, RUBBER, CARRY-ON, DUFFEL, HARD-SHELL, ROLLER, FERRIS, HEATHER, INDIANA, PEE-WEE]
     groups:
       - name: CHEERFUL
@@ -382,6 +394,7 @@ puzzles:
   - id: 833
     date: 2025-09-21
     difficulty: 4.0
+    canonical: true
     words: [PINCH, SCROLL, SWIPE, TAP, CHILL, LOAF, LOUNGE, VEG, BAR, BOOTH, COUNTER, TABLE, ALE, EEK, HIVE, QUASH]
     groups:
       - name: TOUCHSCREEN GESTURES
@@ -401,6 +414,7 @@ puzzles:
   - id: 832
     date: 2025-09-20
     difficulty: 4.0
+    canonical: true
     words: [DODGE, FORD, LINCOLN, RAM, CHIP, DIP, FRY, WING, DUCK, FLYER, SENATOR, STAR, DIVE, LARK, ROCKET, SCRAPER]
     groups:
       - name: CAR BRANDS
@@ -420,6 +434,7 @@ puzzles:
   - id: 831
     date: 2025-09-19
     difficulty: 4.0
+    canonical: true
     words: [GRADE, RANK, RATE, SCORE, BLUSH, FIDGET, PACE, SWEAT, DYE, MASCARA, NOSE, STOCKINGS, CLIP, TIGER, TOWEL, TRAIL]
     groups:
       - name: EVALUATE
@@ -439,6 +454,7 @@ puzzles:
   - id: 830
     date: 2025-09-18
     difficulty: 4.0
+    canonical: true
     words: [DOWN, EAGER, GAME, WILLING, EQUIP, OUTFIT, PREPARE, READY, NASA, N.F.L., PARAMOUNT, SUBARU, ABLE, CANE, EAVE, NOAA]
     groups:
       - name: INTO IT
@@ -534,6 +550,7 @@ puzzles:
   - id: 825
     date: 2025-09-13
     difficulty: 4.0
+    canonical: true
     words: [CRITICAL, KEY, MAJOR, PRINCIPAL, INNER, PERSONAL, PRIVATE, SECRET, DOLLAR, POUND, STERLING, WON, BILL, NICKEL, SOLDIER, WING]
     groups:
       - name: IMPORTANT
@@ -553,6 +570,7 @@ puzzles:
   - id: 824
     date: 2025-09-12
     difficulty: 4.0
+    canonical: true
     words: [APPEAL, BID, CALL, PETITION, ADDRESS, EMAIL, NAME, NUMBER, FISHEYE, MACRO, TELEPHOTO, ZOOM, DRIVER, EBAY, FINLET, FLAKE]
     groups:
       - name: ENTREATY
@@ -591,6 +609,7 @@ puzzles:
   - id: 822
     date: 2025-09-10
     difficulty: 4.0
+    canonical: true
     words: [BAD, SHAME, TSK, TUT TUT, BARREL, FLY, RACE, ZIP, AKEEM, DOLITTLE, DONKEY, FOLEY, CAKE, COBRA, KONG, TUT]
     groups:
       - name: "YOU SHOULD KNOW BETTER!"
@@ -629,6 +648,7 @@ puzzles:
   - id: 820
     date: 2025-09-08
     difficulty: 4.0
+    canonical: true
     words: [BALONEY, BULL, BUNK, RUBBISH, CRANK, HIKE, JACK, RAISE, ARCHER, HUNT, PEEL, POWERS, FISH, NAP, TAIL, WALK]
     groups:
       - name: NONSENSE
@@ -686,6 +706,7 @@ puzzles:
   - id: 817
     date: 2025-09-05
     difficulty: 4.0
+    canonical: true
     words: [KICK, PUNCH, ZEST, ZING, FREE, SINGLE, SOLO, STAG, BILLY, BUCK, JACK, RAM, HAN, MING, SONG, TANG]
     groups:
       - name: PIQUANCY
@@ -743,6 +764,7 @@ puzzles:
   - id: 814
     date: 2025-09-02
     difficulty: 4.0
+    canonical: true
     words: [EXPLETIVES, FOUR-LETTER WORDS, PROFANITY, SWEARING, CHRISTMAS, HOUSE, MOUSE, STIRRING, EARRING, MESH SHIRT, NECKLACE, PLEATHER VEST, HERRING, HISTAMINE, MYSTERY, OUROBOROS]
     groups:
       - name: CURSES
@@ -762,6 +784,7 @@ puzzles:
   - id: 813
     date: 2025-09-01
     difficulty: 4.0
+    canonical: true
     words: [DEBUT, INTRODUCTION, LAUNCH, PREMIERE, MOTHER, PRESIDENT, SAINT PATRICK, SAINT VALENTINE, BISHOP, BURNS, LORDE, POPE, BIRD, CLERGY MEMBER, M.L.B. PLAYER, N.F.L. PLAYER]
     groups:
       - name: FIRST APPEARANCE

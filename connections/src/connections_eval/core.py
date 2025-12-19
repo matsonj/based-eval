@@ -3,10 +3,11 @@
 import random
 import time
 import yaml
+from concurrent.futures import ThreadPoolExecutor, as_completed
 from datetime import datetime
 from pathlib import Path
 from typing import Dict, List, Optional, Set, Tuple, Any
-from dataclasses import dataclass
+from dataclasses import dataclass, field
 
 # Use shared infrastructure from BASED eval framework
 from shared.utils import Timer, count_tokens, extract_token_usage, extract_cost_info
@@ -31,6 +32,7 @@ class Puzzle:
     difficulty: float
     words: List[str]
     groups: List[PuzzleGroup]
+    canonical: bool = False  # Whether this puzzle is part of the canonical eval set
 
 
 @dataclass
@@ -47,11 +49,30 @@ class GameState:
     end_time: Optional[float]
 
 
+@dataclass
+class PuzzleDifficultyResult:
+    """Results from ranking a single puzzle across multiple runs."""
+    puzzle_id: int
+    puzzle_date: str
+    runs: int
+    wins: int
+    losses: int
+    win_rate: float
+    total_completion_tokens: int
+    avg_completion_tokens: float
+    total_guesses: int
+    total_mistakes: int
+    avg_guesses: float
+    avg_mistakes: float
+    difficulty_score: float  # Lower = harder (win_rate * 100 - avg_tokens_normalized)
+    ranked_at: str  # ISO timestamp
+
+
 class ConnectionsGame:
     """Main game engine for Connections puzzles."""
     
     # Version for tracking evaluation framework changes
-    VERSION = "2.0.2"  # Fixed reasoning field extraction for thinking models
+    VERSION = "3.0.0"  # Added puzzle ranking, canonical sets, and parallel execution
     
     # Model configuration loaded from YAML file
     MODEL_CONFIG = {}
@@ -106,11 +127,16 @@ class ConnectionsGame:
                 date=puzzle_data["date"],
                 difficulty=puzzle_data["difficulty"],
                 words=puzzle_data["words"],
-                groups=groups
+                groups=groups,
+                canonical=puzzle_data.get("canonical", False)
             )
             puzzles.append(puzzle)
         
         return puzzles
+    
+    def get_canonical_puzzle_ids(self) -> List[int]:
+        """Get list of canonical puzzle IDs."""
+        return [p.id for p in self.puzzles if p.canonical]
     
     def _load_prompt_template(self) -> str:
         """Load prompt template from XML file."""
@@ -121,11 +147,11 @@ class ConnectionsGame:
     def _load_model_mappings(self) -> Dict[str, str]:
         """Load model mappings from shared YAML file."""
         # Use shared model mappings from BASED eval framework
-        shared_mappings_file = Path(__file__).parent.parent.parent.parent.parent / "shared" / "inputs" / "model_mappings.yml"
+        # Path: core.py -> connections_eval -> src -> connections -> project_root (4 parents)
+        shared_mappings_file = Path(__file__).parent.parent.parent.parent / "shared" / "inputs" / "model_mappings.yml"
         
-        # Fallback to local if shared not found
         if not shared_mappings_file.exists():
-            shared_mappings_file = self.inputs_path / "model_mappings.yml"
+            raise FileNotFoundError(f"Model mappings file not found: {shared_mappings_file}")
         
         try:
             with open(shared_mappings_file, 'r') as f:
@@ -138,14 +164,16 @@ class ConnectionsGame:
             if "non_thinking" in data.get("models", {}):
                 models.update(data["models"]["non_thinking"])
             return models
-        except (FileNotFoundError, KeyError, yaml.YAMLError) as e:
+        except (KeyError, yaml.YAMLError) as e:
             raise FileNotFoundError(f"Could not load model mappings from {shared_mappings_file}: {e}")
     
     def run_evaluation(
         self,
         model_name: str,
         max_puzzles: Optional[int] = None,
-        is_interactive: bool = False
+        is_interactive: bool = False,
+        threads: int = 1,
+        puzzle_ids: Optional[List[int]] = None
     ) -> Dict[str, Any]:
         """
         Run evaluation on puzzles.
@@ -154,6 +182,8 @@ class ConnectionsGame:
             model_name: Name of model to evaluate (or label for interactive)
             max_puzzles: Maximum number of puzzles to run
             is_interactive: Whether to run in interactive mode
+            threads: Number of parallel threads (default: 1 for sequential)
+            puzzle_ids: Optional list of specific puzzle IDs to run (for canonical set)
             
         Returns:
             Summary statistics
@@ -168,12 +198,27 @@ class ConnectionsGame:
             # Do not fail the run if telemetry init fails
             pass
         
-        # Randomize puzzle order
-        puzzles_to_run = self.puzzles.copy()
-        self.rng.shuffle(puzzles_to_run)
-        
-        if max_puzzles:
-            puzzles_to_run = puzzles_to_run[:max_puzzles]
+        # Determine which puzzles to run
+        if puzzle_ids is not None:
+            # Use specific puzzle IDs (canonical set mode)
+            puzzle_id_set = set(puzzle_ids)
+            puzzles_to_run = [p for p in self.puzzles if p.id in puzzle_id_set]
+            # Preserve order from puzzle_ids
+            puzzle_order = {pid: i for i, pid in enumerate(puzzle_ids)}
+            puzzles_to_run.sort(key=lambda p: puzzle_order.get(p.id, float('inf')))
+            
+            # Warn if any requested puzzles weren't found
+            found_ids = {p.id for p in puzzles_to_run}
+            missing_ids = puzzle_id_set - found_ids
+            if missing_ids:
+                self.logger.warning(f"Puzzle IDs not found: {missing_ids}")
+        else:
+            # Randomize puzzle order (original behavior)
+            puzzles_to_run = self.puzzles.copy()
+            self.rng.shuffle(puzzles_to_run)
+            
+            if max_puzzles:
+                puzzles_to_run = puzzles_to_run[:max_puzzles]
         
         # Run puzzles
         total_stats = {
@@ -192,45 +237,93 @@ class ConnectionsGame:
             "total_upstream_cost": 0.0,
         }
         
-        for puzzle in puzzles_to_run:
-            try:
-                if is_interactive:
-                    stats = self._run_puzzle_interactive(puzzle)
-                else:
-                    stats = self._run_puzzle_ai(puzzle, model_name)
-                
-                # Update totals
-                total_stats["puzzles_attempted"] += 1
-                if stats["won"]:
-                    total_stats["puzzles_solved"] += 1
-                total_stats["total_guesses"] += stats["guess_count"]
-                total_stats["correct_guesses"] += len(stats["solved_groups"])
-                total_stats["incorrect_guesses"] += stats["mistake_count"]
-                total_stats["invalid_responses"] += stats["invalid_count"]
-                total_stats["total_time_sec"] += stats["time_sec"]
-                total_stats["total_tokens"] += stats["total_tokens"]
-                total_stats["total_prompt_tokens"] += stats.get("total_prompt_tokens", 0)
-                total_stats["total_completion_tokens"] += stats.get("total_completion_tokens", 0)
-                total_stats["total_cost"] += stats.get("total_cost", 0.0)
-                total_stats["total_upstream_cost"] += stats.get("total_upstream_cost", 0.0)
-                
-                if stats["token_count_method"] == "API":
-                    total_stats["token_count_method"] = "API"
+        puzzle_results = []
+        
+        if is_interactive or threads <= 1:
+            # Sequential execution (required for interactive mode)
+            for puzzle in puzzles_to_run:
+                try:
+                    if is_interactive:
+                        stats = self._run_puzzle_interactive(puzzle)
+                    else:
+                        stats = self._run_puzzle_ai(puzzle, model_name)
+                    puzzle_results.append((puzzle.id, stats, None))
+                except Exception as e:
+                    self.logger.error(f"Error running puzzle {puzzle.id}: {e}")
+                    puzzle_results.append((puzzle.id, None, e))
+                    break
+        else:
+            # Parallel execution
+            import threading
+            
+            # Thread-local storage for logger to avoid conflicts
+            thread_local = threading.local()
+            
+            def run_single_puzzle(puzzle: Puzzle) -> Tuple[int, Optional[Dict[str, Any]], Optional[Exception]]:
+                """Run a single puzzle in a thread."""
+                try:
+                    # Create thread-local RNG for word shuffling
+                    if not hasattr(thread_local, 'rng'):
+                        thread_local.rng = random.Random(self.seed + puzzle.id)
                     
-            except Exception as e:
-                self.logger.error(f"Error running puzzle {puzzle.id}: {e}")
-                break
+                    # Store original rng and temporarily replace
+                    original_rng = self.rng
+                    self.rng = thread_local.rng
+                    
+                    try:
+                        stats = self._run_puzzle_ai(puzzle, model_name)
+                        return (puzzle.id, stats, None)
+                    finally:
+                        self.rng = original_rng
+                        
+                except Exception as e:
+                    self.logger.error(f"Error running puzzle {puzzle.id}: {e}")
+                    return (puzzle.id, None, e)
+            
+            with ThreadPoolExecutor(max_workers=threads) as executor:
+                futures = {executor.submit(run_single_puzzle, p): p.id for p in puzzles_to_run}
+                
+                for future in as_completed(futures):
+                    result = future.result()
+                    puzzle_results.append(result)
+        
+        # Aggregate results
+        for puzzle_id, stats, error in puzzle_results:
+            if stats is None:
+                continue
+                
+            total_stats["puzzles_attempted"] += 1
+            if stats["won"]:
+                total_stats["puzzles_solved"] += 1
+            total_stats["total_guesses"] += stats["guess_count"]
+            total_stats["correct_guesses"] += len(stats["solved_groups"])
+            total_stats["incorrect_guesses"] += stats["mistake_count"]
+            total_stats["invalid_responses"] += stats["invalid_count"]
+            total_stats["total_time_sec"] += stats["time_sec"]
+            total_stats["total_tokens"] += stats["total_tokens"]
+            total_stats["total_prompt_tokens"] += stats.get("total_prompt_tokens", 0)
+            total_stats["total_completion_tokens"] += stats.get("total_completion_tokens", 0)
+            total_stats["total_cost"] += stats.get("total_cost", 0.0)
+            total_stats["total_upstream_cost"] += stats.get("total_upstream_cost", 0.0)
+            
+            if stats["token_count_method"] == "API":
+                total_stats["token_count_method"] = "API"
         
         # Calculate averages
         end_timestamp = datetime.utcnow().isoformat() + "Z"
         avg_time = (total_stats["total_time_sec"] / total_stats["puzzles_attempted"] 
                    if total_stats["puzzles_attempted"] > 0 else 0.0)
         
+        # Track which puzzle IDs were run for verification
+        puzzle_ids_run = [pid for pid, stats, _ in puzzle_results if stats is not None]
+        
         summary = {
             "run_id": self.run_id,
             "model": model_name,
             "version": self.VERSION,
             "seed": self.seed,
+            "threads": threads,
+            "puzzle_ids": puzzle_ids_run,
             "avg_time_sec": round(avg_time, 1),
             "start_timestamp": start_timestamp,
             "end_timestamp": end_timestamp,
@@ -239,6 +332,140 @@ class ConnectionsGame:
         
         log_summary(self.logger, summary)
         return summary
+    
+    def rank_puzzle(
+        self,
+        puzzle_id: int,
+        runs: int = 10,
+        model_name: str = "gemini-3-flash"
+    ) -> PuzzleDifficultyResult:
+        """
+        Rank a puzzle's difficulty by running it multiple times.
+        
+        Args:
+            puzzle_id: ID of the puzzle to rank
+            runs: Number of times to run the puzzle (default: 10)
+            model_name: Model to use for ranking (default: gemini-3-flash)
+            
+        Returns:
+            PuzzleDifficultyResult with difficulty metrics
+        """
+        # Find the puzzle
+        puzzle = None
+        for p in self.puzzles:
+            if p.id == puzzle_id:
+                puzzle = p
+                break
+        
+        if puzzle is None:
+            raise ValueError(f"Puzzle {puzzle_id} not found")
+        
+        # Setup logging for this ranking run
+        self.run_id = f"rank_{puzzle_id}_{datetime.utcnow().strftime('%Y-%m-%dT%H-%M-%S')}"
+        self.logger = setup_logger(self.log_path, self.run_id, verbose=self.verbose)
+        
+        # Run the puzzle multiple times
+        results = []
+        total_completion_tokens = 0
+        total_guesses = 0
+        total_mistakes = 0
+        wins = 0
+        
+        for i in range(runs):
+            # Use a different seed for each run to get variety
+            self.rng = random.Random(self.seed + i)
+            
+            try:
+                stats = self._run_puzzle_ai(puzzle, model_name)
+                results.append(stats)
+                
+                if stats["won"]:
+                    wins += 1
+                total_completion_tokens += stats.get("total_completion_tokens", 0)
+                total_guesses += stats["guess_count"]
+                total_mistakes += stats["mistake_count"]
+                
+            except Exception as e:
+                self.logger.error(f"Run {i+1} failed: {e}")
+                # Count as a loss
+                results.append({"won": False, "error": str(e)})
+        
+        losses = runs - wins
+        win_rate = wins / runs if runs > 0 else 0.0
+        avg_completion_tokens = total_completion_tokens / runs if runs > 0 else 0.0
+        avg_guesses = total_guesses / runs if runs > 0 else 0.0
+        avg_mistakes = total_mistakes / runs if runs > 0 else 0.0
+        
+        # Calculate difficulty score:
+        # - Primary factor: win rate (lower = harder)
+        # - Tiebreaker: avg completion tokens (more = harder, so subtract)
+        # Score ranges from 0 (hardest) to 100 (easiest)
+        # We normalize tokens to a 0-10 scale assuming max ~5000 tokens per puzzle
+        tokens_penalty = min(avg_completion_tokens / 500, 10)  # 0-10 scale
+        difficulty_score = (win_rate * 100) - tokens_penalty
+        
+        return PuzzleDifficultyResult(
+            puzzle_id=puzzle_id,
+            puzzle_date=puzzle.date,
+            runs=runs,
+            wins=wins,
+            losses=losses,
+            win_rate=win_rate,
+            total_completion_tokens=total_completion_tokens,
+            avg_completion_tokens=avg_completion_tokens,
+            total_guesses=total_guesses,
+            total_mistakes=total_mistakes,
+            avg_guesses=avg_guesses,
+            avg_mistakes=avg_mistakes,
+            difficulty_score=difficulty_score,
+            ranked_at=datetime.utcnow().isoformat() + "Z"
+        )
+    
+    def rank_all_puzzles(
+        self,
+        runs_per_puzzle: int = 10,
+        model_name: str = "gemini-3-flash",
+        threads: int = 4
+    ) -> List[PuzzleDifficultyResult]:
+        """
+        Rank all puzzles by difficulty.
+        
+        Args:
+            runs_per_puzzle: Number of times to run each puzzle
+            model_name: Model to use for ranking
+            threads: Number of parallel threads
+            
+        Returns:
+            List of PuzzleDifficultyResult sorted by difficulty (hardest first)
+        """
+        results = []
+        
+        def rank_single(puzzle_id: int) -> PuzzleDifficultyResult:
+            # Create a new game instance for thread safety
+            game = ConnectionsGame(
+                self.inputs_path, 
+                self.log_path, 
+                seed=self.seed,
+                verbose=self.verbose
+            )
+            return game.rank_puzzle(puzzle_id, runs_per_puzzle, model_name)
+        
+        puzzle_ids = [p.id for p in self.puzzles]
+        
+        with ThreadPoolExecutor(max_workers=threads) as executor:
+            futures = {executor.submit(rank_single, pid): pid for pid in puzzle_ids}
+            
+            for future in as_completed(futures):
+                puzzle_id = futures[future]
+                try:
+                    result = future.result()
+                    results.append(result)
+                except Exception as e:
+                    print(f"Failed to rank puzzle {puzzle_id}: {e}")
+        
+        # Sort by difficulty score (ascending = hardest first)
+        results.sort(key=lambda r: r.difficulty_score)
+        return results
     
     def _run_puzzle_ai(self, puzzle: Puzzle, model_name: str) -> Dict[str, Any]:
         """Run a single puzzle with AI model."""

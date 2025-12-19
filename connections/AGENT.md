@@ -13,7 +13,8 @@
 - **CLI**: `src/connections_eval/cli.py` - Typer-based command interface
 - **Adapters**: `src/connections_eval/adapters/openrouter_adapter.py` - Unified OpenRouter integration for 200+ AI models
 - **Utils**: `src/connections_eval/utils/` - Timing, tokens, logging, retry utilities
-- **Data**: `inputs/connections_puzzles.yml` (puzzles), `inputs/prompt_template.xml` (prompts), `inputs/model_mappings.yml` (model ID mappings), `inputs/test_battery.yml` (test model list)
+- **Data**: `inputs/connections_puzzles.yml` (puzzles), `inputs/prompt_template.xml` (prompts), `inputs/test_battery.yml` (test model list)
+- **Shared**: `../shared/inputs/model_mappings.yml` (unified model ID mappings for all evals)
 - **Logs**: JSONL format in `logs/` directory with detailed exchange and summary data
 - **Scripts**: `scripts/` - Analysis and visualization tools for processing evaluation results
 - **Results**: `results/` - Generated CSV data and HTML reports

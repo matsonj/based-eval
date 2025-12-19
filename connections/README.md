@@ -83,7 +83,7 @@ export OPENROUTER_API_KEY="your-openrouter-key"
 
 ### Available Models
 
-Models are configured in `inputs/model_mappings.yml`. Here are some popular options:
+Models are configured in `shared/inputs/model_mappings.yml` (at the project root). Here are some popular options:
 
 | CLI Name      | OpenRouter Model ID           | Type                   | Description                     |
 |---------------|-------------------------------|------------------------|---------------------------------|
@@ -328,8 +328,9 @@ src/connections_eval/
 
 inputs/
 ├── connections_puzzles.yml    # Puzzle database
-├── model_mappings.yml         # Model configuration
 └── prompt_template.xml        # Prompt template
+
+# Model mappings are in shared/inputs/model_mappings.yml (project root)
 ```
 
 ## Error Handling

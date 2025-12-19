@@ -45,12 +45,19 @@ jobs:
         run: |
           # Set default MOTHERDUCK_DB if not provided (uses default MotherDuck database)
           export MOTHERDUCK_DB="${MOTHERDUCK_DB:-md:}"
-          # Set default puzzles to 1 if not provided
+          # Use canonical puzzle set for consistent evaluation
+          # Falls back to --puzzles if provided, or runs all puzzles
           PUZZLES="${{ inputs.puzzles }}"
           if [ -z "$PUZZLES" ]; then
-            PUZZLES="1"
+            # Use canonical set if puzzle_difficulty.yml exists, otherwise run 1 puzzle
+            if [ -f "connections/inputs/puzzle_difficulty.yml" ]; then
+              uv run based connections run --model "${{ inputs.model }}" --canonical --threads 8
+            else
+              uv run based connections run --model "${{ inputs.model }}" --puzzles 1 --threads 8
+            fi
+          else
+            uv run based connections run --model "${{ inputs.model }}" --puzzles "$PUZZLES" --threads 8
           fi
-          uv run based connections run --model "${{ inputs.model }}" --puzzles "$PUZZLES"
       
       - name: Update docs - Extract summaries
         env:
