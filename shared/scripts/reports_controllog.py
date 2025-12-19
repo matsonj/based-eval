@@ -39,7 +39,7 @@ def snapshot_sla(con):
         WHERE account_type='sla.promises'
         GROUP BY e.project_id
         """
-    ).fetchall()
+    ).fetchdf()
 
 
 def flows_cost_utility(con):
@@ -58,7 +58,7 @@ def flows_cost_utility(con):
                SUM(CASE WHEN account_type='value.utility'  THEN  amt ELSE 0 END) AS utility
         FROM p GROUP BY project_id
         """
-    ).fetchall()
+    ).fetchdf()
 
 
 def ops_latency_by_model(con):
@@ -76,7 +76,7 @@ def ops_latency_by_model(con):
           AND p.account_id LIKE 'agent:%'
         GROUP BY 1,2
         """
-    ).fetchall()
+    ).fetchdf()
 
 
 if __name__ == "__main__":

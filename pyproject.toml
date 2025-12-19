@@ -15,8 +15,10 @@ dependencies = [
     "tenacity>=8.0.0",
     "requests>=2.25.0",
     # Optional but recommended for full functionality
-    "tiktoken>=0.5.0",  # For token counting
-    "duckdb>=1.0.0",    # For MotherDuck integration
+    "tiktoken>=0.5.0", # For token counting
+    "duckdb>=1.0.0", # For MotherDuck integration
+    "pandas>=2.0.0", # For DuckDB DataFrame operations
+    "great-tables>=0.20.0",
 ]
 requires-python = ">=3.12,<3.14"
 readme = "README.md"

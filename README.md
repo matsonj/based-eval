@@ -267,6 +267,12 @@ uv run based analytics trial-balance  # Verify double-entry accounting
 uv run based analytics upload         # Upload all logs to MotherDuck
 ```
 
+## Latest Results
+
+[📊 View Interactive Results Table](https://matsonj.github.io/eval-connections/) - Sports-style box score showing latest model performance
+
+*Table includes solve rates, costs, token usage, and timing metrics formatted like sports statistics.*
+
 ## License
 
 MIT License
