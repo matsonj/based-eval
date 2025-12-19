@@ -39,7 +39,7 @@ def snapshot_sla(con):
         WHERE account_type='sla.promises'
         GROUP BY e.project_id
         """
-    ).fetchdf()
+    ).fetchall()
 
 
 def flows_cost_utility(con):
@@ -58,7 +58,7 @@ def flows_cost_utility(con):
                SUM(CASE WHEN account_type='value.utility'  THEN  amt ELSE 0 END) AS utility
         FROM p GROUP BY project_id
         """
-    ).fetchdf()
+    ).fetchall()
 
 
 def ops_latency_by_model(con):
@@ -76,11 +76,11 @@ def ops_latency_by_model(con):
           AND p.account_id LIKE 'agent:%'
         GROUP BY 1,2
         """
-    ).fetchdf()
+    ).fetchall()
 
 
 if __name__ == "__main__":
-    db = os.environ.get("MOTHERDUCK_DB", "md:controllog")
+    db = os.environ.get("MOTHERDUCK_DB", "md:my_db")
     con = duckdb.connect(db)
     trial_balance(con)
     print("Trial balance PASS")

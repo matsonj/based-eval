@@ -117,6 +117,6 @@ def load_directory(base_log_dir: Path, target_db: str = "md:") -> None:
 
 if __name__ == "__main__":
     log_dir = Path(os.environ.get("CTRL_LOG_DIR", "logs"))
-    db = os.environ.get("MOTHERDUCK_DB", "md:")
+    db = os.environ.get("MOTHERDUCK_DB", "md:my_db")
     load_directory(log_dir, db)
 
