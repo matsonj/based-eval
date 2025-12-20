@@ -66,7 +66,7 @@ def _get_api_key() -> str:
     """Get OpenRouter API key from environment."""
     api_key = os.getenv("OPENROUTER_API_KEY")
     if not api_key:
-        raise ValueError("OPENROUTER_API_KEY environment variable not set")
+        raise ValueError("OPENROUTER_API_KEY environment variable not set. Try `source .env` and run again.")
     return api_key
 
 
@@ -99,7 +99,7 @@ def resolve_model_id(model_name: str, mappings: Optional[Dict[str, Any]] = None)
     return model_name
 
 
-@retry_with_backoff(max_retries=5, base_delay=2.0, exceptions=(requests.RequestException,))
+@retry_with_backoff(max_retries=3, base_delay=2.0, exceptions=(requests.RequestException,))
 def chat(messages: List[Dict], model: str, timeout: int = 300) -> Dict:
     """
     Call OpenRouter Chat Completions API (function-based API).

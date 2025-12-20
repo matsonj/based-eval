@@ -175,7 +175,7 @@ def run(
     # Check OpenRouter API key for non-interactive mode
     if not interactive:
         if not os.getenv("OPENROUTER_API_KEY"):
-            console.print("❌ OPENROUTER_API_KEY environment variable not set", style="red")
+            console.print("❌ OPENROUTER_API_KEY environment variable not set. Try `source .env` and run again.", style="red")
             raise typer.Exit(1)
     
     puzzles_file = inputs_path / "connections_puzzles.yml"

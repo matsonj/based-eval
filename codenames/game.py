@@ -47,12 +47,14 @@ class CodenamesGame:
         blue_operative_prompt: str = "",
         referee_prompt: str = "",
         interactive_mode: Optional[str] = None,
+        quiet: bool = False,
     ):
         self.words_file = words_file
         self.red_player = red_player
         self.blue_player = blue_player
         self.referee_player = referee_player
         self.interactive_mode = interactive_mode
+        self.quiet = quiet  # Suppress console output for batch runs
         self.prompt_files = {
             "red_spymaster": red_spymaster_prompt,
             "red_operative": red_operative_prompt,
@@ -81,6 +83,15 @@ class CodenamesGame:
         # Track costs
         self.total_cost: float = 0.0
         self.total_upstream_cost: float = 0.0
+    
+    def _print(self, *args, **kwargs):
+        """Print to console unless in quiet mode."""
+        if not self.quiet:
+            console.print(*args, **kwargs)
+    
+    def _console_print(self, *args, **kwargs):
+        """Alias for _print - quietable console output."""
+        self._print(*args, **kwargs)
         
         # Generate unique game ID
         import uuid
@@ -299,7 +310,7 @@ class CodenamesGame:
 
     def display_board_start(self):
         """Display the initial board state at game start."""
-        console.print(f"\n[bold]Game Board - {self.current_team.title()} Team Goes First[/bold]")
+        self._print(f"\n[bold]Game Board - {self.current_team.title()} Team Goes First[/bold]")
         
         # Create a 5x5 grid
         table = Table(show_header=False, show_lines=True)
@@ -314,24 +325,24 @@ class CodenamesGame:
                 row_items.append(f"[white]{word}[/white]")
             table.add_row(*row_items)
 
-        console.print(table)
+        self._print(table)
         
         # Show team info
         red_total = sum(1 for identity in self.identities.values() if identity == "red_agent")
         blue_total = sum(1 for identity in self.identities.values() if identity == "blue_agent")
         bystander_total = sum(1 for identity in self.identities.values() if identity == "bystander")
         
-        console.print(f"\n[red]Red Team:[/red] {red_total} agents")
-        console.print(f"[blue]Blue Team:[/blue] {blue_total} agents")
-        console.print(f"[dim]Bystanders:[/dim] {bystander_total}")
-        console.print(f"[black on white]Assassin:[/black on white] 1")
-        console.print("")
+        self._print(f"\n[red]Red Team:[/red] {red_total} agents")
+        self._print(f"[blue]Blue Team:[/blue] {blue_total} agents")
+        self._print(f"[dim]Bystanders:[/dim] {bystander_total}")
+        self._print(f"[black on white]Assassin:[/black on white] 1")
+        self._print("")
 
     def display_board(self, reveal_all: bool = False):
         """Display the current board state."""
         state = self.get_board_state(reveal_all)
 
-        console.print(
+        self._print(
             f"\n[bold]Turn {self.turn_count + 1} - {self.current_team.title()} Team[/bold]"
         )
 
@@ -369,7 +380,7 @@ class CodenamesGame:
 
             table.add_row(*row_items)
 
-        console.print(table)
+        self._print(table)
 
         # Show team counts
         red_remaining = sum(
@@ -383,7 +394,7 @@ class CodenamesGame:
             if identity == "blue_agent" and not self.revealed[word]
         )
 
-        console.print(
+        self._print(
             f"\n[red]Red Team Remaining: {red_remaining}[/red]  [blue]Blue Team Remaining: {blue_remaining}[/blue]"
         )
 
@@ -463,12 +474,12 @@ class CodenamesGame:
                 },
             )
             
-            console.print(f"\n[bold]{self.current_team.title()} Spymaster Turn (Human)[/bold]")
-            console.print(f"[yellow]{'='*80}[/yellow]")
-            console.print("[yellow]SPYMASTER PROMPT:[/yellow]")
-            console.print(f"[yellow]{'='*80}[/yellow]")
-            console.print(prompt)
-            console.print(f"[yellow]{'='*80}[/yellow]\n")
+            self._print(f"\n[bold]{self.current_team.title()} Spymaster Turn (Human)[/bold]")
+            self._print(f"[yellow]{'='*80}[/yellow]")
+            self._print("[yellow]SPYMASTER PROMPT:[/yellow]")
+            self._print(f"[yellow]{'='*80}[/yellow]")
+            self._print(prompt)
+            self._print(f"[yellow]{'='*80}[/yellow]\n")
 
             clue = console.input("Enter your clue: ").strip()
             number: int|str
@@ -483,9 +494,9 @@ class CodenamesGame:
                         if number_val >= 0:
                             number = number_val
                             break
-                        console.print("[red]Number must be 0 or positive[/red]")
+                        self._print("[red]Number must be 0 or positive[/red]")
                 except ValueError:
-                    console.print("[red]Please enter a valid number or 'unlimited'[/red]")
+                    self._print("[red]Please enter a valid number or 'unlimited'[/red]")
 
             # Validate clue with referee if available
             if self.referee_player:
@@ -507,7 +518,7 @@ class CodenamesGame:
             clue, number = player.get_spymaster_move(
                 board_state, self.prompt_files[prompt_key]
             )
-            console.print(
+            self._print(
                 f'[{self.current_team}]{self.current_team.title()} Spymaster[/{self.current_team}]: "{clue}" ({number})'
             )
             
@@ -602,12 +613,12 @@ class CodenamesGame:
                 },
             )
             
-            console.print(f"\n[bold]{self.current_team.title()} Operative Turn (Human)[/bold]")
-            console.print(f"[yellow]{'='*80}[/yellow]")
-            console.print("[yellow]OPERATIVE PROMPT:[/yellow]")
-            console.print(f"[yellow]{'='*80}[/yellow]")
-            console.print(prompt)
-            console.print(f"[yellow]{'='*80}[/yellow]\n")
+            self._print(f"\n[bold]{self.current_team.title()} Operative Turn (Human)[/bold]")
+            self._print(f"[yellow]{'='*80}[/yellow]")
+            self._print("[yellow]OPERATIVE PROMPT:[/yellow]")
+            self._print(f"[yellow]{'='*80}[/yellow]")
+            self._print(prompt)
+            self._print(f"[yellow]{'='*80}[/yellow]\n")
 
             guesses: List[str] = []
             
@@ -627,7 +638,7 @@ class CodenamesGame:
                     word for word in self.board if not self.revealed[word]
                 ]
 
-                console.print(f"\nAvailable words: {', '.join(available_words)}")
+                self._print(f"\nAvailable words: {', '.join(available_words)}")
                 
                 # Show appropriate prompt based on clue type
                 if number == "unlimited":
@@ -645,12 +656,12 @@ class CodenamesGame:
                 if guess.lower() == "done":
                     # Check minimum guess requirement for zero clues
                     if number == 0 and len(guesses) == 0:
-                        console.print(f"[red]Zero clues require at least one guess[/red]")
+                        self._print(f"[red]Zero clues require at least one guess[/red]")
                         continue
                     break
 
                 if guess not in available_words:
-                    console.print(f"[red]'{guess}' is not available. Try again.[/red]")
+                    self._print(f"[red]'{guess}' is not available. Try again.[/red]")
                     continue
 
                 guesses.append(guess)
@@ -673,7 +684,7 @@ class CodenamesGame:
             
             # Process guesses one by one
             for guess in guesses:
-                console.print(
+                self._print(
                     f"[{self.current_team}]{self.current_team.title()} Operative[/{self.current_team}] guesses: {guess}"
                 )
                 result = self.process_guess(guess)
@@ -776,7 +787,7 @@ class CodenamesGame:
         model_name = player.model_name if hasattr(player, 'model_name') else "human"
 
         if identity == "assassin":
-            console.print(
+            self._print(
                 f"[black on white]💀 THE ASSASSIN! {self.current_team.title()} team loses![/black on white]"
             )
             log_operative_guess(self.current_team, model_name, word, "assassin", self.turn_count, self.starting_team)
@@ -785,7 +796,7 @@ class CodenamesGame:
             return False
 
         elif identity == f"{self.current_team}_agent":
-            console.print(f"[green]✓ Correct! {word} is one of your agents![/green]")
+            self._print(f"[green]✓ Correct! {word} is one of your agents![/green]")
             log_operative_guess(self.current_team, model_name, word, "correct", self.turn_count, self.starting_team)
 
             # Check win condition
@@ -795,7 +806,7 @@ class CodenamesGame:
                 if i == f"{self.current_team}_agent" and not self.revealed[w]
             )
             if remaining == 0:
-                console.print(
+                self._print(
                     f"[green]🎉 {self.current_team.title()} team wins![/green]"
                 )
                 self.game_over = True
@@ -805,10 +816,10 @@ class CodenamesGame:
 
         else:
             if identity == "bystander":
-                console.print(f"[yellow]✗ {word} is an innocent bystander.[/yellow]")
+                self._print(f"[yellow]✗ {word} is an innocent bystander.[/yellow]")
                 log_operative_guess(self.current_team, model_name, word, "bystander", self.turn_count, self.starting_team)
             else:
-                console.print(f"[dim]✗ {word} is an enemy agent![/dim]")
+                self._print(f"[dim]✗ {word} is an enemy agent![/dim]")
                 log_operative_guess(self.current_team, model_name, word, "enemy", self.turn_count, self.starting_team)
                 
                 # Check if the opposing team just won by having this team hit their agent
@@ -819,7 +830,7 @@ class CodenamesGame:
                     if i == f"{opposing_team}_agent" and not self.revealed[w]
                 )
                 if remaining == 0:
-                    console.print(
+                    self._print(
                         f"[green]🎉 {opposing_team.title()} team wins![/green]"
                     )
                     self.game_over = True
@@ -845,10 +856,10 @@ class CodenamesGame:
         
         # Always show starting team first
         if self.starting_team == "red":
-            console.print(f"[bold]Status:[/bold] [red]Red {red_remaining}[/red], [blue]Blue {blue_remaining}[/blue]")
+            self._print(f"[bold]Status:[/bold] [red]Red {red_remaining}[/red], [blue]Blue {blue_remaining}[/blue]")
         else:
-            console.print(f"[bold]Status:[/bold] [blue]Blue {blue_remaining}[/blue], [red]Red {red_remaining}[/red]")
-        console.print("")
+            self._print(f"[bold]Status:[/bold] [blue]Blue {blue_remaining}[/blue], [red]Red {red_remaining}[/red]")
+        self._print("")
 
     def record_clue(self, team: str, clue: str, number: int|str, invalid: bool = False, invalid_reason: str = ""):
         """Record a clue for the game history."""
@@ -939,14 +950,14 @@ class CodenamesGame:
                     },
                 )
                 
-                console.print(f"\n[bold]Referee Validation (Human)[/bold]")
-                console.print(f"Team: {self.current_team.title()}")
-                console.print(f'Clue: "{clue}" ({number})')
-                console.print(f"[yellow]{'='*80}[/yellow]")
-                console.print("[yellow]REFEREE PROMPT:[/yellow]")
-                console.print(f"[yellow]{'='*80}[/yellow]")
-                console.print(prompt)
-                console.print(f"[yellow]{'='*80}[/yellow]\n")
+                self._print(f"\n[bold]Referee Validation (Human)[/bold]")
+                self._print(f"Team: {self.current_team.title()}")
+                self._print(f'Clue: "{clue}" ({number})')
+                self._print(f"[yellow]{'='*80}[/yellow]")
+                self._print("[yellow]REFEREE PROMPT:[/yellow]")
+                self._print(f"[yellow]{'='*80}[/yellow]")
+                self._print(prompt)
+                self._print(f"[yellow]{'='*80}[/yellow]\n")
                 
                 while True:
                     decision = console.input("Is this clue valid? (y/n): ").strip().lower()
@@ -959,7 +970,7 @@ class CodenamesGame:
                         is_valid = False
                         break
                     else:
-                        console.print("[red]Please enter 'y' or 'n'[/red]")
+                        self._print("[red]Please enter 'y' or 'n'[/red]")
             else:
                 # AI referee validation
                 is_valid, reasoning = self.referee_player.get_referee_validation(
@@ -968,7 +979,7 @@ class CodenamesGame:
                 
                 # If first referee flags as invalid, do second review with gpt5.2
                 if not is_valid and self.referee_player is not None:
-                    console.print(f"[yellow]🔄 First referee flagged clue as invalid. Getting second opinion from gpt5.2...[/yellow]")
+                    self._print(f"[yellow]🔄 First referee flagged clue as invalid. Getting second opinion from gpt5.2...[/yellow]")
                     
                     # Create a temporary gpt5.2 player for second review (different model to avoid agreement bias)
                     review_referee = AIPlayer("gpt5.2")
@@ -1032,16 +1043,16 @@ class CodenamesGame:
                     
                     if review_valid:
                         # Second referee says it's valid - override first decision
-                        console.print(f"[green]✅ The ruling is overturned![/green]")
-                        console.print(f"[dim]First referee ({self.referee_player.model_name}) - {reasoning}[/dim]")
-                        console.print(f"[dim]Review referee: {review_reasoning}[/dim]")
+                        self._print(f"[green]✅ The ruling is overturned![/green]")
+                        self._print(f"[dim]First referee ({self.referee_player.model_name}) - {reasoning}[/dim]")
+                        self._print(f"[dim]Review referee: {review_reasoning}[/dim]")
                         is_valid = True
                         reasoning = f"Approved on review by Gemini 2.5 Pro: {review_reasoning}"
                     else:
                         # Both referees say invalid - reject the clue
-                        console.print(f"[yellow]❌ The ruling on the clue stands![/yellow]")
-                        console.print(f"[dim]First referee ({self.referee_player.model_name}): {reasoning}[/dim]")
-                        console.print(f"[dim]Review referee: {review_reasoning}[/dim]")
+                        self._print(f"[yellow]❌ The ruling on the clue stands![/yellow]")
+                        self._print(f"[dim]First referee ({self.referee_player.model_name}): {reasoning}[/dim]")
+                        self._print(f"[dim]Review referee: {review_reasoning}[/dim]")
                         reasoning = f"Upheld on review. First: {reasoning}. Review: {review_reasoning}"
             
             # Log AI call metadata for referee validation
@@ -1097,13 +1108,13 @@ class CodenamesGame:
             if is_valid:
                 return clue, number, True, reasoning
             else:
-                console.print(f"⚠️  Turn ended due to invalid clue")
+                self._print(f"⚠️  Turn ended due to invalid clue")
                 log_referee_rejection(self.current_team, clue, number, reasoning)
                 return clue, number, False, reasoning
                 
         except Exception as e:
             logger.error(f"Error in referee validation: {e}")
-            console.print(f"[yellow]⚠️  Referee error, allowing original clue[/yellow]")
+            self._print(f"[yellow]⚠️  Referee error, allowing original clue[/yellow]")
             return clue, number, True, "Referee error - clue allowed"
 
     def apply_invalid_clue_penalty(self):
@@ -1122,7 +1133,7 @@ class CodenamesGame:
             penalty_word = random.choice(opposing_agents)
             self.revealed[penalty_word] = True
             
-            console.print(f"[dim]⚖️  PENALTY: {penalty_word} revealed for {opposing_team.upper()} team due to invalid clue[/dim]")
+            self._print(f"[dim]⚖️  PENALTY: {penalty_word} revealed for {opposing_team.upper()} team due to invalid clue[/dim]")
             
             # Log the penalty action
             log_referee_penalty(self.current_team, opposing_team, penalty_word)
@@ -1137,7 +1148,7 @@ class CodenamesGame:
             )
             
             if remaining_opposing_agents == 0:
-                console.print(
+                self._print(
                     f"[green]🎉 {self.current_team.title()} team wins![/green]"
                 )
                 self.game_over = True
@@ -1145,7 +1156,7 @@ class CodenamesGame:
             
             return penalty_word
         else:
-            console.print(f"[yellow]⚖️  PENALTY: No unrevealed {opposing_team.upper()} agents to reveal[/yellow]")
+            self._print(f"[yellow]⚖️  PENALTY: No unrevealed {opposing_team.upper()} agents to reveal[/yellow]")
             logger.info(f"Invalid clue penalty: no unrevealed {opposing_team} agents available")
             return None
 
@@ -1184,20 +1195,20 @@ class CodenamesGame:
             "starting_team": self.starting_team,
         })
 
-        console.print("[bold]🎯 Codenames Game Starting![/bold]")
-        console.print(f"[red]Red Team:[/red] {red_model}")
-        console.print(f"  • Spymaster: {self.prompt_files.get('red_spymaster', 'default')}")
-        console.print(f"  • Operative: {self.prompt_files.get('red_operative', 'default')}")
-        console.print(f"[blue]Blue Team:[/blue] {blue_model}")
-        console.print(f"  • Spymaster: {self.prompt_files.get('blue_spymaster', 'default')}")
-        console.print(f"  • Operative: {self.prompt_files.get('blue_operative', 'default')}")
+        self._print("[bold]🎯 Codenames Game Starting![/bold]")
+        self._print(f"[red]Red Team:[/red] {red_model}")
+        self._print(f"  • Spymaster: {self.prompt_files.get('red_spymaster', 'default')}")
+        self._print(f"  • Operative: {self.prompt_files.get('red_operative', 'default')}")
+        self._print(f"[blue]Blue Team:[/blue] {blue_model}")
+        self._print(f"  • Spymaster: {self.prompt_files.get('blue_spymaster', 'default')}")
+        self._print(f"  • Operative: {self.prompt_files.get('blue_operative', 'default')}")
         if self.referee_player:
             referee_model = self.referee_player.model_name if hasattr(self.referee_player, 'model_name') else "human"
-            console.print(f"[yellow]Referee:[/yellow] {referee_model} ({self.prompt_files.get('referee', 'default')})")
+            self._print(f"[yellow]Referee:[/yellow] {referee_model} ({self.prompt_files.get('referee', 'default')})")
         else:
-            console.print("[yellow]Referee:[/yellow] Disabled")
-        console.print(f"[green]Game ID:[/green] {self.game_id}")
-        console.print()
+            self._print("[yellow]Referee:[/yellow] Disabled")
+        self._print(f"[green]Game ID:[/green] {self.game_id}")
+        self._print()
         
         # Display the initial board
         self.display_board_start()

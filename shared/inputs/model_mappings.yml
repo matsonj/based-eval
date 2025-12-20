@@ -12,14 +12,12 @@ canonical_models:
   - gpt5
   - grok4
   - gpt5.2
-  - sherlock-think-alpha
   - grok4-fast
   - gemini-3-flash
   - opus-4.5
   # 90-99% win rate
   - sonnet-4.5
   - gpt5-mini
-  - sherlock-dash-alpha
   - gemini-2.5
   # 80-89% win rate
   - deepseek-v3.2
@@ -35,13 +33,6 @@ canonical_models:
   # Added (pending Connections eval verification)
   - o3-mini
   - o4-mini
-
-# Models pending Connections eval (run these to see if they qualify):
-# - llama-3.3
-# - mistral-large
-# - command-r-plus
-# - nova-pro
-# - step3
 
 models:
   thinking:

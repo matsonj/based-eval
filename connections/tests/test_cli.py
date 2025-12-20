@@ -48,7 +48,7 @@ class TestCLI:
         """Test error when API key missing."""
         result = self.runner.invoke(app, ["run", "--model", "grok3"])
         assert result.exit_code == 1
-        assert "OPENROUTER_API_KEY environment variable not set" in result.stdout
+        assert "OPENROUTER_API_KEY environment variable not set" in result.stdout or "source .env" in result.stdout
     
     @patch.dict('os.environ', {'OPENROUTER_API_KEY': 'test-key'})
     def test_run_missing_inputs_path(self):

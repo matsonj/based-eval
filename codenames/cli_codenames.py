@@ -815,6 +815,7 @@ def _run_single_game(
             red_player=red_player,
             blue_player=blue_player,
             referee_player=referee_player,
+            quiet=True,  # Suppress console output for batch runs
             **prompt_files,
         )
         
@@ -915,7 +916,7 @@ def run_eval(
     """
     # Validate API key
     if not os.getenv("OPENROUTER_API_KEY"):
-        console.print("[red]Error: OPENROUTER_API_KEY environment variable not set[/red]")
+        console.print("[red]Error: OPENROUTER_API_KEY environment variable not set. Try `source .env` and run again.[/red]")
         raise typer.Exit(1)
     
     # Load schedule
@@ -1141,7 +1142,7 @@ def retry(
     """
     # Validate API key
     if not os.getenv("OPENROUTER_API_KEY"):
-        console.print("[red]Error: OPENROUTER_API_KEY environment variable not set[/red]")
+        console.print("[red]Error: OPENROUTER_API_KEY environment variable not set. Try `source .env` and run again.[/red]")
         raise typer.Exit(1)
     
     # Load schedule and failed games
@@ -1314,6 +1315,95 @@ def list_canonical():
     console.print(f"   Games per model: {(n - 1) * 4}")
 
 
+@app.command("validate-models")
+def validate_models(
+    threads: int = typer.Option(4, "--threads", "-t", help="Number of parallel threads"),
+):
+    """Validate that all canonical models work on OpenRouter.
+    
+    Sends a simple test prompt to each model to verify the model ID is valid.
+    """
+    from shared.adapters.openrouter_adapter import chat
+    
+    canonical_models = _load_canonical_models()
+    model_mappings = _load_model_mappings()
+    
+    if not canonical_models:
+        console.print("[red]Error: No canonical models found[/red]")
+        raise typer.Exit(1)
+    
+    console.print(f"[bold blue]🔍 Validating {len(canonical_models)} canonical models...[/bold blue]\n")
+    
+    results: Dict[str, str] = {}
+    lock = threading.Lock()
+    
+    def test_model(model_name: str) -> Tuple[str, str]:
+        """Test a single model with a simple prompt."""
+        model_id = model_mappings.get(model_name)
+        if not model_id:
+            return model_name, "NOT_MAPPED"
+        
+        try:
+            response = chat(
+                messages=[{"role": "user", "content": "Say 'OK' if you can read this."}],
+                model=model_id,
+                timeout=30,
+            )
+            return model_name, "OK"
+        except Exception as e:
+            error_str = str(e)
+            if "404" in error_str:
+                return model_name, "404_NOT_FOUND"
+            elif "429" in error_str:
+                return model_name, "RATE_LIMITED"
+            elif "401" in error_str:
+                return model_name, "AUTH_ERROR"
+            else:
+                return model_name, f"ERROR: {error_str[:50]}"
+    
+    with Progress(
+        SpinnerColumn(),
+        TextColumn("[progress.description]{task.description}"),
+        BarColumn(),
+        TaskProgressColumn(),
+        console=console,
+    ) as progress:
+        task = progress.add_task("[cyan]Testing models...", total=len(canonical_models))
+        
+        with ThreadPoolExecutor(max_workers=threads) as executor:
+            futures = {executor.submit(test_model, m): m for m in canonical_models}
+            
+            for future in as_completed(futures):
+                model_name, status = future.result()
+                with lock:
+                    results[model_name] = status
+                    
+                    if status == "OK":
+                        console.print(f"[green]✅ {model_name}[/green]")
+                    elif status == "404_NOT_FOUND":
+                        model_id = model_mappings.get(model_name, "?")
+                        console.print(f"[red]❌ {model_name} → {model_id} (404 NOT FOUND)[/red]")
+                    else:
+                        console.print(f"[yellow]⚠️ {model_name}: {status}[/yellow]")
+                
+                progress.update(task, advance=1)
+    
+    # Summary
+    ok_count = sum(1 for s in results.values() if s == "OK")
+    failed_count = len(results) - ok_count
+    
+    console.print(f"\n[bold]Summary:[/bold]")
+    console.print(f"  Working: [green]{ok_count}[/green]")
+    console.print(f"  Failed: [red]{failed_count}[/red]")
+    
+    if failed_count > 0:
+        console.print(f"\n[bold red]Failed models (remove from canonical_models):[/bold red]")
+        for model, status in results.items():
+            if status != "OK":
+                model_id = model_mappings.get(model, "NOT_MAPPED")
+                console.print(f"  - {model} ({model_id}): {status}")
+
+
 def _run_cost_estimation_game(
     model: str,
     seed: int,
@@ -1339,6 +1429,7 @@ def _run_cost_estimation_game(
             red_player=red_player,
             blue_player=blue_player,
             referee_player=referee_player,
+            quiet=True,  # Suppress console output for batch runs
             **prompt_files,
         )
         
