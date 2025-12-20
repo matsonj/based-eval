@@ -1,6 +1,48 @@
 # Model mappings from CLI names to OpenRouter model IDs
 # Unified configuration for all BASED Eval games
 
+# Canonical models for full evaluation (qualified via Connections eval with ≥50% win rate)
+# These models participate in the complete Codenames round-robin tournament
+# See: https://matsonj.github.io/eval-connections/
+canonical_models:
+  # 100% win rate
+  - gpt5.2-pro
+  - gemini-3-preview
+  - o3
+  - gpt5
+  - grok4
+  - gpt5.2
+  - sherlock-think-alpha
+  - grok4-fast
+  - gemini-3-flash
+  - opus-4.5
+  # 90-99% win rate
+  - sonnet-4.5
+  - gpt5-mini
+  - sherlock-dash-alpha
+  - gemini-2.5
+  # 80-89% win rate
+  - deepseek-v3.2
+  - kimi-k2-thinking
+  - deepseek-r1
+  # 70-79% win rate
+  - gemini-flash
+  - haiku-4.5
+  - gpt-oss-120b
+  # 50-69% win rate
+  - qwen3-max
+  - kimi-k2
+  # Added (pending Connections eval verification)
+  - o3-mini
+  - o4-mini
+
+# Models pending Connections eval (run these to see if they qualify):
+# - llama-3.3
+# - mistral-large
+# - command-r-plus
+# - nova-pro
+# - step3
+
 models:
   thinking:
     # OpenAI reasoning models

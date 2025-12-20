@@ -3,9 +3,17 @@
 
 import csv
 import os
+import sys
 from pathlib import Path
 from typing import List, Dict, Any
 import duckdb  # type: ignore
+
+# Add parent directories to path for imports
+sys.path.insert(0, str(Path(__file__).parent.parent.parent.parent))
+from connections.src.connections_eval.core import ConnectionsGame
+
+# Get version from the game module
+CURRENT_VERSION = ConnectionsGame.VERSION
 
 
 def extract_run_summaries_from_motherduck(db: str = "md:") -> List[Dict[str, Any]]:
@@ -21,12 +29,17 @@ def extract_run_summaries_from_motherduck(db: str = "md:") -> List[Dict[str, Any
         # Note: payload_json and dims_json are STRUCT types, not JSON, so we use dot notation
         query = """
         WITH run_metadata AS (
-            -- Get run metadata (model, timestamps) from events
-            -- Model is in payload_json.model for model_prompt/model_completion events
-            -- Version is not stored in controllog, will default to 2.0.2
+            -- Get run metadata (model, timestamps, version, seed) from events
+            -- Version and seed come from run_start events (v3.0.0+)
+            -- Model is in payload_json.model for model_prompt/model_completion or run_start events
             SELECT 
                 e.run_id,
-                MAX(CASE WHEN e.kind IN ('model_prompt', 'model_completion') THEN e.payload_json.model END) AS model,
+                COALESCE(
+                    MAX(CASE WHEN e.kind = 'run_start' THEN e.payload_json.model END),
+                    MAX(CASE WHEN e.kind IN ('model_prompt', 'model_completion') THEN e.payload_json.model END)
+                ) AS model,
+                MAX(CASE WHEN e.kind = 'run_start' THEN e.payload_json.version END) AS version,
+                MAX(CASE WHEN e.kind = 'run_start' THEN e.payload_json.seed END) AS seed,
                 MIN(e.event_time) AS start_timestamp,
                 MAX(e.event_time) AS end_timestamp
             FROM controllog.events e
@@ -98,10 +111,10 @@ def extract_run_summaries_from_motherduck(db: str = "md:") -> List[Dict[str, Any
         SELECT 
             rm.run_id,
             COALESCE(rm.model, 'unknown') AS model,
-            '2.0.2' AS version,  -- Version not stored in controllog, defaulting to current version
+            COALESCE(rm.version, '{version}') AS version,  -- From run_start event (v3.0.0+), fallback to current version
             rm.start_timestamp,
             rm.end_timestamp,
-            NULL AS seed,  -- Seed not stored in controllog events
+            rm.seed,  -- From run_start event (v3.0.0+)
             COALESCE(ps.puzzles_attempted, 0) AS puzzles_attempted,
             COALESCE(ps.puzzles_solved, 0) AS puzzles_solved,
             COALESCE(gs.total_guesses, 0) AS total_guesses,
@@ -123,7 +136,9 @@ def extract_run_summaries_from_motherduck(db: str = "md:") -> List[Dict[str, Any
         """
         
         print("Querying controllog.events and controllog.postings...")
-        results = con.execute(query).fetchall()
+        # Format the query with current version
+        formatted_query = query.format(version=CURRENT_VERSION)
+        results = con.execute(formatted_query).fetchall()
         columns = [desc[0] for desc in con.description]
         
         for row in results:

@@ -26,6 +26,9 @@ logger = logging.getLogger(__name__)
 class CodenamesGame:
     """The main game class that manages a complete Codenames game."""
 
+    # Version for tracking evaluation framework changes
+    VERSION = "3.0.0"  # Added tournament scheduling, parallelism, and Bradley-Terry output
+    
     BOARD_SIZE = 25
     STARTING_TEAM_AGENTS = 9  # Team that goes first gets 9
     SECOND_TEAM_AGENTS = 8    # Team that goes second gets 8
@@ -74,6 +77,10 @@ class CodenamesGame:
         self.end_time: Optional[float] = None
         self.moves_log: List[Dict] = []
         self.clue_history: List[Dict] = []
+        
+        # Track costs
+        self.total_cost: float = 0.0
+        self.total_upstream_cost: float = 0.0
         
         # Generate unique game ID
         import uuid
@@ -508,6 +515,10 @@ class CodenamesGame:
             if isinstance(player, AIPlayer):
                 metadata = player.get_last_call_metadata()
                 if metadata:
+                    # Accumulate costs
+                    self.total_cost += metadata.get("openrouter_cost", 0.0)
+                    self.total_upstream_cost += metadata.get("upstream_cost", 0.0)
+                    
                     turn_label = format_turn_label(self.turn_count, self.current_team, self.starting_team)
                     log_ai_call_metadata(
                         game_id=self.game_id,
@@ -686,6 +697,10 @@ class CodenamesGame:
             if isinstance(player, AIPlayer):
                 metadata = player.get_last_call_metadata()
                 if metadata:
+                    # Accumulate costs
+                    self.total_cost += metadata.get("openrouter_cost", 0.0)
+                    self.total_upstream_cost += metadata.get("upstream_cost", 0.0)
+                    
                     turn_label = format_turn_label(self.turn_count, self.current_team, self.starting_team)
                     
                     # Add detailed results from processing guesses
@@ -951,12 +966,12 @@ class CodenamesGame:
                     clue, number, self.current_team, board_state, self.prompt_files["referee"]
                 )
                 
-                # If first referee flags as invalid, do second review with Gemini 2.5 Pro
+                # If first referee flags as invalid, do second review with gpt5.2
                 if not is_valid and self.referee_player is not None:
-                    console.print(f"[yellow]🔄 First referee flagged clue as invalid. Getting second opinion from Gemini 2.5 Pro...[/yellow]")
+                    console.print(f"[yellow]🔄 First referee flagged clue as invalid. Getting second opinion from gpt5.2...[/yellow]")
                     
-                    # Create a temporary Gemini 2.5 Pro player for second review
-                    review_referee = AIPlayer("gemini-2.5")
+                    # Create a temporary gpt5.2 player for second review (different model to avoid agreement bias)
+                    review_referee = AIPlayer("gpt5.2")
                     
                     # Get second opinion with same prompt
                     review_valid, review_reasoning = review_referee.get_referee_validation(
@@ -966,6 +981,10 @@ class CodenamesGame:
                     # Log the review referee metadata
                     review_metadata = review_referee.get_last_call_metadata()
                     if review_metadata:
+                        # Accumulate costs for review referee
+                        self.total_cost += review_metadata.get("openrouter_cost", 0.0)
+                        self.total_upstream_cost += review_metadata.get("upstream_cost", 0.0)
+                        
                         turn_label = format_turn_label(self.turn_count, self.current_team, self.starting_team)
                         
                         # Update turn result with review referee validation outcome
@@ -1029,6 +1048,10 @@ class CodenamesGame:
             if isinstance(self.referee_player, AIPlayer):
                 metadata = self.referee_player.get_last_call_metadata()
                 if metadata:
+                    # Accumulate costs for referee
+                    self.total_cost += metadata.get("openrouter_cost", 0.0)
+                    self.total_upstream_cost += metadata.get("upstream_cost", 0.0)
+                    
                     turn_label = format_turn_label(self.turn_count, self.current_team, self.starting_team)
                     
                     # Update turn result with referee validation outcome

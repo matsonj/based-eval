@@ -194,6 +194,21 @@ class ConnectionsGame:
         # Initialize controllog SDK (JSONL transport under logs/controllog)
         try:
             cl.init(project_id="connections_eval", log_dir=self.log_path)
+            # Emit run_start event with version for tracking
+            cl.event(
+                kind="run_start",
+                actor={"agent_id": "agent:connections_eval"},
+                run_id=self.run_id,
+                payload={
+                    "version": self.VERSION,
+                    "model": model_name,
+                    "seed": self.seed,
+                    "is_interactive": is_interactive,
+                    "threads": threads,
+                },
+                project_id="connections_eval",
+                source="runtime",
+            )
         except Exception:
             # Do not fail the run if telemetry init fails
             pass
