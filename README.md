@@ -377,6 +377,7 @@ uv run based connections upload  # Upload logs to MotherDuck
 # Analytics
 uv run based analytics trial-balance  # Verify double-entry accounting
 uv run based analytics upload         # Upload all logs to MotherDuck
+uv run based analytics leaderboard    # Bradley-Terry rankings from tournament
 ```
 
 ## Latest Results

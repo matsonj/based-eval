@@ -12,6 +12,81 @@ app = typer.Typer(help="Analytics commands for BASED eval framework")
 console = Console()
 
 
+def plot_leaderboard(
+    results: dict,
+    output_path: Path,
+    top_n: int = 20,
+    title: str = "Bradley-Terry Ratings",
+    item_name: str = "Model",
+    rating_name: str = "BT Rating",
+):
+    """Generate a leaderboard chart similar to arena-rank examples.
+    
+    Creates a horizontal bar chart with confidence intervals.
+    """
+    try:
+        import matplotlib.pyplot as plt
+        import pandas as pd
+        import numpy as np
+    except ImportError:
+        console.print("[yellow]Warning: matplotlib not installed. Chart not generated.[/yellow]")
+        console.print("[dim]Install with: uv add matplotlib[/dim]")
+        return False
+    
+    # Create DataFrame and sort
+    df = pd.DataFrame(results).sort_values("ratings", ascending=False).head(top_n)
+    
+    # Create figure
+    fig, ax = plt.subplots(figsize=(14, 8))
+    
+    # Get data
+    competitors = df["competitors"].values
+    ratings = df["ratings"].values
+    lower = df["rating_lower"].values
+    upper = df["rating_upper"].values
+    
+    # Calculate error bars
+    errors_lower = ratings - lower
+    errors_upper = upper - ratings
+    errors = np.array([errors_lower, errors_upper])
+    
+    # Y positions (reversed so highest rating is at top)
+    y_pos = np.arange(len(competitors))
+    
+    # Create horizontal bar chart
+    bars = ax.barh(y_pos, ratings, xerr=errors, capsize=3, 
+                   color='#4285f4', edgecolor='#2c5282', linewidth=1,
+                   error_kw={'elinewidth': 1, 'capthick': 1, 'ecolor': '#666666'})
+    
+    # Customize appearance
+    ax.set_yticks(y_pos)
+    ax.set_yticklabels(competitors)
+    ax.invert_yaxis()  # Highest at top
+    ax.set_xlabel(rating_name, fontsize=12)
+    ax.set_ylabel(item_name, fontsize=12)
+    ax.set_title(title, fontsize=14, fontweight='bold', pad=20)
+    
+    # Add rating values on bars
+    for i, (bar, rating) in enumerate(zip(bars, ratings)):
+        ax.text(bar.get_width() + 5, bar.get_y() + bar.get_height()/2, 
+                f'{rating:.1f}', va='center', fontsize=9, color='#333333')
+    
+    # Style
+    ax.spines['top'].set_visible(False)
+    ax.spines['right'].set_visible(False)
+    ax.grid(axis='x', linestyle='--', alpha=0.3)
+    
+    # Adjust layout
+    plt.tight_layout()
+    
+    # Save
+    plt.savefig(output_path, dpi=150, bbox_inches='tight', 
+                facecolor='white', edgecolor='none')
+    plt.close()
+    
+    return True
+
+
 @app.command()
 def trial_balance(
     db: Optional[str] = typer.Option(
@@ -312,3 +387,163 @@ def upload(
     else:
         console.print("❌ Upload failed", style="red")
         raise typer.Exit(1)
+
+
+@app.command()
+def leaderboard(
+    results_file: Path = typer.Option(
+        Path("logs/eval/results.csv"),
+        "--results", "-r",
+        help="Path to results.csv file from Codenames tournament"
+    ),
+    top_n: int = typer.Option(20, "--top", "-n", help="Number of top models to show"),
+    significance: float = typer.Option(0.05, "--significance", help="Significance level for confidence intervals"),
+):
+    """Generate Bradley-Terry leaderboard from tournament results.
+    
+    Uses the arena-rank library to compute ELO-style ratings with confidence
+    intervals from head-to-head match results.
+    
+    See: https://github.com/lmarena/arena-rank
+    """
+    import pandas as pd
+    
+    try:
+        from arena_rank.utils.data_utils import PairDataset
+        from arena_rank.models.bradley_terry import BradleyTerry
+    except ImportError:
+        console.print("[red]Error: arena-rank not installed. Run: uv add arena-rank[/red]")
+        raise typer.Exit(1)
+    
+    if not results_file.exists():
+        console.print(f"[red]Error: Results file not found: {results_file}[/red]")
+        console.print("[dim]Run a tournament first: uv run based codenames eval --schedule <schedule.yml>[/dim]")
+        raise typer.Exit(1)
+    
+    console.print(f"[bold blue]🏆 Bradley-Terry Leaderboard[/bold blue]")
+    console.print(f"Loading results from: {results_file}")
+    
+    # Load results
+    df = pd.read_csv(results_file)
+    
+    # Validate required columns
+    required_cols = ["model_a", "model_b", "winner"]
+    missing_cols = [c for c in required_cols if c not in df.columns]
+    if missing_cols:
+        console.print(f"[red]Error: Missing required columns: {missing_cols}[/red]")
+        console.print(f"[dim]Expected columns: {required_cols}[/dim]")
+        raise typer.Exit(1)
+    
+    total_games = len(df)
+    unique_models = set(df["model_a"].unique()) | set(df["model_b"].unique())
+    
+    console.print(f"Total games: {total_games}")
+    console.print(f"Unique models: {len(unique_models)}")
+    console.print(f"Significance level: {significance}")
+    
+    # Create dataset and model
+    dataset = PairDataset.from_pandas(df)
+    model = BradleyTerry(n_competitors=len(dataset.competitors))
+    
+    # Compute ratings and confidence intervals
+    console.print("\n[dim]Computing Bradley-Terry ratings...[/dim]")
+    results = model.compute_ratings_and_cis(dataset, significance_level=significance)
+    
+    # Create leaderboard DataFrame
+    leaderboard_df = pd.DataFrame(results).sort_values("ratings", ascending=False)
+    
+    # Display as rich table
+    table = Table(title=f"Top {min(top_n, len(leaderboard_df))} Models by Bradley-Terry Rating")
+    table.add_column("Rank", style="dim", justify="right")
+    table.add_column("Model", style="cyan")
+    table.add_column("Rating", style="green", justify="right")
+    table.add_column("CI Lower", style="dim", justify="right")
+    table.add_column("CI Upper", style="dim", justify="right")
+    table.add_column("Variance", style="dim", justify="right")
+    
+    for i, (_, row) in enumerate(leaderboard_df.head(top_n).iterrows(), 1):
+        table.add_row(
+            str(i),
+            row["competitors"],
+            f"{row['ratings']:.2f}",
+            f"{row['rating_lower']:.2f}",
+            f"{row['rating_upper']:.2f}",
+            f"{row['variances']:.4f}",
+        )
+    
+    console.print()
+    console.print(table)
+    
+    # Show win rates
+    console.print("\n[bold]Win Rates:[/bold]")
+    
+    win_table = Table(title="Model Win Rates")
+    win_table.add_column("Model", style="cyan")
+    win_table.add_column("Wins", justify="right")
+    win_table.add_column("Losses", justify="right")
+    win_table.add_column("Total", justify="right")
+    win_table.add_column("Win %", style="green", justify="right")
+    
+    # Calculate win rates
+    win_counts = {}
+    loss_counts = {}
+    
+    for _, row in df.iterrows():
+        model_a = row["model_a"]
+        model_b = row["model_b"]
+        winner = row["winner"]
+        
+        # Initialize if needed
+        for m in [model_a, model_b]:
+            if m not in win_counts:
+                win_counts[m] = 0
+                loss_counts[m] = 0
+        
+        if winner == "model_a":
+            win_counts[model_a] += 1
+            loss_counts[model_b] += 1
+        elif winner == "model_b":
+            win_counts[model_b] += 1
+            loss_counts[model_a] += 1
+        # ties don't count as win or loss
+    
+    # Sort by win rate
+    win_rates = []
+    for model in unique_models:
+        wins = win_counts.get(model, 0)
+        losses = loss_counts.get(model, 0)
+        total = wins + losses
+        rate = (wins / total * 100) if total > 0 else 0
+        win_rates.append((model, wins, losses, total, rate))
+    
+    win_rates.sort(key=lambda x: x[4], reverse=True)
+    
+    for model, wins, losses, total, rate in win_rates[:top_n]:
+        win_table.add_row(
+            model,
+            str(wins),
+            str(losses),
+            str(total),
+            f"{rate:.1f}%",
+        )
+    
+    console.print(win_table)
+    
+    # Save full leaderboard to CSV
+    output_file = results_file.parent / "leaderboard.csv"
+    leaderboard_df.to_csv(output_file, index=False)
+    console.print(f"\n[green]✅ Full leaderboard saved to: {output_file}[/green]")
+    
+    # Generate chart
+    chart_file = results_file.parent / "leaderboard.png"
+    console.print(f"\n[dim]Generating leaderboard chart...[/dim]")
+    
+    if plot_leaderboard(
+        results=results,
+        output_path=chart_file,
+        top_n=top_n,
+        title="Codenames Tournament - Bradley-Terry Ratings",
+        item_name="Model",
+        rating_name="BT Rating",
+    ):
+        console.print(f"[green]✅ Leaderboard chart saved to: {chart_file}[/green]")

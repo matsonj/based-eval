@@ -136,11 +136,11 @@ def _save_failed_game(eval_dir: Path, game_failure: Dict[str, Any]) -> None:
 def _generate_schedule(
     models: List[str],
     seed: int,
-    games_per_matchup: int = 4,
+    games_per_matchup: int = 2,
 ) -> Dict[str, Any]:
     """Generate a round-robin tournament schedule.
-    
-    Each pair of models plays `games_per_matchup` games (default 4),
+
+    Each pair of models plays `games_per_matchup` games (default 2),
     alternating home (red) and away (blue) assignments.
     
     Returns a schedule dict with metadata and game list.
@@ -728,7 +728,7 @@ def schedule(
         "--output", "-o",
         help="Output directory for schedule and results"
     ),
-    games_per_matchup: int = typer.Option(4, help="Number of games per model pair (default 4)"),
+    games_per_matchup: int = typer.Option(2, help="Number of games per model pair (default 2)"),
 ):
     """Generate a round-robin tournament schedule for canonical models.
     
@@ -830,12 +830,9 @@ def _run_single_game(
         # Play the game
         result = game.play()
         
-        # Extract costs from the game
-        # Note: Cost tracking would need to be added to the game class
-        # For now, we'll estimate based on metadata
-        game_cost = 0.0
-        if hasattr(game, 'total_cost'):
-            game_cost = game.total_cost
+        # Extract costs from the game (include both OpenRouter and upstream costs)
+        game_cost = getattr(game, 'total_cost', 0.0)
+        upstream_cost = getattr(game, 'total_upstream_cost', 0.0)
         
         # Determine winner for Bradley-Terry format
         winner = result.get("winner")
@@ -874,6 +871,7 @@ def _run_single_game(
             "turns": result.get("turns", 0),
             "duration_sec": result.get("duration", 0),
             "cost": game_cost,
+            "upstream_cost": upstream_cost,
             "completed_at": datetime.utcnow().isoformat() + "Z",
             "win_type": "assassin" if result.get("winner") and result.get("turns", 0) < 10 else "agents",
         }, None
@@ -965,8 +963,8 @@ def run_eval(
         "referee_prompt": referee_prompt,
     }
     
-    # Track running totals
-    total_cost = sum(g.get("cost", 0) for g in completed_games.values())
+    # Track running totals (include both OpenRouter cost and upstream cost)
+    total_cost = sum(g.get("cost", 0) + g.get("upstream_cost", 0) for g in completed_games.values())
     new_completed = 0
     new_failed = 0
     lock = threading.Lock()
@@ -1031,7 +1029,7 @@ def run_eval(
                     # Success
                     with lock:
                         _save_completed_game(eval_dir, result)
-                        total_cost += result.get("cost", 0)
+                        total_cost += result.get("cost", 0) + result.get("upstream_cost", 0)
                         new_completed += 1
                     
                     # Format result message
@@ -1188,7 +1186,7 @@ def retry(
     
     # Track results
     completed_games = _load_completed_games(eval_dir)
-    total_cost = sum(g.get("cost", 0) for g in completed_games.values())
+    total_cost = sum(g.get("cost", 0) + g.get("upstream_cost", 0) for g in completed_games.values())
     new_completed = 0
     still_failed = 0
     lock = threading.Lock()
@@ -1232,7 +1230,7 @@ def retry(
                 if result:
                     with lock:
                         _save_completed_game(eval_dir, result)
-                        total_cost += result.get("cost", 0)
+                        total_cost += result.get("cost", 0) + result.get("upstream_cost", 0)
                         new_completed += 1
                     
                     winner = result["winner"]
@@ -1509,7 +1507,7 @@ def cost_estimate(
         "codenames/prompts/referee.md", help="Referee prompt file"
     ),
     verbose: bool = typer.Option(False, help="Enable verbose logging"),
-    games_per_matchup: int = typer.Option(4, help="Number of games per model pair for schedule"),
+    games_per_matchup: int = typer.Option(2, help="Number of games per model pair for schedule"),
 ):
     """Estimate tournament cost by running each canonical model vs gemini-3-flash.
     
@@ -1617,7 +1615,7 @@ def cost_estimate(
                         console.print(f"[red]❌ {model_name}: {error}[/red]")
                     else:
                         results[model_name] = result
-                        game_cost = result.get("cost", 0)
+                        game_cost = result.get("cost", 0) + result.get("upstream_cost", 0)
                         total_cost += game_cost
                         
                         winner = result["winner"]
@@ -1646,7 +1644,7 @@ def cost_estimate(
     table.add_column("Turns", justify="right")
     table.add_column("Cost", style="green", justify="right")
     
-    sorted_models = sorted(results.keys(), key=lambda m: results[m].get("cost", 0), reverse=True)
+    sorted_models = sorted(results.keys(), key=lambda m: results[m].get("cost", 0) + results[m].get("upstream_cost", 0), reverse=True)
     
     for model in sorted_models:
         r = results[model]
@@ -1657,7 +1655,7 @@ def cost_estimate(
             result_str,
             score_str,
             str(r.get("turns", 0)),
-            f"${r.get('cost', 0):.4f}",
+            f"${r.get('cost', 0) + r.get('upstream_cost', 0):.4f}",
         )
     
     # Add failed models to table
@@ -1666,9 +1664,9 @@ def cost_estimate(
     
     console.print(table)
     
-    # Calculate statistics
+    # Calculate statistics (include both OpenRouter cost and upstream cost)
     if results:
-        costs = [r.get("cost", 0) for r in results.values()]
+        costs = [r.get("cost", 0) + r.get("upstream_cost", 0) for r in results.values()]
         avg_cost = sum(costs) / len(costs)
         max_cost = max(costs)
         min_cost = min(costs)
@@ -1690,7 +1688,7 @@ def cost_estimate(
             "games_run": len(results),
             "games_failed": len(failed),
         },
-        "per_model_costs": {model: r.get("cost", 0) for model, r in results.items()},
+        "per_model_costs": {model: r.get("cost", 0) + r.get("upstream_cost", 0) for model, r in results.items()},
         "results": list(results.values()),
         "failed": failed,
     }
@@ -1699,6 +1697,30 @@ def cost_estimate(
         yaml.dump(estimation_data, f, default_flow_style=False, sort_keys=False)
     
     console.print(f"\n[green]✅ Estimation results saved to: {estimation_results_path}[/green]")
+    
+    # Generate Bradley-Terry compatible results.csv from estimation games
+    if results:
+        estimation_csv_path = output / "cost_estimate_results.csv"
+        with open(estimation_csv_path, 'w', newline='') as f:
+            writer = csv.writer(f)
+            writer.writerow(["model_a", "model_b", "winner"])
+            
+            for model_name, r in results.items():
+                # model (red) vs gemini-3-flash (blue)
+                model_a = model_name
+                model_b = "gemini-3-flash"
+                winner_team = r.get("winner")
+                
+                if winner_team == "red":
+                    winner = "model_a"
+                elif winner_team == "blue":
+                    winner = "model_b"
+                else:
+                    winner = "tie"
+                
+                writer.writerow([model_a, model_b, winner])
+        
+        console.print(f"[green]📊 Bradley-Terry CSV saved to: {estimation_csv_path}[/green]")
     
     # Now project tournament cost
     console.print(f"\n[bold blue]📈 Tournament Cost Projection[/bold blue]\n")
@@ -1721,8 +1743,8 @@ def cost_estimate(
     # (model_a_cost + model_b_cost) / 2 * scaling_factor
     # where scaling_factor accounts for games being more complex than estimation
     
-    # Calculate per-model average cost from estimation
-    model_costs = {model: r.get("cost", 0) for model, r in results.items()}
+    # Calculate per-model average cost from estimation (include upstream costs)
+    model_costs = {model: r.get("cost", 0) + r.get("upstream_cost", 0) for model, r in results.items()}
     
     # Add gemini-3-flash cost (it was the opponent in all games, so estimate from any game)
     # Rough approximation: assume gemini-3-flash is about 30% of total game cost

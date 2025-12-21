@@ -19,6 +19,8 @@ dependencies = [
     "duckdb>=1.0.0", # For MotherDuck integration
     "pandas>=2.0.0", # For DuckDB DataFrame operations
     "great-tables>=0.20.0",
+    "arena-rank>=0.1.0", # For Bradley-Terry leaderboard rankings
+    "matplotlib>=3.7.0", # For leaderboard chart generation
 ]
 requires-python = ">=3.12,<3.14"
 readme = "README.md"

@@ -83,15 +83,6 @@ class CodenamesGame:
         # Track costs
         self.total_cost: float = 0.0
         self.total_upstream_cost: float = 0.0
-    
-    def _print(self, *args, **kwargs):
-        """Print to console unless in quiet mode."""
-        if not self.quiet:
-            console.print(*args, **kwargs)
-    
-    def _console_print(self, *args, **kwargs):
-        """Alias for _print - quietable console output."""
-        self._print(*args, **kwargs)
         
         # Generate unique game ID
         import uuid
@@ -101,6 +92,15 @@ class CodenamesGame:
         self._controllog_initialized = False
         self._run_id: Optional[str] = None
         self._task_id: Optional[str] = None
+    
+    def _print(self, *args, **kwargs):
+        """Print to console unless in quiet mode."""
+        if not self.quiet:
+            console.print(*args, **kwargs)
+    
+    def _console_print(self, *args, **kwargs):
+        """Alias for _print - quietable console output."""
+        self._print(*args, **kwargs)
 
     def init_controllog(self, log_path: Path, run_id: str) -> None:
         """Initialize controllog SDK for unified analytics.
