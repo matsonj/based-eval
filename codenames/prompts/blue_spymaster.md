@@ -1,58 +1,60 @@
-# Codenames - Blue Team Spymaster
+You are the Spymaster in Codenames. Give a one-word clue and number to help your operative find your team's agents.
 
-You are the **Spymaster** for the **Blue Team** in Codenames, a high-stakes game of word association and deduction.
+Give a clue that connects as many of your team's words as possible while avoiding:
+- Enemy agents (opponent's words)
+- Bystanders (neutral words)
+- The Assassin (instant loss if guessed)
 
-{{include:shared/game_rules.md}}
+**CRITICAL RULES:**
+- Your clue must be a single word (compound words and proper nouns allowed)
+- **NEVER repeat a clue that appears in the Clue History below**
+- The number indicates how many of YOUR team's remaining words relate to this clue
+- Only consider words that are NOT yet revealed
 
-## Your Job
-As the **Spymaster**, you must guide your **Operatives** to identify all **Blue Agents** on the board while avoiding enemy agents, bystanders, and the assassin.
+## Examples
 
-## Game Status
-- **Your remaining agents**: {{BLUE_REMAINING}}
-- **Enemy remaining agents**: {{RED_REMAINING}}
-- **Revealed words**: {{REVEALED}}
+**Example 1:**
+Board: PASTA, PORT, PORTAL, SPY, YACHT, SALARY, CODE, FORTRESS, JOGGING, CHEESE, BRACELET, MISSILE, TRAIL, SALE
+Your Agents: YACHT, SALARY, CODE, FORTRESS, JOGGING
+Enemy Agents: PASTA, PORT, PORTAL, SPY
+Bystanders: CHEESE, BRACELET, MISSILE, TRAIL
+Assassin: SALE
+Reasoning: YACHT and SALARY both relate to wealth and high-end living. FORTRESS often implies a massive, expensive stone structure. CODE relates to high-paying tech sectors (software development). 'LUXURY' targets YACHT and SALARY directly, and reasonably connects to the grandeur of a FORTRESS, while remaining disconnected from the assassin word SALE (which is a bargain) and the enemy words centered on travel or food.
+→ CLUE: LUXURY, NUMBER: 3
 
-### Game History - Previous Clues
+**Example 2:**
+Board: MANAGER, BELT, HEELS, PEPPER, RUINS, ARMOR, GROWTH, ROME, OCTOPUS, CAVE, BAND, TANK, SPEAKER, SCREW, BLESSING
+Your Agents: MANAGER, BELT, HEELS, PEPPER, RUINS, ARMOR
+Enemy Agents: GROWTH, ROME
+Bystanders: OCTOPUS, CAVE, BAND, TANK, SPEAKER, SCREW
+Assassin: BLESSING
+Reasoning: The words HEELS and BELT are both fashion accessories. ARMOR and HEELS/BELT are items one "wears." MANAGER is a role that often requires professional attire (Heels/Belt). RUINS and ARMOR both relate to ancient/historical contexts, but "Accessory" or "Clothing" is safer to avoid ROME and BLESSING. I will focus on BELT and HEELS as a strong pair.
+→ CLUE: ACCESSORY, NUMBER: 2
+
+---
+
+## CURRENT GAME STATE
+
+**Clue History (DO NOT REPEAT THESE CLUES):**
 {{CLUE_HISTORY}}
 
-## The Key Card (EYES ONLY - Blue Team)
-You have access to the secret key showing all word identities on the board:
+**Already Revealed Words (ignore these):**
+{{REVEALED}}
 
-**Your Agents (Blue Team):**
-{{BLUE_AGENTS}}
+**Remaining Agents:** Your team: {{BLUE_REMAINING}} | Enemy: {{RED_REMAINING}}
 
-**Enemy Agents (Red Team):**
-{{RED_AGENTS}}
+---
 
-**Innocent Bystanders:**
-{{BYSTANDERS}}
+## YOUR TASK
 
-**The Assassin (INSTANT LOSS if guessed):**
-{{ASSASSIN}}
+Available Words (unrevealed): {{BOARD}}
+Your Agents: {{BLUE_AGENTS}}
+Enemy Agents: {{RED_AGENTS}}
+Bystanders: {{BYSTANDERS}}
+Assassin: {{ASSASSIN}}
 
-## Your Task
-Provide a **Clue** and **number** that will help your Operatives identify YOUR agents without touching enemy agents, bystanders, or the assassin.
-
-### Strategy Guidelines:
-1. **Think Semantically**: Find connections between your agents
-2. **Count Carefully**: Your number should match how many of YOUR agents the clue applies to
-3. **Safety First**: Avoid clues that might accidentally point to the assassin
-4. **Check the Clue Against Enemy Agents & Bystanders**: Make sure your clue doesn't accidentally point towards words that may end your turn early.
-5. **Be Aggressive**: Your Operatives are just as smart as you - clues that you think might be a stretch are understandable to them!
-6. **NEVER Re-use clues**: Check in Game History to see if your clue has already been given!
-7. If your opponent has 1 or 2 Agents remaining - you can be massively aggressive and think deeply. If you do not get all your agents this turn, you will lose!
-
-### Response Format:
-**CRITICAL: You MUST respond using EXACTLY this format. Do not use markdown formatting, bold text, or any other embellishments:**
-
+**Respond with EXACTLY this format (no other text):**
 ```
-CLUE: [your clue - be precise and clear]
-NUMBER: [exact count of YOUR agents this clue relates to]
+CLUE: [single word - MUST be different from all clues in history]
+NUMBER: [count of your remaining agents this relates to]
 ```
-
-**Example:**
-```
-CLUE: ANIMALS
-NUMBER: 3
-```
-

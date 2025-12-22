@@ -106,7 +106,7 @@ class AIPlayer(Player):
                     "blue_agents": ", ".join(blue_agents),
                     "bystanders": ", ".join(bystanders),
                     "assassin": ", ".join(assassin),
-                    "clue_history": "Previous clues will be shown here",  # TODO: Add actual history
+                    "clue_history": board_state.get("clue_history", "None (game just started)"),
                 },
             )
 

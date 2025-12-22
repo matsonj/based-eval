@@ -1481,6 +1481,116 @@ def _run_cost_estimation_game(
         return model, None, str(e)
 
 
+@app.command("optimize")
+def optimize(
+    logs_dir: Path = typer.Option(
+        Path("logs"),
+        "--logs-dir", "-l",
+        help="Directory containing game_metadata_*.jsonl files"
+    ),
+    output: Path = typer.Option(
+        Path("optimized_prompts"),
+        "--output", "-o",
+        help="Directory to save optimized prompts"
+    ),
+    model: str = typer.Option(
+        "gpt-4o-mini",
+        "--model", "-m",
+        help="Model to use for DSPy optimization"
+    ),
+    threads: int = typer.Option(4, "--threads", "-t", help="Number of parallel evaluation threads"),
+    max_demos: int = typer.Option(4, "--max-demos", help="Maximum number of few-shot demonstrations"),
+    num_candidates: int = typer.Option(10, "--num-candidates", help="Number of candidate programs to evaluate"),
+    seed: int = typer.Option(42, "--seed", help="Random seed for reproducibility"),
+    dry_run: bool = typer.Option(False, "--dry-run", help="Just test data loading without optimization"),
+):
+    """Optimize Codenames prompts using DSPy.
+    
+    Extracts training data from game logs and uses DSPy to find better
+    prompt configurations through joint optimization of Spymaster and Operative.
+    
+    Scoring metric:
+    - +1 per correct guess
+    - -0.5 per bystander guess
+    - -1 per enemy agent guess  
+    - -999 per assassin guess (catastrophic failure)
+    """
+    from codenames.optimization.optimize import run_optimization
+    
+    # Map CLI model name to OpenRouter format if needed
+    model_mappings = _load_model_mappings()
+    openrouter_model = model_mappings.get(model, f"openai/{model}")
+    
+    console.print(f"[bold blue]🎯 Codenames Prompt Optimization[/bold blue]")
+    console.print(f"Logs directory: {logs_dir}")
+    console.print(f"Output directory: {output}")
+    console.print(f"Model: {openrouter_model}")
+    
+    try:
+        results = run_optimization(
+            logs_dir=logs_dir,
+            output_dir=output,
+            model=openrouter_model,
+            num_threads=threads,
+            max_bootstrapped_demos=max_demos,
+            max_labeled_demos=max_demos * 2,
+            num_candidates=num_candidates,
+            seed=seed,
+            dry_run=dry_run,
+        )
+        
+        if not dry_run and "error" not in results:
+            console.print(f"\n[green]✅ Optimization complete![/green]")
+            console.print(f"Baseline score: {results.get('baseline_score', 0):.2f}")
+            console.print(f"Optimized score: {results.get('optimized_score', 0):.2f}")
+            console.print(f"Improvement: {results.get('improvement', 0):+.2f}")
+            
+    except Exception as e:
+        console.print(f"[red]Error during optimization: {e}[/red]")
+        raise typer.Exit(1)
+
+
+@app.command("export-prompts")
+def export_prompts(
+    pipeline: Path = typer.Option(
+        Path("optimized_prompts/optimized_pipeline.json"),
+        "--pipeline", "-p",
+        help="Path to optimized_pipeline.json from DSPy optimization"
+    ),
+    output: Path = typer.Option(
+        Path("codenames/prompts"),
+        "--output", "-o",
+        help="Directory to write prompt files"
+    ),
+):
+    """Export optimized DSPy pipeline to game-compatible prompt files.
+    
+    Converts the optimized_pipeline.json from DSPy optimization into
+    markdown prompt files that work with the game's template system.
+    
+    This properly maps DSPy field names (available_words, team_agents, etc.)
+    to game template variables (BOARD, BLUE_AGENTS, RED_AGENTS, etc.).
+    """
+    from codenames.optimization.export_prompts import export_prompts_from_pipeline
+    
+    if not pipeline.exists():
+        console.print(f"[red]Error: Pipeline file not found: {pipeline}[/red]")
+        console.print(f"[yellow]Run optimization first: uv run based codenames optimize[/yellow]")
+        raise typer.Exit(1)
+    
+    console.print(f"[bold blue]📝 Exporting Optimized Prompts[/bold blue]")
+    console.print(f"Pipeline: {pipeline}")
+    console.print(f"Output: {output}")
+    
+    try:
+        export_prompts_from_pipeline(pipeline, output)
+        console.print(f"\n[green]✅ Prompts exported successfully![/green]")
+        console.print(f"[dim]Test with: uv run based codenames prompt spymaster --team blue[/dim]")
+    except Exception as e:
+        console.print(f"[red]Error exporting prompts: {e}[/red]")
+        raise typer.Exit(1)
+
+
 @app.command("cost-estimate")
 def cost_estimate(
     seed: int = typer.Option(42, help="Random seed for reproducible board generation"),

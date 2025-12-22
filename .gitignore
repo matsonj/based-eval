@@ -192,6 +192,7 @@ Thumbs.db
 # Project specific
 /logs/
 *.jsonl
+optimized_prompts/
 
 # Temporary files
 *.tmp
