@@ -369,7 +369,7 @@ def _run_single_game(
 def run_eval(
     models: Optional[List[str]] = typer.Option(None, "--model", "-m", help="Models to evaluate (can specify multiple)"),
     all_canonical: bool = typer.Option(False, "--all", "-a", help="Evaluate all canonical models"),
-    games_per_matchup: int = typer.Option(2, "--games", "-g", help="Number of games per matchup"),
+    games_per_matchup: int = typer.Option(5, "--games", "-g", help="Number of games per matchup"),
     threads: int = typer.Option(8, "--threads", "-t", help="Number of parallel threads"),
     seed: int = typer.Option(42, "--seed", help="Base random seed"),
     words_file: str = typer.Option("inputs/names.yaml", help="Path to words YAML file"),
@@ -855,3 +855,203 @@ def rollback_prompts():
     except Exception as e:
         console.print(f"[red]Error rolling back prompts: {e}[/red]")
         raise typer.Exit(1)
+
+
+def _run_cost_estimation_game(
+    model: str,
+    seed: int,
+    words_file: str,
+    log_dir: Path,
+    run_id: str,
+    prompt_files: Dict[str, str],
+    lock: threading.Lock,
+) -> Tuple[str, Optional[Dict[str, Any]], Optional[str]]:
+    """Run a single cost estimation game: model vs gemini-3-flash."""
+    try:
+        player_a = AIPlayer(model)
+        player_b = AIPlayer("gemini-3-flash")
+        
+        game = ChainLexGame(
+            words_file=words_file,
+            player_a=player_a,
+            player_b=player_b,
+            quiet=True,
+            seed=seed,
+            **prompt_files,
+        )
+        
+        game.init_controllog(log_dir, run_id)
+        result = game.play()
+        
+        return model, result, None
+        
+    except Exception as e:
+        return model, None, str(e)
+
+
+@app.command("cost-estimate")
+def cost_estimate(
+    seed: int = typer.Option(42, help="Random seed for board generation"),
+    threads: int = typer.Option(8, "--threads", "-t", help="Number of parallel threads"),
+    output: Path = typer.Option(
+        Path("logs/chainlex/cost_estimate"),
+        "--output", "-o",
+        help="Output directory for results"
+    ),
+    words_file: str = typer.Option("inputs/names.yaml", help="Path to words YAML file"),
+    clue_giver_prompt: str = typer.Option("chainlex/prompts/clue_giver.md"),
+    guesser_prompt: str = typer.Option("chainlex/prompts/guesser.md"),
+    games_per_matchup: int = typer.Option(5, help="Games per matchup for projection"),
+    verbose: bool = typer.Option(False, help="Enable verbose logging"),
+):
+    """Estimate tournament cost by running each canonical model vs gemini-3-flash.
+    
+    Runs one game per canonical model against gemini-3-flash (same board for all).
+    Then projects total tournament cost based on measured per-model costs.
+    """
+    canonical_models = _load_canonical_models()
+    
+    if not canonical_models:
+        console.print("[red]Error: No canonical models found[/red]")
+        raise typer.Exit(1)
+    
+    if not os.getenv("OPENROUTER_API_KEY"):
+        console.print("[red]Error: OPENROUTER_API_KEY not set[/red]")
+        raise typer.Exit(1)
+    
+    output.mkdir(parents=True, exist_ok=True)
+    log_dir = output / "logs"
+    log_dir.mkdir(exist_ok=True)
+    setup_logging(log_dir, verbose)
+    
+    run_id = f"cost_estimate_{datetime.utcnow().strftime('%Y-%m-%dT%H-%M-%S')}"
+    
+    console.print(f"[bold blue]💰 ChainLex-1 Tournament Cost Estimation[/bold blue]")
+    console.print(f"Models to test: {len(canonical_models)} canonical models")
+    console.print(f"Each model plays 1 game vs gemini-3-flash (same board)")
+    console.print(f"Seed: {seed}")
+    console.print(f"Threads: {threads}")
+    
+    prompt_files = {
+        "clue_giver_prompt": clue_giver_prompt,
+        "guesser_prompt": guesser_prompt,
+    }
+    
+    results: Dict[str, Dict[str, Any]] = {}
+    failed: Dict[str, str] = {}
+    total_cost = 0.0
+    lock = threading.Lock()
+    
+    console.print(f"\n[bold]Running cost estimation games...[/bold]\n")
+    
+    completed_count = 0
+    
+    with ThreadPoolExecutor(max_workers=threads) as executor:
+        futures = {}
+        for model in canonical_models:
+            future = executor.submit(
+                _run_cost_estimation_game,
+                model,
+                seed,
+                words_file,
+                log_dir,
+                run_id,
+                prompt_files,
+                lock,
+            )
+            futures[future] = model
+        
+        for future in as_completed(futures):
+            model = futures[future]
+            model_name, result, error = future.result()
+            
+            completed_count += 1
+            
+            if error:
+                failed[model_name] = error
+                console.print(f"[red]❌ [{completed_count}/{len(canonical_models)}] {model_name}: {error}[/red]")
+            else:
+                results[model_name] = result
+                game_cost = result.get("cost", 0) + result.get("upstream_cost", 0)
+                total_cost += game_cost
+                
+                score_a = result.get("score_a", 0)
+                score_b = result.get("score_b", 0)
+                
+                console.print(
+                    f"✓ [{completed_count}/{len(canonical_models)}] [cyan]{model_name}[/cyan] vs gemini-3-flash | "
+                    f"Scores: {score_a} vs {score_b} | "
+                    f"Cost: ${game_cost:.4f}"
+                )
+    
+    # Summary
+    console.print(f"\n[bold]📊 Cost Estimation Results[/bold]\n")
+    
+    if failed:
+        console.print(f"[yellow]⚠️ {len(failed)} models failed[/yellow]")
+    
+    console.print(f"Successful games: {len(results)}")
+    console.print(f"Total estimation cost: ${total_cost:.4f}")
+    
+    if results:
+        avg_cost = total_cost / len(results)
+        console.print(f"Average cost per game: ${avg_cost:.4f}")
+    
+    # Project tournament cost
+    console.print(f"\n[bold blue]📈 Tournament Cost Projection[/bold blue]\n")
+    
+    num_models = len(canonical_models)
+    num_matchups = num_models * (num_models - 1) // 2
+    total_games = num_matchups * games_per_matchup
+    
+    console.print(f"Models: {num_models}")
+    console.print(f"Unique matchups: {num_matchups}")
+    console.print(f"Games per matchup: {games_per_matchup}")
+    console.print(f"Total games: {total_games}")
+    
+    # Build per-model cost
+    model_costs = {model: r.get("cost", 0) + r.get("upstream_cost", 0) for model, r in results.items()}
+    
+    # Estimate gemini-3-flash cost (it was opponent in all games)
+    if model_costs:
+        avg_game_cost = sum(model_costs.values()) / len(model_costs)
+        model_costs["gemini-3-flash"] = avg_game_cost * 0.3
+    
+    # Project costs
+    projected_total = 0.0
+    for i, model_a in enumerate(canonical_models):
+        for model_b in canonical_models[i + 1:]:
+            cost_a = model_costs.get(model_a, avg_cost if results else 0.01)
+            cost_b = model_costs.get(model_b, avg_cost if results else 0.01)
+            game_cost = (cost_a + cost_b) * 1.2  # 1.2x scaling factor
+            projected_total += game_cost * games_per_matchup
+    
+    console.print(f"\n[bold green]💵 Projected Total Cost: ${projected_total:.2f}[/bold green]")
+    
+    # Show top 10 most expensive models
+    if model_costs:
+        table = Table(title="Cost per Model (Top 10)")
+        table.add_column("Model", style="cyan")
+        table.add_column("Cost/Game", style="yellow", justify="right")
+        
+        sorted_models = sorted(model_costs.items(), key=lambda x: x[1], reverse=True)
+        for model, cost in sorted_models[:10]:
+            table.add_row(model, f"${cost:.4f}")
+        
+        console.print(table)
+    
+    # Save results
+    results_path = output / "cost_estimate.json"
+    import json
+    with open(results_path, "w") as f:
+        json.dump({
+            "seed": seed,
+            "total_estimation_cost": total_cost,
+            "projected_tournament_cost": projected_total,
+            "games_per_matchup": games_per_matchup,
+            "total_games": total_games,
+            "model_costs": model_costs,
+            "failed_models": list(failed.keys()),
+        }, f, indent=2)
+    
+    console.print(f"\n[green]Results saved to: {results_path}[/green]")
