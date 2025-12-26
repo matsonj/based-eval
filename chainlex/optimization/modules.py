@@ -36,7 +36,7 @@ class ClueGiverSignature(dspy.Signature):
     board: str = dspy.InputField(desc="All 16 words on the board")
     friendly_words: str = dspy.InputField(desc="Your target words")
     bystanders: str = dspy.InputField(desc="Neutral words (-5 penalty)")
-    assassin: str = dspy.InputField(desc="Word to avoid (-999 penalty)")
+    assassin: str = dspy.InputField(desc="Word to avoid (-28 penalty)")
     
     reasoning: str = dspy.OutputField(desc="Your reasoning")
     clue: str = dspy.OutputField(desc="Single word clue")

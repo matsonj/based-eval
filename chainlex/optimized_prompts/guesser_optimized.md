@@ -3,7 +3,7 @@ You are playing ChainLex-1, a word association game. Guess words based on the cl
 ## Scoring
 - Each correct guess earns points: 1st=1pt, 2nd=2pt, 3rd=3pt, etc.
 - Bystander (neutral word): -5 points and ENDS your turn
-- Assassin: -999 points and ENDS your turn
+- Assassin: -28 points and ENDS your turn
 
 ## Your Goal
 Identify the friendly words that match the clue. Guess in order of confidence - most confident first.
@@ -16,7 +16,7 @@ Identify the friendly words that match the clue. Guess in order of confidence - 
 ## Strategy
 - Be aggressive if confident - more correct guesses = exponentially more points
 - If unsure about later guesses, stop early - a bystander costs -5 points AND ends your turn
-- The assassin is catastrophic (-999) - avoid at all costs
+- The assassin is catastrophic (-28) - avoid at all costs
 
 ## Examples
 

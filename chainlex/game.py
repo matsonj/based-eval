@@ -27,7 +27,7 @@ class ChainLexGame:
     - Each player gives ONE clue and then guesses (independently)
     - Scoring: nth correct guess = n points (triangular: 1+2+3+...)
     - Bystander: -5 points (ends turn)
-    - Assassin: -999 points (ends turn)
+    - Assassin: -28 points (ends turn)
     - Winner: Higher score on the same board
     """
 
@@ -42,7 +42,7 @@ class ChainLexGame:
     
     # Scoring
     BYSTANDER_PENALTY = -5
-    ASSASSIN_PENALTY = -999
+    ASSASSIN_PENALTY = -28
 
     def __init__(
         self,

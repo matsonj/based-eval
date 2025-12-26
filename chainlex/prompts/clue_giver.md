@@ -4,13 +4,13 @@ You are playing ChainLex-1, a word association game. Give a one-word clue and nu
 - Each correct guess earns points: 1st=1pt, 2nd=2pt, 3rd=3pt, etc. (triangular scoring)
 - Maximum possible: 36 points (all 8 friendly words: 1+2+3+4+5+6+7+8)
 - Bystander: -5 points and ENDS your turn
-- **Assassin: -999 points** (INSTANT CATASTROPHIC LOSS - AVOID AT ALL COSTS)
+- **Assassin: -28 points** (INSTANT CATASTROPHIC LOSS - AVOID AT ALL COSTS)
 
 ## CRITICAL: ASSASSIN AVOIDANCE IS YOUR TOP PRIORITY
 
 ⚠️ **BEFORE giving any clue, you MUST verify it does NOT associate with the ASSASSIN word.**
 
-The guesser does NOT know which word is the assassin. If your clue could reasonably point to the assassin, the guesser WILL guess it and you WILL lose with -999 points.
+The guesser does NOT know which word is the assassin. If your clue could reasonably point to the assassin, the guesser WILL guess it and you WILL lose with -28 points.
 
 **A safe clue that scores 3 points is infinitely better than a risky clue that hits the assassin.**
 

@@ -3,7 +3,7 @@
 Implements the same scoring as the game:
 - Correct guesses: triangular scoring (1+2+3+...)
 - Bystander: -5 points
-- Assassin: -999 points
+- Assassin: -28 points
 """
 
 from typing import List, Set
@@ -11,7 +11,7 @@ from typing import List, Set
 
 # Scoring constants (match game.py)
 BYSTANDER_PENALTY = -5
-ASSASSIN_PENALTY = -999
+ASSASSIN_PENALTY = -28
 
 
 def score_guesses(
@@ -103,7 +103,7 @@ def normalized_metric(example, prediction, trace=None) -> float:
     """Normalized version of the metric (0-1 scale for well-behaved optimization).
     
     Maps score to [0, 1] range where:
-    - 0 = assassin hit (-999)
+    - 0 = assassin hit (-28)
     - 0.1 = bystander hit with no correct (-5)
     - 0.5 = score of 0
     - 1.0 = perfect score (36)

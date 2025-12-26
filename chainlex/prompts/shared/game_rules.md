@@ -18,7 +18,7 @@ Your score is calculated as follows:
   - And so on...
   - All 8 correct = 1+2+3+4+5+6+7+8 = 36 points (maximum)
 - **Bystander**: -5 points (ends your turn immediately)
-- **Assassin**: -999 points (ends your turn immediately)
+- **Assassin**: -28 points (ends your turn immediately)
 
 ## Game Flow
 1. **Clue Phase**: You see all 16 words WITH their identities (friendly, bystander, assassin). You provide a single-word clue and a number.

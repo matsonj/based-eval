@@ -926,6 +926,26 @@ def cost_estimate(
     
     run_id = f"cost_estimate_{datetime.utcnow().strftime('%Y-%m-%dT%H-%M-%S')}"
     
+    # Initialize controllog
+    try:
+        cl.init(project_id="chainlex", log_dir=log_dir)
+        cl.event(
+            kind="run_start",
+            actor={"agent_id": "agent:chainlex"},
+            run_id=run_id,
+            payload={
+                "version": ChainLexGame.VERSION,
+                "seed": seed,
+                "threads": threads,
+                "total_games": len(canonical_models),
+                "estimation_mode": True,
+            },
+            project_id="chainlex",
+            source="runtime",
+        )
+    except Exception:
+        pass
+    
     console.print(f"[bold blue]💰 ChainLex-1 Tournament Cost Estimation[/bold blue]")
     console.print(f"Models to test: {len(canonical_models)} canonical models")
     console.print(f"Each model plays 1 game vs gemini-3-flash (same board)")
