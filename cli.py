@@ -2,6 +2,7 @@
 
 This is the unified CLI entry point for all BASED eval games:
 - `based codenames` - Run Codenames games
+- `based chainlex` - Run ChainLex-1 games (single-player word association)
 - `based connections` - Run Connections puzzles  
 - `based analytics` - Analytics and reporting tools
 """
@@ -19,6 +20,7 @@ if str(connections_path) not in sys.path:
 
 # Import game-specific CLIs
 from codenames.cli_codenames import app as codenames_app
+from chainlex.cli_chainlex import app as chainlex_app
 from connections_eval.cli import app as connections_app
 from shared.cli_analytics import app as analytics_app
 
@@ -31,6 +33,7 @@ console = Console()
 
 # Register subcommands
 app.add_typer(codenames_app, name="codenames", help="Run Codenames games for AI evaluation")
+app.add_typer(chainlex_app, name="chainlex", help="Run ChainLex-1 games (single-player word association)")
 app.add_typer(connections_app, name="connections", help="Run Connections puzzles for AI evaluation")
 app.add_typer(analytics_app, name="analytics", help="Analytics and reporting tools")
 
@@ -45,6 +48,9 @@ def main():
     
         # Run a Codenames game
         uv run based codenames run --red gemini-flash --blue claude-haiku
+        
+        # Run a ChainLex-1 game (single-player, cost-efficient)
+        uv run based chainlex run --model gemini-flash
         
         # Run Connections puzzles
         uv run based connections run --model gemini-flash --puzzles 10
