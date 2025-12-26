@@ -6,11 +6,9 @@
 # See: https://matsonj.github.io/eval-connections/
 canonical_models:
   # 100% win rate
-  - gpt5.2-pro
   - gemini-3-pro
   - o3
   - gpt5
-  - grok4
   - gpt5.2
   - grok4-fast
   - gemini-3-flash
