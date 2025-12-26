@@ -1,0 +1,13 @@
+{
+  "timestamp": "2025-12-26T22:25:38.879366Z",
+  "model": "google/gemini-3-flash-preview",
+  "seed": 42,
+  "num_train_examples": 30,
+  "num_eval_examples": 10,
+  "max_bootstrapped_demos": 4,
+  "max_labeled_demos": 4,
+  "baseline_score": -99.3,
+  "optimized_score": 2.4,
+  "improvement": 101.7,
+  "improvement_pct": 102.41691842900302
+}

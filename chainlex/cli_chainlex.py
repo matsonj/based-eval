@@ -56,7 +56,7 @@ def _load_canonical_models() -> List[str]:
         return []
 
 
-def _validate_api_keys_and_models(model_a: Optional[str], model_b: Optional[str], referee: Optional[str]):
+def _validate_api_keys_and_models(model_a: Optional[str], model_b: Optional[str]):
     """Validate that required API keys are present and model names are valid."""
     if not os.getenv("OPENROUTER_API_KEY"):
         console.print("[red]Error: OPENROUTER_API_KEY environment variable not set[/red]")
@@ -71,8 +71,6 @@ def _validate_api_keys_and_models(model_a: Optional[str], model_b: Optional[str]
         invalid_models.append(("model-a", model_a))
     if model_b and model_b not in available_models:
         invalid_models.append(("model-b", model_b))
-    if referee and referee not in available_models:
-        invalid_models.append(("referee", referee))
     
     if invalid_models:
         console.print("[red]Error: Invalid model name(s):[/red]")
@@ -90,8 +88,6 @@ def _validate_api_keys_and_models(model_a: Optional[str], model_b: Optional[str]
 def run(
     model_a: str = typer.Option(..., "--model-a", "-a", help="First model (Player A)"),
     model_b: str = typer.Option(..., "--model-b", "-b", help="Second model (Player B)"),
-    referee: Optional[str] = typer.Option("gemini-3-flash", help="Model for referee (clue validation)"),
-    no_referee: bool = typer.Option(False, help="Disable referee validation"),
     num_games: int = typer.Option(1, help="Number of games to play"),
     seed: Optional[int] = typer.Option(None, help="Random seed for reproducible games"),
     words_file: str = typer.Option("inputs/names.yaml", help="Path to words YAML file"),
@@ -101,15 +97,12 @@ def run(
     guesser_prompt: str = typer.Option(
         "chainlex/prompts/guesser.md", help="Guesser prompt file"
     ),
-    referee_prompt: str = typer.Option(
-        "chainlex/prompts/referee.md", help="Referee prompt file"
-    ),
     log_path: str = typer.Option("logs/chainlex", help="Directory for log files"),
     verbose: bool = typer.Option(False, help="Enable verbose logging"),
 ):
     """Run a ChainLex-1 head-to-head game between two models."""
     
-    _validate_api_keys_and_models(model_a, model_b, referee if not no_referee else None)
+    _validate_api_keys_and_models(model_a, model_b)
 
     log_dir = Path(log_path)
     log_dir.mkdir(parents=True, exist_ok=True)
@@ -124,7 +117,6 @@ def run(
     try:
         player_a = AIPlayer(model_a)
         player_b = AIPlayer(model_b)
-        referee_player = None if no_referee else AIPlayer(referee) if referee else None
     except Exception as e:
         console.print(f"[red]Error creating players: {e}[/red]")
         raise typer.Exit(1)
@@ -140,10 +132,8 @@ def run(
                 words_file=words_file,
                 player_a=player_a,
                 player_b=player_b,
-                referee_player=referee_player,
                 clue_giver_prompt=clue_giver_prompt,
                 guesser_prompt=guesser_prompt,
-                referee_prompt=referee_prompt,
                 seed=seed + game_num if seed is not None else None,
             )
 
@@ -225,14 +215,13 @@ def list_models():
 
 @app.command()
 def prompt(
-    role: str = typer.Argument(..., help="Role to test: clue_giver, guesser, or referee"),
+    role: str = typer.Argument(..., help="Role to test: clue_giver or guesser"),
     seed: Optional[int] = typer.Option(42, help="Random seed for reproducible board generation"),
     words_file: str = typer.Option("inputs/names.yaml", help="Path to words YAML file"),
-    clue: str = typer.Option("EXAMPLE", help="Sample clue for guesser/referee prompts"),
-    number: int = typer.Option(3, help="Sample number for guesser/referee prompts"),
+    clue: str = typer.Option("EXAMPLE", help="Sample clue for guesser prompts"),
+    number: int = typer.Option(3, help="Sample number for guesser prompts"),
     clue_giver_prompt: str = typer.Option("chainlex/prompts/clue_giver.md", help="Clue giver prompt file"),
     guesser_prompt: str = typer.Option("chainlex/prompts/guesser.md", help="Guesser prompt file"),
-    referee_prompt: str = typer.Option("chainlex/prompts/referee.md", help="Referee prompt file"),
     verbose: bool = typer.Option(False, help="Enable verbose logging"),
 ):
     """Test and display the exact prompt sent to AI agents."""
@@ -242,7 +231,7 @@ def prompt(
     temp_dir = Path(tempfile.mkdtemp())
     setup_logging(temp_dir, verbose)
     
-    valid_roles = ["clue_giver", "guesser", "referee"]
+    valid_roles = ["clue_giver", "guesser"]
     if role not in valid_roles:
         console.print(f"[red]Error: Role must be one of: {', '.join(valid_roles)}[/red]")
         raise typer.Exit(1)
@@ -265,7 +254,6 @@ def prompt(
             player_b=DummyPlayer(),
             clue_giver_prompt=clue_giver_prompt,
             guesser_prompt=guesser_prompt,
-            referee_prompt=referee_prompt,
             seed=seed,
         )
         
@@ -313,25 +301,11 @@ def prompt(
                     "number": number,
                 },
             )
-            
-        elif role == "referee":
-            friendly_words = [w for w, i in board_state["identities"].items() if i == "friendly"]
-            
-            prompt_text = prompt_manager.load_prompt(
-                referee_prompt,
-                {
-                    "clue": clue,
-                    "number": number,
-                    "team": "player",
-                    "board": ", ".join(board_state["board"]),
-                    "team_agents": ", ".join(friendly_words),
-                },
-            )
         
         console.print(f"\n[bold]🎯 {role.replace('_', ' ').title()} Prompt[/bold]")
         console.print(f"[dim]Seed: {seed}, Board: {len(board_state['board'])} words[/dim]")
         
-        if role in ["guesser", "referee"]:
+        if role == "guesser":
             console.print(f"[dim]Sample clue: '{clue}' ({number})[/dim]")
         
         console.print(f"\n[yellow]{'='*80}[/yellow]")
@@ -362,7 +336,6 @@ def _run_single_game(
     log_dir: Path,
     run_id: str,
     prompt_files: Dict[str, str],
-    referee_model: Optional[str],
     lock: threading.Lock,
 ) -> Tuple[str, Optional[Dict[str, Any]], Optional[str]]:
     """Run a single ChainLex-1 head-to-head game.
@@ -372,13 +345,11 @@ def _run_single_game(
     try:
         player_a = AIPlayer(model_a)
         player_b = AIPlayer(model_b)
-        referee_player = AIPlayer(referee_model) if referee_model else None
         
         game = ChainLexGame(
             words_file=words_file,
             player_a=player_a,
             player_b=player_b,
-            referee_player=referee_player,
             quiet=True,
             seed=seed,
             **prompt_files,
@@ -402,11 +373,9 @@ def run_eval(
     threads: int = typer.Option(8, "--threads", "-t", help="Number of parallel threads"),
     seed: int = typer.Option(42, "--seed", help="Base random seed"),
     words_file: str = typer.Option("inputs/names.yaml", help="Path to words YAML file"),
-    referee: str = typer.Option("gemini-3-flash", "--referee", "-r", help="Referee model"),
     output: Path = typer.Option(Path("logs/chainlex/eval"), "--output", "-o", help="Output directory"),
     clue_giver_prompt: str = typer.Option("chainlex/prompts/clue_giver.md"),
     guesser_prompt: str = typer.Option("chainlex/prompts/guesser.md"),
-    referee_prompt: str = typer.Option("chainlex/prompts/referee.md"),
     verbose: bool = typer.Option(False, "--verbose", "-v"),
 ):
     """Run ChainLex-1 round-robin evaluation across multiple models.
@@ -468,12 +437,10 @@ def run_eval(
     console.print(f"Games per matchup: {games_per_matchup}")
     console.print(f"Total games: {total_games}")
     console.print(f"Threads: {threads}")
-    console.print(f"Referee: {referee}")
     
     prompt_files = {
         "clue_giver_prompt": clue_giver_prompt,
         "guesser_prompt": guesser_prompt,
-        "referee_prompt": referee_prompt,
     }
     
     run_id = f"eval_{datetime.utcnow().strftime('%Y-%m-%dT%H-%M-%S')}"
@@ -526,7 +493,6 @@ def run_eval(
                     log_dir,
                     run_id,
                     prompt_files,
-                    referee,
                     lock,
                 )
                 futures[future] = matchup
@@ -672,3 +638,220 @@ def list_canonical():
     console.print(f"\n✨ Total: {len(canonical_models)} canonical models")
     console.print(f"\n💡 Run evaluation: [bold]uv run based chainlex eval --all[/bold]")
 
+
+@app.command()
+def optimize(
+    output: Path = typer.Option(
+        Path("chainlex/optimized_prompts"),
+        "--output", "-o",
+        help="Output directory for optimized pipeline and prompts",
+    ),
+    model: str = typer.Option(
+        "gemini-3-flash",
+        "--model", "-m",
+        help="Model to use for optimization (CLI name)",
+    ),
+    num_train: int = typer.Option(
+        30,
+        "--num-train",
+        help="Number of training boards",
+    ),
+    num_eval: int = typer.Option(
+        10,
+        "--num-eval",
+        help="Number of evaluation boards",
+    ),
+    threads: int = typer.Option(
+        4,
+        "--threads", "-t",
+        help="Parallel evaluation threads",
+    ),
+    max_demos: int = typer.Option(
+        4,
+        "--max-demos",
+        help="Maximum few-shot demonstrations to bootstrap",
+    ),
+    seed: int = typer.Option(42, "--seed", "-s", help="Random seed"),
+    dry_run: bool = typer.Option(
+        False,
+        "--dry-run",
+        help="Test pipeline without full optimization",
+    ),
+    clue_giver_prompt: Optional[Path] = typer.Option(
+        None, "--clue-giver-prompt", help="Custom clue giver prompt file"
+    ),
+    guesser_prompt: Optional[Path] = typer.Option(
+        None, "--guesser-prompt", help="Custom guesser prompt file"
+    ),
+    verbose: bool = typer.Option(False, "--verbose", "-v", help="Verbose logging"),
+):
+    """Optimize prompts using DSPy GEPA (Genetic Evolution of Prompts Algorithm).
+    
+    GEPA uses evolutionary optimization with textual feedback to evolve
+    better instructions. It reflects on failures and proposes improvements.
+    
+    Examples:
+        # Dry run to test setup
+        uv run based chainlex optimize --dry-run
+        
+        # Full optimization with GEPA
+        uv run based chainlex optimize --num-train 50 --num-eval 15
+        
+        # Use specific model
+        uv run based chainlex optimize --model claude-3.5-sonnet
+    """
+    from chainlex.optimization.optimize import run_optimization, export_optimized_prompts
+    
+    # Validate API key
+    if not os.environ.get("OPENROUTER_API_KEY"):
+        console.print("[red]Error: OPENROUTER_API_KEY environment variable not set[/red]")
+        raise typer.Exit(1)
+    
+    # Validate model
+    model_mappings = _load_model_mappings()
+    if model not in model_mappings:
+        console.print(f"[red]Error: Invalid model '{model}'[/red]")
+        console.print(f"Available models: {', '.join(sorted(model_mappings.keys()))}")
+        raise typer.Exit(1)
+    
+    openrouter_model = model_mappings[model]
+    
+    # Setup logging
+    if verbose:
+        logging.basicConfig(level=logging.INFO)
+    
+    console.print("[bold blue]🧪 ChainLex-1 DSPy Optimization[/bold blue]")
+    console.print(f"Model: {model} ({openrouter_model})")
+    console.print(f"Training examples: {num_train}")
+    console.print(f"Evaluation examples: {num_eval}")
+    console.print(f"Max demos: {max_demos}")
+    console.print(f"Output: {output}")
+    
+    if dry_run:
+        console.print("[yellow]DRY RUN - testing pipeline only[/yellow]")
+    
+    console.print()
+    
+    try:
+        results = run_optimization(
+            output_dir=output,
+            model=openrouter_model,
+            num_train_examples=num_train,
+            num_eval_examples=num_eval,
+            num_threads=threads,
+            max_bootstrapped_demos=max_demos,
+            max_labeled_demos=max_demos,
+            seed=seed,
+            clue_giver_prompt=str(clue_giver_prompt) if clue_giver_prompt else None,
+            guesser_prompt=str(guesser_prompt) if guesser_prompt else None,
+            dry_run=dry_run,
+        )
+        
+        if dry_run:
+            console.print("[bold green]✅ Dry run completed![/bold green]")
+            console.print(f"Test clue: {results['test_clue']} ({results.get('test_number', '?')})")
+            console.print(f"Test guesses: {results.get('test_guesses', [])}")
+            console.print(f"Test score: {results['test_score']}")
+        else:
+            console.print("\n[bold green]✅ Optimization complete![/bold green]")
+            console.print(f"Baseline score: {results['baseline_score']:.2f}")
+            console.print(f"Optimized score: {results['optimized_score']:.2f}")
+            console.print(f"Improvement: {results['improvement']:+.2f} ({results['improvement_pct']:+.1f}%)")
+            console.print(f"\nPipeline saved to: {output / 'optimized_pipeline.json'}")
+            
+            # Export optimized prompts back to markdown
+            console.print("\nExporting optimized prompts to markdown...")
+            export_optimized_prompts(
+                pipeline_path=output / "optimized_pipeline.json",
+                output_dir=output,
+            )
+            console.print(f"[green]Optimized prompts saved to: {output}[/green]")
+            
+    except Exception as e:
+        console.print(f"[red]Error during optimization: {e}[/red]")
+        if verbose:
+            import traceback
+            console.print(traceback.format_exc())
+        raise typer.Exit(1)
+
+
+@app.command()
+def deploy_prompts(
+    optimized_dir: Path = typer.Option(
+        Path("chainlex/optimized_prompts"),
+        "--from", "-f",
+        help="Directory containing optimized prompts",
+    ),
+    no_backup: bool = typer.Option(
+        False,
+        "--no-backup",
+        help="Don't backup original prompts before overwriting",
+    ),
+):
+    """Deploy optimized prompts to the main prompts folder.
+    
+    Copies optimized prompts from chainlex/optimized_prompts/ to chainlex/prompts/,
+    backing up the originals first.
+    
+    Examples:
+        # Deploy with backup (default)
+        uv run based chainlex deploy-prompts
+        
+        # Deploy without backup
+        uv run based chainlex deploy-prompts --no-backup
+    """
+    from chainlex.optimization.optimize import deploy_optimized_prompts
+    
+    console.print("[bold blue]🚀 Deploying optimized prompts...[/bold blue]")
+    console.print(f"Source: {optimized_dir}")
+    console.print(f"Backup: {'No' if no_backup else 'Yes'}")
+    console.print()
+    
+    try:
+        deployed = deploy_optimized_prompts(
+            optimized_dir=optimized_dir,
+            backup=not no_backup,
+        )
+        
+        if deployed:
+            console.print("[bold green]✅ Prompts deployed successfully![/bold green]")
+            for name, path in deployed.items():
+                console.print(f"  • {name} -> {path}")
+            
+            if not no_backup:
+                console.print("\n[dim]Original prompts backed up with .backup extension[/dim]")
+                console.print("[dim]Use 'uv run based chainlex rollback-prompts' to restore[/dim]")
+        else:
+            console.print("[yellow]No prompts were deployed[/yellow]")
+            
+    except Exception as e:
+        console.print(f"[red]Error deploying prompts: {e}[/red]")
+        raise typer.Exit(1)
+
+
+@app.command()
+def rollback_prompts():
+    """Rollback prompts to their original versions.
+    
+    Restores prompts from .backup files created during deployment.
+    
+    Examples:
+        uv run based chainlex rollback-prompts
+    """
+    from chainlex.optimization.optimize import rollback_prompts as do_rollback
+    
+    console.print("[bold blue]⏪ Rolling back prompts...[/bold blue]")
+    
+    try:
+        restored = do_rollback()
+        
+        if restored:
+            console.print("[bold green]✅ Prompts restored successfully![/bold green]")
+            for name, path in restored.items():
+                console.print(f"  • {name} restored")
+        else:
+            console.print("[yellow]No backup files found to restore[/yellow]")
+            
+    except Exception as e:
+        console.print(f"[red]Error rolling back prompts: {e}[/red]")
+        raise typer.Exit(1)

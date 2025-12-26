@@ -49,24 +49,20 @@ class ChainLexGame:
         words_file: str,
         player_a,
         player_b,
-        referee_player=None,
         clue_giver_prompt: str = "",
         guesser_prompt: str = "",
-        referee_prompt: str = "",
         quiet: bool = False,
         seed: Optional[int] = None,
     ):
         self.words_file = words_file
         self.player_a = player_a
         self.player_b = player_b
-        self.referee_player = referee_player
         self.quiet = quiet
         self.seed = seed
         
         self.prompt_files = {
             "clue_giver": clue_giver_prompt,
             "guesser": guesser_prompt,
-            "referee": referee_prompt,
         }
 
         # Game state
@@ -367,13 +363,13 @@ class ChainLexGame:
                     },
                 )
         
-        # Validate clue with referee if available
-        if self.referee_player and clue:
-            _, _, is_valid, reasoning = self._validate_clue_with_referee(
+        # Validate clue (simple rules, no LLM needed)
+        if clue:
+            _, _, is_valid, reasoning = self._validate_clue(
                 clue, clue_number, board_state
             )
             if not is_valid:
-                self._print(f"[red]⚠️ Clue rejected by referee: {reasoning}[/red]")
+                self._print(f"[red]⚠️ Invalid clue: {reasoning}[/red]")
                 return {
                     "player": player_label,
                     "model": player.model_name if hasattr(player, 'model_name') else "unknown",
@@ -523,59 +519,40 @@ class ChainLexGame:
                     },
                 )
         
-        # Validate clue with referee if available
-        if self.referee_player:
-            validated_clue, validated_number, is_valid, reasoning = self._validate_clue_with_referee(
-                clue, number, board_state
-            )
-            if not is_valid:
-                self._print(f"[red]⚠️ Clue rejected by referee: {reasoning}[/red]")
-                return None, None
+        # Validate clue (simple rules, no LLM needed)
+        _, _, is_valid, reasoning = self._validate_clue(
+            clue, number, board_state
+        )
+        if not is_valid:
+            self._print(f"[red]⚠️ Invalid clue: {reasoning}[/red]")
+            return None, None
         
         return clue, number
 
-    def _validate_clue_with_referee(
+    def _validate_clue(
         self, clue: str, number: int, board_state: Dict
     ) -> Tuple[str, int, bool, str]:
-        """Validate clue with referee. Returns (clue, number, is_valid, reasoning)."""
-        try:
-            # Get friendly words for referee context
-            friendly_words = [
-                word for word, identity in board_state["identities"].items()
-                if identity == "friendly"
-            ]
-            
-            is_valid, reasoning = self.referee_player.get_referee_validation(
-                clue, number, "player", board_state, self.prompt_files["referee"]
-            )
-            
-            # Log referee metadata
-            if isinstance(self.referee_player, AIPlayer):
-                metadata = self.referee_player.get_last_call_metadata()
-                if metadata:
-                    self.total_cost += metadata.get("openrouter_cost", 0.0)
-                    self.total_upstream_cost += metadata.get("upstream_cost", 0.0)
-                    
-                    self._emit_model_events(
-                        player=self.referee_player,
-                        call_type="referee",
-                        prompt_tokens=metadata["input_tokens"],
-                        completion_tokens=metadata["output_tokens"],
-                        latency_ms=metadata["latency_ms"],
-                        cost=metadata.get("openrouter_cost"),
-                        upstream_cost=metadata.get("upstream_cost"),
-                        payload={
-                            "evaluated_clue": clue,
-                            "evaluated_number": number,
-                            "referee_decision": "valid" if is_valid else "invalid",
-                        },
-                    )
-            
-            return clue, number, is_valid, reasoning
-            
-        except Exception as e:
-            logger.error(f"Error in referee validation: {e}")
-            return clue, number, True, "Referee error - clue allowed"
+        """Validate clue with simple rules (no LLM needed).
+        
+        Rules:
+        1. No multiple words (spaces) - except hyphens for compound words
+        2. Clue cannot exactly match a word on the board
+        
+        Returns (clue, number, is_valid, reasoning).
+        """
+        clue_upper = clue.strip().upper()
+        board_words = {word.upper() for word in board_state["board"]}
+        
+        # Rule 1: No multiple words (spaces not allowed)
+        if ' ' in clue.strip():
+            return clue, number, False, f"Multiple words not allowed: '{clue}'"
+        
+        # Rule 2: Clue cannot exactly match a board word
+        if clue_upper in board_words:
+            return clue, number, False, f"Clue matches word on board: '{clue}'"
+        
+        # Valid!
+        return clue, number, True, "Valid clue"
 
     def get_guesser_guesses(self, clue: str, number: int) -> List[str]:
         """Get guesses from the player (acting as guesser)."""
