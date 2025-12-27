@@ -147,7 +147,7 @@ def run(
                 seed=seed + game_num if seed is not None else None,
             )
 
-            game.init_controllog(log_dir, run_id)
+            game.init_controllog(Path("logs"), run_id)  # Use top-level logs for controllog
             result = game.play()
             results.append(result)
 
@@ -370,7 +370,7 @@ def _run_single_game(
             **prompt_files,
         )
         
-        game.init_controllog(log_dir, run_id)
+        game.init_controllog(Path("logs"), run_id)  # Use top-level logs for controllog
         result = game.play()
         
         return game.game_id, result, None
@@ -602,9 +602,9 @@ def run_eval(
     
     run_id = f"eval_{datetime.utcnow().strftime('%Y-%m-%dT%H-%M-%S')}"
     
-    # Initialize controllog
+    # Initialize controllog (use top-level logs/ for unified analytics)
     try:
-        cl.init(project_id="chainlex", log_dir=log_dir)
+        cl.init(project_id="chainlex", log_dir=Path("logs"))
         cl.event(
             kind="run_start",
             actor={"agent_id": "agent:chainlex"},
@@ -1065,7 +1065,7 @@ def _run_cost_estimation_game(
             **prompt_files,
         )
         
-        game.init_controllog(log_dir, run_id)
+        game.init_controllog(Path("logs"), run_id)  # Use top-level logs for controllog
         result = game.play()
         
         return model, result, None
@@ -1111,9 +1111,9 @@ def cost_estimate(
     
     run_id = f"cost_estimate_{datetime.utcnow().strftime('%Y-%m-%dT%H-%M-%S')}"
     
-    # Initialize controllog
+    # Initialize controllog (use top-level logs/ for unified analytics)
     try:
-        cl.init(project_id="chainlex", log_dir=log_dir)
+        cl.init(project_id="chainlex", log_dir=Path("logs"))
         cl.event(
             kind="run_start",
             actor={"agent_id": "agent:chainlex"},

@@ -17,6 +17,9 @@ from shared import controllog as cl
 console = Console()
 logger = logging.getLogger(__name__)
 
+# Cache for loaded word lists (keyed by file path)
+_WORDS_CACHE: Dict[str, List[str]] = {}
+
 
 class ChainLexGame:
     """The main game class for ChainLex-1.
@@ -178,7 +181,13 @@ class ChainLexGame:
             logger.debug(f"Failed to emit model events: {e}")
 
     def load_words(self) -> List[str]:
-        """Load words from YAML file."""
+        """Load words from YAML file (cached for performance)."""
+        global _WORDS_CACHE
+
+        # Use cached words if available
+        if self.words_file in _WORDS_CACHE:
+            return _WORDS_CACHE[self.words_file]
+
         try:
             with open(self.words_file, "r") as f:
                 data = yaml.safe_load(f)
@@ -187,6 +196,9 @@ class ChainLexGame:
                     raise ValueError(
                         f"Need at least {self.BOARD_SIZE} words, got {len(words)}"
                     )
+                # Cache the words for future use
+                _WORDS_CACHE[self.words_file] = words
+                logger.debug(f"Loaded and cached {len(words)} words from {self.words_file}")
                 return words
         except FileNotFoundError:
             logger.error(f"Words file not found: {self.words_file}")

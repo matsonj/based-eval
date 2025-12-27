@@ -53,6 +53,9 @@ def _load_thinking_models(mappings_file: Optional[Path] = None) -> Set[str]:
 # Cache the thinking models set (loaded once)
 _THINKING_MODELS: Optional[Set[str]] = None
 
+# Cache the model mappings (loaded once)
+_MODEL_MAPPINGS: Optional[Dict[str, Any]] = None
+
 
 def _get_thinking_models() -> Set[str]:
     """Get cached thinking models set."""
@@ -60,6 +63,14 @@ def _get_thinking_models() -> Set[str]:
     if _THINKING_MODELS is None:
         _THINKING_MODELS = _load_thinking_models()
     return _THINKING_MODELS
+
+
+def _get_cached_model_mappings(mappings_file: Optional[Path] = None) -> Dict[str, Any]:
+    """Get cached model mappings, loading once if needed."""
+    global _MODEL_MAPPINGS
+    if _MODEL_MAPPINGS is None:
+        _MODEL_MAPPINGS = _load_model_mappings(mappings_file)
+    return _MODEL_MAPPINGS
 
 
 def _get_api_key() -> str:
@@ -228,14 +239,14 @@ class OpenRouterAdapter:
 
     def __init__(self, model_mappings_file: Optional[str] = None):
         self.api_key = _get_api_key()
-        
-        # Load model mappings from YAML file
+
+        # Load model mappings from cache (shared across instances)
         if model_mappings_file:
-            self.model_mappings = _load_model_mappings(Path(model_mappings_file))
+            self.model_mappings = _get_cached_model_mappings(Path(model_mappings_file))
         else:
-            self.model_mappings = _load_model_mappings()
-        
-        logger.info(f"Loaded model mappings with {len(self._flatten_mappings())} models")
+            self.model_mappings = _get_cached_model_mappings()
+
+        logger.debug(f"Using cached model mappings with {len(self._flatten_mappings())} models")
 
     def _flatten_mappings(self) -> Dict[str, str]:
         """Flatten hierarchical mappings to simple name->id dict."""
