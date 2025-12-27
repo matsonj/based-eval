@@ -21,6 +21,7 @@ dependencies = [
     "great-tables>=0.20.0",
     "arena-rank>=0.1.0", # For Bradley-Terry leaderboard rankings
     "matplotlib>=3.7.0", # For leaderboard chart generation
+    "dspy>=2.5.0", # For prompt optimization
 ]
 requires-python = ">=3.12,<3.14"
 readme = "README.md"
