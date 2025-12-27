@@ -31,12 +31,16 @@ class AIPlayer:
         """Get metadata from the last AI call."""
         return self._last_call_metadata
 
-    def get_clue_giver_move(self, board_state: Dict, prompt_file: str) -> Tuple[str, int]:
+    def get_clue_giver_move(
+        self, board_state: Dict, prompt_file: str, head_to_head_context: str = ""
+    ) -> Tuple[str, int]:
         """Get clue and number from AI player acting as clue giver."""
-        return self._get_clue_giver_move_with_retry(board_state, prompt_file, is_retry=False)
+        return self._get_clue_giver_move_with_retry(
+            board_state, prompt_file, head_to_head_context, is_retry=False
+        )
 
     def _get_clue_giver_move_with_retry(
-        self, board_state: Dict, prompt_file: str, is_retry: bool
+        self, board_state: Dict, prompt_file: str, head_to_head_context: str, is_retry: bool
     ) -> Tuple[str, int]:
         """Internal method to get clue giver move with retry tracking."""
         try:
@@ -63,6 +67,7 @@ class AIPlayer:
                     "bystanders": ", ".join(bystanders),
                     "assassin": ", ".join(assassin),
                     "num_friendly": len(friendly_words),
+                    "head_to_head_context": head_to_head_context,
                 },
             )
 
@@ -76,7 +81,7 @@ class AIPlayer:
             # Check if we got UNKNOWN and should retry
             if clue == "UNKNOWN" and not is_retry:
                 logger.warning("Clue giver returned UNKNOWN clue, retrying once...")
-                return self._get_clue_giver_move_with_retry(board_state, prompt_file, is_retry=True)
+                return self._get_clue_giver_move_with_retry(board_state, prompt_file, head_to_head_context, is_retry=True)
             
             # Store metadata
             self._last_call_metadata = metadata
@@ -97,17 +102,17 @@ class AIPlayer:
             logger.error(f"Error in AI clue giver move: {e}")
             if not is_retry:
                 logger.warning("Clue giver API call failed, retrying once...")
-                return self._get_clue_giver_move_with_retry(board_state, prompt_file, is_retry=True)
+                return self._get_clue_giver_move_with_retry(board_state, prompt_file, head_to_head_context, is_retry=True)
             return "ERROR", 1
 
     def get_guesser_moves(
-        self, board_state: Dict, clue: str, number: int, prompt_file: str
+        self, board_state: Dict, clue: str, number: int, prompt_file: str, head_to_head_context: str = ""
     ) -> List[str]:
         """Get guesses from AI player acting as guesser."""
-        return self._get_guesser_moves_with_retry(board_state, clue, number, prompt_file, is_retry=False)
+        return self._get_guesser_moves_with_retry(board_state, clue, number, prompt_file, head_to_head_context, is_retry=False)
 
     def _get_guesser_moves_with_retry(
-        self, board_state: Dict, clue: str, number: int, prompt_file: str, is_retry: bool
+        self, board_state: Dict, clue: str, number: int, prompt_file: str, head_to_head_context: str, is_retry: bool
     ) -> List[str]:
         """Internal method to get guesser moves with retry tracking."""
         try:
@@ -125,6 +130,7 @@ class AIPlayer:
                     "available_words": ", ".join(available_words),
                     "clue": clue,
                     "number": number,
+                    "head_to_head_context": head_to_head_context,
                 },
             )
 
@@ -137,7 +143,7 @@ class AIPlayer:
             # Check if we got empty guesses and should retry
             if not guesses and not is_retry:
                 logger.warning("Guesser returned no guesses, retrying once...")
-                return self._get_guesser_moves_with_retry(board_state, clue, number, prompt_file, is_retry=True)
+                return self._get_guesser_moves_with_retry(board_state, clue, number, prompt_file, head_to_head_context, is_retry=True)
             
             # Store metadata
             self._last_call_metadata = metadata
@@ -158,7 +164,7 @@ class AIPlayer:
             logger.error(f"Error in AI guesser move: {e}")
             if not is_retry:
                 logger.warning("Guesser API call failed, retrying once...")
-                return self._get_guesser_moves_with_retry(board_state, clue, number, prompt_file, is_retry=True)
+                return self._get_guesser_moves_with_retry(board_state, clue, number, prompt_file, head_to_head_context, is_retry=True)
             # Fallback: return first available word
             available = [
                 word for word in board_state["board"]

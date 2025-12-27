@@ -47,16 +47,16 @@ class ChainLexGame:
     def __init__(
         self,
         words_file: str,
-        player_a,
-        player_b,
+        player_away,
+        player_home,
         clue_giver_prompt: str = "",
         guesser_prompt: str = "",
         quiet: bool = False,
         seed: Optional[int] = None,
     ):
         self.words_file = words_file
-        self.player_a = player_a
-        self.player_b = player_b
+        self.player_away = player_away  # Goes first
+        self.player_home = player_home  # Goes second (knows opponent's score)
         self.quiet = quiet
         self.seed = seed
         
@@ -310,7 +310,7 @@ class ChainLexGame:
         self._print(f"[black on white]Assassin:[/black on white] {self.ASSASSINS}")
         self._print("")
 
-    def _play_single_turn(self, player, player_label: str) -> Dict:
+    def _play_single_turn(self, player, player_label: str, head_to_head_context: str = "") -> Dict:
         """Play a single turn for one player and return their results."""
         # Fresh revealed state for this player
         revealed = {word: False for word in self.board}
@@ -336,7 +336,7 @@ class ChainLexGame:
         
         # Clue giver phase
         clue, clue_number = player.get_clue_giver_move(
-            board_state, self.prompt_files["clue_giver"]
+            board_state, self.prompt_files["clue_giver"], head_to_head_context
         )
         
         self._print(f'[green]Clue:[/green] "{clue}" ({clue_number})')
@@ -403,7 +403,7 @@ class ChainLexGame:
         }
         
         player_guesses = player.get_guesser_moves(
-            guesser_board_state, clue, clue_number, self.prompt_files["guesser"]
+            guesser_board_state, clue, clue_number, self.prompt_files["guesser"], head_to_head_context
         )
         
         # Log guesser metadata
@@ -656,43 +656,55 @@ class ChainLexGame:
         logger.info("Starting new ChainLex-1 head-to-head game")
         self.setup_board()
 
-        model_a = self.player_a.model_name if hasattr(self.player_a, 'model_name') else "player_a"
-        model_b = self.player_b.model_name if hasattr(self.player_b, 'model_name') else "player_b"
+        model_away = self.player_away.model_name if hasattr(self.player_away, 'model_name') else "player_away"
+        model_home = self.player_home.model_name if hasattr(self.player_home, 'model_name') else "player_home"
         
         self._emit_state_move("NEW", "WIP", {
             "game_id": self.game_id,
-            "model_a": model_a,
-            "model_b": model_b,
+            "model_away": model_away,
+            "model_home": model_home,
         })
 
         self._print("[bold]🎯 ChainLex-1 Head-to-Head Game![/bold]")
-        self._print(f"[cyan]Player A:[/cyan] {model_a}")
-        self._print(f"[magenta]Player B:[/magenta] {model_b}")
+        self._print(f"[cyan]Away (1st):[/cyan] {model_away}")
+        self._print(f"[magenta]Home (2nd):[/magenta] {model_home}")
         self._print(f"[green]Game ID:[/green] {self.game_id}")
         self._print()
         
         # Display the board (same for both players)
         self.display_board_start()
 
-        # Player A's turn
-        result_a = self._play_single_turn(self.player_a, f"Player A ({model_a})")
+        # Away player's turn (goes first)
+        away_context = "You are going FIRST in a head-to-head game. Your opponent will see your score when they make their clue."
+        result_away = self._play_single_turn(self.player_away, f"Away ({model_away})", away_context)
         
-        # Player B's turn (same board, fresh state)
-        result_b = self._play_single_turn(self.player_b, f"Player B ({model_b})")
+        # Home player's turn (goes second, knows opponent's score)
+        home_context = f"You are going SECOND in a head-to-head game. Your opponent scored {result_away['score']} points. Make your clue with this in mind."
+        result_home = self._play_single_turn(self.player_home, f"Home ({model_home})", home_context)
 
         self.end_time = time.time()
         duration = self.end_time - self.start_time
 
         # Determine winner
-        score_a = result_a["score"]
-        score_b = result_b["score"]
+        score_away = result_away["score"]
+        score_home = result_home["score"]
         
-        if score_a > score_b:
-            winner = "model_a"
-            winner_model = model_a
-        elif score_b > score_a:
-            winner = "model_b"
-            winner_model = model_b
+        # Check if both players hit the assassin - instant loss for both = tie
+        both_hit_assassin = (
+            result_away["end_reason"] == "assassin" and 
+            result_home["end_reason"] == "assassin"
+        )
+        
+        if both_hit_assassin:
+            # Both hit assassin = draw, regardless of scores
+            winner = "tie"
+            winner_model = None
+        elif score_away > score_home:
+            winner = "model_away"
+            winner_model = model_away
+        elif score_home > score_away:
+            winner = "model_home"
+            winner_model = model_home
         else:
             winner = "tie"
             winner_model = None
@@ -701,16 +713,17 @@ class ChainLexGame:
         max_score = self.calculate_max_possible_score()
         result = {
             "game_id": self.game_id,
-            "model_a": model_a,
-            "model_b": model_b,
-            "score_a": score_a,
-            "score_b": score_b,
+            "model_away": model_away,
+            "model_home": model_home,
+            "score_away": score_away,
+            "score_home": score_home,
             "winner": winner,
             "winner_model": winner_model,
-            "margin": abs(score_a - score_b),
+            "margin": abs(score_away - score_home),
             "max_possible_score": max_score,
-            "result_a": result_a,
-            "result_b": result_b,
+            "both_hit_assassin": both_hit_assassin,
+            "result_away": result_away,
+            "result_home": result_home,
             "duration": duration,
             "cost": self.total_cost,
             "upstream_cost": self.total_upstream_cost,
@@ -723,24 +736,26 @@ class ChainLexGame:
         self._print(f"[bold]GAME RESULTS[/bold]")
         self._print(f"[bold]{'='*60}[/bold]")
         
-        self._print(f"\n[cyan]Player A ({model_a}):[/cyan]")
-        self._print(f"  Score: {score_a} / {max_score}")
-        self._print(f"  Correct: {result_a['correct_guesses']} / {self.FRIENDLY_WORDS}")
-        self._print(f"  Clue: \"{result_a['clue']}\" ({result_a['clue_number']})")
-        self._print(f"  End: {result_a['end_reason']}")
+        self._print(f"\n[cyan]Away - 1st ({model_away}):[/cyan]")
+        self._print(f"  Score: {score_away} / {max_score}")
+        self._print(f"  Correct: {result_away['correct_guesses']} / {self.FRIENDLY_WORDS}")
+        self._print(f"  Clue: \"{result_away['clue']}\" ({result_away['clue_number']})")
+        self._print(f"  End: {result_away['end_reason']}")
         
-        self._print(f"\n[magenta]Player B ({model_b}):[/magenta]")
-        self._print(f"  Score: {score_b} / {max_score}")
-        self._print(f"  Correct: {result_b['correct_guesses']} / {self.FRIENDLY_WORDS}")
-        self._print(f"  Clue: \"{result_b['clue']}\" ({result_b['clue_number']})")
-        self._print(f"  End: {result_b['end_reason']}")
+        self._print(f"\n[magenta]Home - 2nd ({model_home}):[/magenta]")
+        self._print(f"  Score: {score_home} / {max_score}")
+        self._print(f"  Correct: {result_home['correct_guesses']} / {self.FRIENDLY_WORDS}")
+        self._print(f"  Clue: \"{result_home['clue']}\" ({result_home['clue_number']})")
+        self._print(f"  End: {result_home['end_reason']}")
         
-        if winner == "model_a":
-            self._print(f"\n[bold]WINNER: [cyan]{model_a}[/cyan] by {result['margin']} points![/bold]")
-        elif winner == "model_b":
-            self._print(f"\n[bold]WINNER: [magenta]{model_b}[/magenta] by {result['margin']} points![/bold]")
+        if winner == "model_away":
+            self._print(f"\n[bold]WINNER: [cyan]{model_away}[/cyan] (Away) by {result['margin']} points![/bold]")
+        elif winner == "model_home":
+            self._print(f"\n[bold]WINNER: [magenta]{model_home}[/magenta] (Home) by {result['margin']} points![/bold]")
+        elif both_hit_assassin:
+            self._print(f"\n[bold yellow]DRAW: Both players hit the assassin![/bold yellow]")
         else:
-            self._print(f"\n[bold yellow]WINNER: TIE![/bold yellow]")
+            self._print(f"\n[bold yellow]DRAW: Tied at {score_away} points![/bold yellow]")
         
         self._print(f"\nDuration: {duration:.1f}s | Cost: ${self.total_cost:.4f}")
         
@@ -752,11 +767,11 @@ class ChainLexGame:
         self._emit_state_move("WIP", "DONE", {
             "game_id": self.game_id,
             "winner": winner,
-            "score_a": score_a,
-            "score_b": score_b,
+            "score_away": score_away,
+            "score_home": score_home,
             "duration_sec": duration,
         })
 
-        logger.info(f"Game completed. Winner: {winner}, Scores: {score_a} vs {score_b}")
+        logger.info(f"Game completed. Winner: {winner}, Scores: {score_away} vs {score_home}")
         return result
 

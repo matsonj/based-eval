@@ -10,12 +10,22 @@ import dspy
 
 
 def _load_prompt(prompt_name: str) -> str:
-    """Load a prompt from the chainlex/prompts/ folder."""
+    """Load a prompt from the chainlex/prompts/ folder.
+    
+    Note: Optimization is single-player (no opponent), so we remove the
+    head-to-head context placeholder since there's no opponent score to reference.
+    """
     prompts_dir = Path(__file__).parent.parent / "prompts"
     prompt_path = prompts_dir / f"{prompt_name}.md"
     
     if prompt_path.exists():
-        return prompt_path.read_text()
+        prompt_text = prompt_path.read_text()
+        # Remove head-to-head context placeholder - optimization is single-player
+        prompt_text = prompt_text.replace("{{HEAD_TO_HEAD_CONTEXT}}", "")
+        # Clean up any double newlines left behind
+        while "\n\n\n" in prompt_text:
+            prompt_text = prompt_text.replace("\n\n\n", "\n\n")
+        return prompt_text
     else:
         raise FileNotFoundError(f"Prompt file not found: {prompt_path}")
 

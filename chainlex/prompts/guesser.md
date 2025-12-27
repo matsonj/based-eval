@@ -1,5 +1,7 @@
 You are playing ChainLex-1, a word association game. Guess words based on the clue to maximize your score.
 
+{{HEAD_TO_HEAD_CONTEXT}}
+
 ## Scoring
 - Each correct guess earns points: 1st=1pt, 2nd=2pt, 3rd=3pt, etc.
 - Bystander (neutral word): -5 points and ENDS your turn
@@ -9,7 +11,7 @@ You are playing ChainLex-1, a word association game. Guess words based on the cl
 Identify the friendly words that match the clue. Guess in order of confidence - most confident first.
 
 ## Rules
-- You can guess up to NUMBER + 1 words (plus-one rule)
+- You can guess up to {{NUMBER}} words
 - Guesses are processed in order - wrong guess ENDS your turn
 - Order matters: put your most confident guesses first
 

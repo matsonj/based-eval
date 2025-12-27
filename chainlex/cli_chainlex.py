@@ -56,7 +56,7 @@ def _load_canonical_models() -> List[str]:
         return []
 
 
-def _validate_api_keys_and_models(model_a: Optional[str], model_b: Optional[str]):
+def _validate_api_keys_and_models(model_away: Optional[str], model_home: Optional[str]):
     """Validate that required API keys are present and model names are valid."""
     if not os.getenv("OPENROUTER_API_KEY"):
         console.print("[red]Error: OPENROUTER_API_KEY environment variable not set[/red]")
@@ -67,10 +67,10 @@ def _validate_api_keys_and_models(model_a: Optional[str], model_b: Optional[str]
     available_models = list(model_mappings.keys())
     invalid_models = []
     
-    if model_a and model_a not in available_models:
-        invalid_models.append(("model-a", model_a))
-    if model_b and model_b not in available_models:
-        invalid_models.append(("model-b", model_b))
+    if model_away and model_away not in available_models:
+        invalid_models.append(("model-away", model_away))
+    if model_home and model_home not in available_models:
+        invalid_models.append(("model-home", model_home))
     
     if invalid_models:
         console.print("[red]Error: Invalid model name(s):[/red]")
@@ -86,8 +86,8 @@ def _validate_api_keys_and_models(model_a: Optional[str], model_b: Optional[str]
 
 @app.command()
 def run(
-    model_a: str = typer.Option(..., "--model-a", "-a", help="First model (Player A)"),
-    model_b: str = typer.Option(..., "--model-b", "-b", help="Second model (Player B)"),
+    model_away: str = typer.Option(..., "--model-away", "-a", help="Away model (goes first)"),
+    model_home: str = typer.Option(..., "--model-home", "-h", help="Home model (goes second, knows opponent score)"),
     num_games: int = typer.Option(1, help="Number of games to play"),
     seed: Optional[int] = typer.Option(None, help="Random seed for reproducible games"),
     words_file: str = typer.Option("inputs/names.yaml", help="Path to words YAML file"),
@@ -100,9 +100,12 @@ def run(
     log_path: str = typer.Option("logs/chainlex", help="Directory for log files"),
     verbose: bool = typer.Option(False, help="Enable verbose logging"),
 ):
-    """Run a ChainLex-1 head-to-head game between two models."""
+    """Run a ChainLex-1 head-to-head game between two models.
     
-    _validate_api_keys_and_models(model_a, model_b)
+    Away model goes first. Home model goes second and knows the away model's score.
+    """
+    
+    _validate_api_keys_and_models(model_away, model_home)
 
     log_dir = Path(log_path)
     log_dir.mkdir(parents=True, exist_ok=True)
@@ -115,13 +118,13 @@ def run(
         logger.info(f"Random seed set to: {seed}")
 
     try:
-        player_a = AIPlayer(model_a)
-        player_b = AIPlayer(model_b)
+        player_away = AIPlayer(model_away)
+        player_home = AIPlayer(model_home)
     except Exception as e:
         console.print(f"[red]Error creating players: {e}[/red]")
         raise typer.Exit(1)
 
-    run_id = f"{datetime.utcnow().strftime('%Y-%m-%dT%H-%M-%S')}_chainlex_{model_a}_vs_{model_b}"
+    run_id = f"{datetime.utcnow().strftime('%Y-%m-%dT%H-%M-%S')}_chainlex_{model_away}_vs_{model_home}"
 
     results = []
     for game_num in range(num_games):
@@ -130,8 +133,8 @@ def run(
         try:
             game = ChainLexGame(
                 words_file=words_file,
-                player_a=player_a,
-                player_b=player_b,
+                player_away=player_away,
+                player_home=player_home,
                 clue_giver_prompt=clue_giver_prompt,
                 guesser_prompt=guesser_prompt,
                 seed=seed + game_num if seed is not None else None,
@@ -148,43 +151,43 @@ def run(
             traceback.print_exc()
 
     if len(results) > 1:
-        _display_head_to_head_summary(results, model_a, model_b)
+        _display_head_to_head_summary(results, model_away, model_home)
 
 
-def _display_head_to_head_summary(results: list, model_a: str, model_b: str):
+def _display_head_to_head_summary(results: list, model_away: str, model_home: str):
     """Display summary statistics for multiple head-to-head games."""
     total_games = len(results)
     
-    wins_a = sum(1 for r in results if r.get("winner") == "model_a")
-    wins_b = sum(1 for r in results if r.get("winner") == "model_b")
+    wins_away = sum(1 for r in results if r.get("winner") == "model_away")
+    wins_home = sum(1 for r in results if r.get("winner") == "model_home")
     ties = sum(1 for r in results if r.get("winner") == "tie")
     
-    total_score_a = sum(r.get("score_a", 0) for r in results)
-    total_score_b = sum(r.get("score_b", 0) for r in results)
+    total_score_away = sum(r.get("score_away", 0) for r in results)
+    total_score_home = sum(r.get("score_home", 0) for r in results)
     
-    avg_score_a = total_score_a / total_games
-    avg_score_b = total_score_b / total_games
+    avg_score_away = total_score_away / total_games
+    avg_score_home = total_score_home / total_games
 
     table = Table(title="ChainLex-1 Head-to-Head Summary")
     table.add_column("Metric", style="cyan")
-    table.add_column(model_a, style="green")
-    table.add_column(model_b, style="magenta")
+    table.add_column(f"{model_away} (Away)", style="green")
+    table.add_column(f"{model_home} (Home)", style="magenta")
 
-    table.add_row("Wins", str(wins_a), str(wins_b))
+    table.add_row("Wins", str(wins_away), str(wins_home))
     table.add_row("Ties", str(ties), str(ties))
-    table.add_row("Win Rate", f"{wins_a/total_games*100:.1f}%", f"{wins_b/total_games*100:.1f}%")
-    table.add_row("Total Score", str(total_score_a), str(total_score_b))
-    table.add_row("Avg Score", f"{avg_score_a:.1f}", f"{avg_score_b:.1f}")
+    table.add_row("Win Rate", f"{wins_away/total_games*100:.1f}%", f"{wins_home/total_games*100:.1f}%")
+    table.add_row("Total Score", str(total_score_away), str(total_score_home))
+    table.add_row("Avg Score", f"{avg_score_away:.1f}", f"{avg_score_home:.1f}")
 
     console.print(table)
     
     # Declare overall winner
-    if wins_a > wins_b:
-        console.print(f"\n[bold green]🏆 Overall Winner: {model_a} ({wins_a}-{wins_b})[/bold green]")
-    elif wins_b > wins_a:
-        console.print(f"\n[bold magenta]🏆 Overall Winner: {model_b} ({wins_b}-{wins_a})[/bold magenta]")
+    if wins_away > wins_home:
+        console.print(f"\n[bold green]🏆 Overall Winner: {model_away} (Away) ({wins_away}-{wins_home})[/bold green]")
+    elif wins_home > wins_away:
+        console.print(f"\n[bold magenta]🏆 Overall Winner: {model_home} (Home) ({wins_home}-{wins_away})[/bold magenta]")
     else:
-        console.print(f"\n[bold yellow]🤝 Series Tied: {wins_a}-{wins_b}[/bold yellow]")
+        console.print(f"\n[bold yellow]🤝 Series Tied: {wins_away}-{wins_home}[/bold yellow]")
 
 
 @app.command()
@@ -250,8 +253,8 @@ def prompt(
         
         game = ChainLexGame(
             words_file=words_file,
-            player_a=DummyPlayer(),
-            player_b=DummyPlayer(),
+            player_away=DummyPlayer(),
+            player_home=DummyPlayer(),
             clue_giver_prompt=clue_giver_prompt,
             guesser_prompt=guesser_prompt,
             seed=seed,
@@ -261,6 +264,9 @@ def prompt(
         board_state = game.get_board_state(reveal_all=(role == "clue_giver"))
         
         prompt_manager = PromptManager()
+        
+        # Sample head-to-head context (show away player context by default)
+        sample_context = "You are going FIRST in a head-to-head game. Your opponent will see your score when they make their clue."
         
         if role == "clue_giver":
             friendly_words = [w for w, i in board_state["identities"].items() if i == "friendly"]
@@ -275,6 +281,7 @@ def prompt(
                     "bystanders": ", ".join(bystanders),
                     "assassin": ", ".join(assassin),
                     "num_friendly": len(friendly_words),
+                    "head_to_head_context": sample_context,
                 },
             )
             
@@ -299,6 +306,7 @@ def prompt(
                     "available_words": ", ".join(available_words),
                     "clue": clue,
                     "number": number,
+                    "head_to_head_context": sample_context,
                 },
             )
         
@@ -329,8 +337,8 @@ def prompt(
 
 
 def _run_single_game(
-    model_a: str,
-    model_b: str,
+    model_away: str,
+    model_home: str,
     seed: int,
     words_file: str,
     log_dir: Path,
@@ -343,13 +351,13 @@ def _run_single_game(
     Returns: (game_id, result_dict, error_message)
     """
     try:
-        player_a = AIPlayer(model_a)
-        player_b = AIPlayer(model_b)
+        player_away = AIPlayer(model_away)
+        player_home = AIPlayer(model_home)
         
         game = ChainLexGame(
             words_file=words_file,
-            player_a=player_a,
-            player_b=player_b,
+            player_away=player_away,
+            player_home=player_home,
             quiet=True,
             seed=seed,
             **prompt_files,
@@ -369,26 +377,50 @@ def _run_single_game(
 def run_eval(
     models: Optional[List[str]] = typer.Option(None, "--model", "-m", help="Models to evaluate (can specify multiple)"),
     all_canonical: bool = typer.Option(False, "--all", "-a", help="Evaluate all canonical models"),
-    games_per_matchup: int = typer.Option(5, "--games", "-g", help="Number of games per matchup"),
-    threads: int = typer.Option(8, "--threads", "-t", help="Number of parallel threads"),
+    add_model: Optional[str] = typer.Option(None, "--add-model", help="Add a single new model to existing evaluation (plays against all canonical models)"),
+    games_per_matchup: int = typer.Option(4, "--games", "-g", help="Number of games per matchup (split evenly home/away)"),
+    threads: int = typer.Option(16, "--threads", "-t", help="Number of parallel threads"),
     seed: int = typer.Option(42, "--seed", help="Base random seed"),
     words_file: str = typer.Option("inputs/names.yaml", help="Path to words YAML file"),
     output: Path = typer.Option(Path("logs/chainlex/eval"), "--output", "-o", help="Output directory"),
     clue_giver_prompt: str = typer.Option("chainlex/prompts/clue_giver.md"),
     guesser_prompt: str = typer.Option("chainlex/prompts/guesser.md"),
+    dry_run: bool = typer.Option(False, "--dry-run", help="Show matchup schedule and cost estimate without running games"),
     verbose: bool = typer.Option(False, "--verbose", "-v"),
 ):
     """Run ChainLex-1 round-robin evaluation across multiple models.
     
     Each pair of models plays head-to-head on the same board.
     Results are saved in Bradley-Terry compatible format for ranking.
+    
+    Use --dry-run to preview the matchup schedule and estimated cost.
+    Use --add-model to add a new model to an existing evaluation (appends to results.csv).
     """
-    if not os.getenv("OPENROUTER_API_KEY"):
+    if not dry_run and not os.getenv("OPENROUTER_API_KEY"):
         console.print("[red]Error: OPENROUTER_API_KEY not set. Try `source .env`[/red]")
         raise typer.Exit(1)
     
+    # Track if we're in "add model" mode (append to existing results)
+    append_mode = False
+    new_model = None
+    opponent_models = []
+    
     # Determine which models to evaluate
-    if all_canonical:
+    if add_model:
+        # Add-model mode: run new model against all canonical models
+        append_mode = True
+        new_model = add_model
+        opponent_models = _load_canonical_models()
+        if not opponent_models:
+            console.print("[red]Error: No canonical models found to play against[/red]")
+            raise typer.Exit(1)
+        # Remove new model from opponents if it's already canonical
+        opponent_models = [m for m in opponent_models if m != new_model]
+        if not opponent_models:
+            console.print("[red]Error: New model is already in canonical list with no other opponents[/red]")
+            raise typer.Exit(1)
+        eval_models = [new_model] + opponent_models
+    elif all_canonical:
         eval_models = _load_canonical_models()
         if not eval_models:
             console.print("[red]Error: No canonical models found[/red]")
@@ -396,7 +428,7 @@ def run_eval(
     elif models:
         eval_models = list(models)
     else:
-        console.print("[red]Error: Specify --model or use --all for canonical models[/red]")
+        console.print("[red]Error: Specify --model, --all, or --add-model[/red]")
         raise typer.Exit(1)
     
     if len(eval_models) < 2:
@@ -415,28 +447,149 @@ def run_eval(
     log_dir.mkdir(exist_ok=True)
     setup_logging(log_dir, verbose)
     
-    # Generate all matchups
+    # Generate matchups
     matchups = []
-    eval_models_sorted = sorted(eval_models)
-    for i, model_a in enumerate(eval_models_sorted):
-        for model_b in eval_models_sorted[i + 1:]:
-            for game_idx in range(games_per_matchup):
+    
+    if append_mode and new_model:
+        # Add-model mode: only matchups between new model and opponents
+        console.print(f"[yellow]ADD MODE: Running {new_model} against {len(opponent_models)} canonical models[/yellow]")
+        for opponent in sorted(opponent_models):
+            # Split games evenly: half with new model away, half with new model home
+            games_as_away = games_per_matchup // 2
+            games_as_home = games_per_matchup - games_as_away
+            
+            # New model as away (opponent as home)
+            for game_idx in range(games_as_away):
                 matchups.append({
-                    "model_a": model_a,
-                    "model_b": model_b,
+                    "model_away": new_model,
+                    "model_home": opponent,
                     "seed": seed + game_idx,
                     "game_idx": game_idx,
                 })
+            
+            # New model as home (opponent as away)
+            for game_idx in range(games_as_home):
+                matchups.append({
+                    "model_away": opponent,
+                    "model_home": new_model,
+                    "seed": seed + games_as_away + game_idx,
+                    "game_idx": games_as_away + game_idx,
+                })
+    else:
+        # Full round-robin mode
+        eval_models_sorted = sorted(eval_models)
+        for i, model_1 in enumerate(eval_models_sorted):
+            for model_2 in eval_models_sorted[i + 1:]:
+                # Split games evenly: first half model_1 away, second half model_2 away
+                games_as_away_1 = games_per_matchup // 2
+                games_as_away_2 = games_per_matchup - games_as_away_1  # Handles odd numbers
+                
+                # model_1 as away (model_2 as home)
+                for game_idx in range(games_as_away_1):
+                    matchups.append({
+                        "model_away": model_1,
+                        "model_home": model_2,
+                        "seed": seed + game_idx,
+                        "game_idx": game_idx,
+                    })
+                
+                # model_2 as away (model_1 as home)
+                for game_idx in range(games_as_away_2):
+                    matchups.append({
+                        "model_away": model_2,
+                        "model_home": model_1,
+                        "seed": seed + games_as_away_1 + game_idx,
+                        "game_idx": games_as_away_1 + game_idx,
+                    })
     
     total_games = len(matchups)
-    num_matchups = len(eval_models) * (len(eval_models) - 1) // 2
     
-    console.print(f"[bold blue]🎯 ChainLex-1 Round-Robin Evaluation[/bold blue]")
-    console.print(f"Models: {len(eval_models)}")
+    if append_mode:
+        num_matchups = len(opponent_models)  # New model vs each opponent
+        console.print(f"[bold blue]🎯 ChainLex-1 Add Model Evaluation[/bold blue]")
+        console.print(f"New model: {new_model}")
+        console.print(f"Opponents: {len(opponent_models)} canonical models")
+    else:
+        num_matchups = len(eval_models) * (len(eval_models) - 1) // 2
+        console.print(f"[bold blue]🎯 ChainLex-1 Round-Robin Evaluation[/bold blue]")
+        console.print(f"Models: {len(eval_models)}")
+    
     console.print(f"Unique matchups: {num_matchups}")
     console.print(f"Games per matchup: {games_per_matchup}")
     console.print(f"Total games: {total_games}")
     console.print(f"Threads: {threads}")
+    
+    if dry_run:
+        console.print(f"\n[yellow]DRY RUN - showing schedule only[/yellow]\n")
+        
+        # Show matchup schedule table
+        schedule_table = Table(title="Matchup Schedule")
+        schedule_table.add_column("#", style="dim", justify="right")
+        schedule_table.add_column("Away (1st)", style="cyan")
+        schedule_table.add_column("Home (2nd)", style="magenta")
+        schedule_table.add_column("Seed", style="dim")
+        
+        for i, matchup in enumerate(matchups, 1):
+            schedule_table.add_row(
+                str(i),
+                matchup["model_away"],
+                matchup["model_home"],
+                str(matchup["seed"]),
+            )
+        
+        console.print(schedule_table)
+        
+        # Show home/away distribution per model
+        console.print(f"\n[bold]Home/Away Distribution:[/bold]")
+        dist_table = Table()
+        dist_table.add_column("Model", style="cyan")
+        dist_table.add_column("Home Games", justify="right")
+        dist_table.add_column("Away Games", justify="right")
+        dist_table.add_column("Total", justify="right")
+        
+        models_to_show = sorted(eval_models)
+        for model in models_to_show:
+            home_count = sum(1 for m in matchups if m["model_home"] == model)
+            away_count = sum(1 for m in matchups if m["model_away"] == model)
+            dist_table.add_row(model, str(home_count), str(away_count), str(home_count + away_count))
+        
+        console.print(dist_table)
+        
+        # Try to load cost estimate if available
+        cost_estimate_path = Path("logs/chainlex/cost_estimate/cost_estimate.json")
+        if cost_estimate_path.exists():
+            import json
+            with open(cost_estimate_path) as f:
+                cost_data = json.load(f)
+            
+            model_costs = cost_data.get("model_costs", {})
+            if model_costs:
+                console.print(f"\n[bold]Cost Projection (from cost-estimate):[/bold]")
+                
+                # Calculate projected cost
+                projected_total = 0.0
+                missing_models = []
+                for matchup in matchups:
+                    cost_away = model_costs.get(matchup["model_away"], 0)
+                    cost_home = model_costs.get(matchup["model_home"], 0)
+                    if cost_away == 0:
+                        missing_models.append(matchup["model_away"])
+                    if cost_home == 0:
+                        missing_models.append(matchup["model_home"])
+                    projected_total += (cost_away + cost_home) * 1.2  # 1.2x scaling
+                
+                console.print(f"[green]Projected total cost: ${projected_total:.2f}[/green]")
+                
+                if missing_models:
+                    unique_missing = sorted(set(missing_models))
+                    console.print(f"[yellow]⚠️ No cost data for: {', '.join(unique_missing[:5])}{'...' if len(unique_missing) > 5 else ''}[/yellow]")
+                    console.print(f"[dim]Run 'uv run based chainlex cost-estimate' to get accurate costs[/dim]")
+        else:
+            console.print(f"\n[dim]💡 Run 'uv run based chainlex cost-estimate' first for cost projection[/dim]")
+        
+        console.print(f"\n[bold green]Ready to run {total_games} games.[/bold green]")
+        console.print(f"[dim]Remove --dry-run to start evaluation.[/dim]")
+        return
     
     prompt_files = {
         "clue_giver_prompt": clue_giver_prompt,
@@ -486,8 +639,8 @@ def run_eval(
             for matchup in matchups:
                 future = executor.submit(
                     _run_single_game,
-                    matchup["model_a"],
-                    matchup["model_b"],
+                    matchup["model_away"],
+                    matchup["model_home"],
                     matchup["seed"],
                     words_file,
                     log_dir,
@@ -510,16 +663,16 @@ def run_eval(
                         total_cost += game_cost
                     
                     winner = result.get("winner_model") or "TIE"
-                    score_a = result.get("score_a", 0)
-                    score_b = result.get("score_b", 0)
+                    score_away = result.get("score_away", 0)
+                    score_home = result.get("score_home", 0)
                     
-                    msg = f"[green]✅ {completed}/{total_games} | {matchup['model_a']} vs {matchup['model_b']} | {score_a}-{score_b} | Winner: {winner} | ${game_cost:.4f}[/green]"
+                    msg = f"[green]✅ {completed}/{total_games} | {matchup['model_away']} (away) vs {matchup['model_home']} (home) | {score_away}-{score_home} | Winner: {winner} | ${game_cost:.4f}[/green]"
                     progress.console.print(msg)
                 else:
                     with lock:
                         failed.append({"matchup": matchup, "error": error})
                     
-                    msg = f"[red]❌ {completed}/{total_games} | {matchup['model_a']} vs {matchup['model_b']} | FAILED: {error}[/red]"
+                    msg = f"[red]❌ {completed}/{total_games} | {matchup['model_away']} vs {matchup['model_home']} | FAILED: {error}[/red]"
                     progress.console.print(msg)
                 
                 progress.advance(task)
@@ -529,27 +682,29 @@ def run_eval(
     console.print(f"Total cost: ${total_cost:.2f}")
     
     # Calculate win/loss records
-    records: Dict[str, Dict[str, int]] = {m: {"wins": 0, "losses": 0, "ties": 0, "total_score": 0, "games": 0} for m in eval_models}
+    records: Dict[str, Dict[str, int]] = {m: {"wins": 0, "losses": 0, "ties": 0, "total_score": 0, "games": 0, "home_wins": 0, "away_wins": 0} for m in eval_models}
     
     for r in results:
-        model_a = r["model_a"]
-        model_b = r["model_b"]
+        model_away = r["model_away"]
+        model_home = r["model_home"]
         winner = r["winner"]
         
-        records[model_a]["games"] += 1
-        records[model_b]["games"] += 1
-        records[model_a]["total_score"] += r["score_a"]
-        records[model_b]["total_score"] += r["score_b"]
+        records[model_away]["games"] += 1
+        records[model_home]["games"] += 1
+        records[model_away]["total_score"] += r["score_away"]
+        records[model_home]["total_score"] += r["score_home"]
         
-        if winner == "model_a":
-            records[model_a]["wins"] += 1
-            records[model_b]["losses"] += 1
-        elif winner == "model_b":
-            records[model_b]["wins"] += 1
-            records[model_a]["losses"] += 1
+        if winner == "model_away":
+            records[model_away]["wins"] += 1
+            records[model_away]["away_wins"] += 1
+            records[model_home]["losses"] += 1
+        elif winner == "model_home":
+            records[model_home]["wins"] += 1
+            records[model_home]["home_wins"] += 1
+            records[model_away]["losses"] += 1
         else:
-            records[model_a]["ties"] += 1
-            records[model_b]["ties"] += 1
+            records[model_away]["ties"] += 1
+            records[model_home]["ties"] += 1
     
     # Summary table
     summary_table = Table(title="ChainLex-1 Round-Robin Results")
@@ -580,35 +735,54 @@ def run_eval(
     console.print(summary_table)
     
     # Save Bradley-Terry compatible results
+    # Uses model_a/model_b naming for compatibility with arena-rank library
     bt_results_path = output / "results.csv"
-    with open(bt_results_path, 'w', newline='') as f:
+    
+    # Append mode: add to existing file, otherwise overwrite
+    file_mode = 'a' if append_mode and bt_results_path.exists() else 'w'
+    write_header = file_mode == 'w'
+    
+    with open(bt_results_path, file_mode, newline='') as f:
         writer = csv.writer(f)
-        writer.writerow(["model_a", "model_b", "winner"])
+        if write_header:
+            writer.writerow(["model_a", "model_b", "winner"])
         
         for r in results:
-            writer.writerow([r["model_a"], r["model_b"], r["winner"]])
+            # Map away/home to a/b for Bradley-Terry format
+            winner_bt = {
+                "model_away": "model_a",
+                "model_home": "model_b",
+                "tie": "tie",
+            }.get(r["winner"], r["winner"])
+            writer.writerow([r["model_away"], r["model_home"], winner_bt])
     
-    console.print(f"\n[green]📊 Bradley-Terry results saved to: {bt_results_path}[/green]")
+    action = "appended to" if append_mode and not write_header else "saved to"
+    console.print(f"\n[green]📊 Bradley-Terry results {action}: {bt_results_path}[/green]")
     
     # Save detailed results
     detailed_path = output / "detailed_results.csv"
-    with open(detailed_path, 'w', newline='') as f:
+    file_mode = 'a' if append_mode and detailed_path.exists() else 'w'
+    write_header = file_mode == 'w'
+    
+    with open(detailed_path, file_mode, newline='') as f:
         writer = csv.writer(f)
-        writer.writerow(["game_id", "model_a", "model_b", "score_a", "score_b", "winner", "margin", "cost"])
+        if write_header:
+            writer.writerow(["game_id", "model_away", "model_home", "score_away", "score_home", "winner", "margin", "cost"])
         
         for r in results:
             writer.writerow([
                 r["game_id"],
-                r["model_a"],
-                r["model_b"],
-                r["score_a"],
-                r["score_b"],
+                r["model_away"],
+                r["model_home"],
+                r["score_away"],
+                r["score_home"],
                 r["winner"],
                 r["margin"],
                 r.get("cost", 0) + r.get("upstream_cost", 0),
             ])
     
-    console.print(f"[green]📊 Detailed results saved to: {detailed_path}[/green]")
+    action = "appended to" if append_mode and not write_header else "saved to"
+    console.print(f"[green]📊 Detailed results {action}: {detailed_path}[/green]")
     
     # Report failures
     if failed:
@@ -865,16 +1039,23 @@ def _run_cost_estimation_game(
     run_id: str,
     prompt_files: Dict[str, str],
     lock: threading.Lock,
+    is_home: bool = False,
 ) -> Tuple[str, Optional[Dict[str, Any]], Optional[str]]:
-    """Run a single cost estimation game: model vs gemini-3-flash."""
+    """Run a single cost estimation game: model vs gemini-3-flash with randomized home/away."""
     try:
-        player_a = AIPlayer(model)
-        player_b = AIPlayer("gemini-3-flash")
+        if is_home:
+            # Model plays as home (second, knows opponent score)
+            player_away = AIPlayer("gemini-3-flash")
+            player_home = AIPlayer(model)
+        else:
+            # Model plays as away (first)
+            player_away = AIPlayer(model)
+            player_home = AIPlayer("gemini-3-flash")
         
         game = ChainLexGame(
             words_file=words_file,
-            player_a=player_a,
-            player_b=player_b,
+            player_away=player_away,
+            player_home=player_home,
             quiet=True,
             seed=seed,
             **prompt_files,
@@ -892,7 +1073,7 @@ def _run_cost_estimation_game(
 @app.command("cost-estimate")
 def cost_estimate(
     seed: int = typer.Option(42, help="Random seed for board generation"),
-    threads: int = typer.Option(8, "--threads", "-t", help="Number of parallel threads"),
+    threads: int = typer.Option(16, "--threads", "-t", help="Number of parallel threads"),
     output: Path = typer.Option(
         Path("logs/chainlex/cost_estimate"),
         "--output", "-o",
@@ -901,7 +1082,7 @@ def cost_estimate(
     words_file: str = typer.Option("inputs/names.yaml", help="Path to words YAML file"),
     clue_giver_prompt: str = typer.Option("chainlex/prompts/clue_giver.md"),
     guesser_prompt: str = typer.Option("chainlex/prompts/guesser.md"),
-    games_per_matchup: int = typer.Option(5, help="Games per matchup for projection"),
+    games_per_matchup: int = typer.Option(4, help="Games per matchup for projection"),
     verbose: bool = typer.Option(False, help="Enable verbose logging"),
 ):
     """Estimate tournament cost by running each canonical model vs gemini-3-flash.
@@ -968,7 +1149,9 @@ def cost_estimate(
     
     with ThreadPoolExecutor(max_workers=threads) as executor:
         futures = {}
-        for model in canonical_models:
+        for idx, model in enumerate(canonical_models):
+            # Randomize home/away based on model index for variety
+            is_home = random.choice([True, False])
             future = executor.submit(
                 _run_cost_estimation_game,
                 model,
@@ -978,11 +1161,12 @@ def cost_estimate(
                 run_id,
                 prompt_files,
                 lock,
+                is_home,
             )
-            futures[future] = model
+            futures[future] = (model, is_home)
         
         for future in as_completed(futures):
-            model = futures[future]
+            model, is_home = futures[future]
             model_name, result, error = future.result()
             
             completed_count += 1
@@ -995,12 +1179,16 @@ def cost_estimate(
                 game_cost = result.get("cost", 0) + result.get("upstream_cost", 0)
                 total_cost += game_cost
                 
-                score_a = result.get("score_a", 0)
-                score_b = result.get("score_b", 0)
+                score_away = result.get("score_away", 0)
+                score_home = result.get("score_home", 0)
+                
+                position = "home" if is_home else "away"
+                model_score = score_home if is_home else score_away
+                opponent_score = score_away if is_home else score_home
                 
                 console.print(
-                    f"✓ [{completed_count}/{len(canonical_models)}] [cyan]{model_name}[/cyan] vs gemini-3-flash | "
-                    f"Scores: {score_a} vs {score_b} | "
+                    f"✓ [{completed_count}/{len(canonical_models)}] [cyan]{model_name}[/cyan] ({position}) vs gemini-3-flash | "
+                    f"Score: {model_score} vs {opponent_score} | "
                     f"Cost: ${game_cost:.4f}"
                 )
     
