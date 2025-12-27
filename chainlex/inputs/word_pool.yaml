@@ -1,0 +1,825 @@
+# ChainLex Word Pool with Semantic Categories
+# Each word is tagged with 1-3 categories for controlled cluster sampling
+# Words are common vocabulary, deduplicated by stem
+
+categories:
+  - animals
+  - cities
+  - food
+  - body
+  - technology
+  - nature
+  - transport
+  - objects
+  - arts
+  - business
+  - sports
+  - clothing
+  - military
+  - mythology
+  - science
+  - time
+  - abstract
+  - buildings
+
+words:
+  # === ANIMALS ===
+  - word: EAGLE
+    categories: [animals, nature]
+  - word: WOLF
+    categories: [animals, nature]
+  - word: SPIDER
+    categories: [animals, nature]
+  - word: SHARK
+    categories: [animals, nature]
+  - word: BEAR
+    categories: [animals, nature]
+  - word: LION
+    categories: [animals, nature]
+  - word: WHALE
+    categories: [animals, nature]
+  - word: OCTOPUS
+    categories: [animals, nature]
+  - word: PENGUIN
+    categories: [animals, nature]
+  - word: TIGER
+    categories: [animals, nature]
+  - word: ELEPHANT
+    categories: [animals, nature]
+  - word: BUTTERFLY
+    categories: [animals, nature]
+  - word: SNAKE
+    categories: [animals, nature]
+  - word: HORSE
+    categories: [animals, transport]
+  - word: CROW
+    categories: [animals, nature]
+  - word: FOX
+    categories: [animals, nature]
+  - word: TURTLE
+    categories: [animals, nature]
+  - word: BEE
+    categories: [animals, nature]
+  - word: DOLPHIN
+    categories: [animals, nature]
+  - word: RABBIT
+    categories: [animals, nature]
+  - word: DEER
+    categories: [animals, nature]
+  - word: HAWK
+    categories: [animals, nature]
+  - word: OWL
+    categories: [animals, nature]
+  - word: FROG
+    categories: [animals, nature]
+  - word: CRAB
+    categories: [animals, food]
+  - word: LOBSTER
+    categories: [animals, food]
+  - word: MOUSE
+    categories: [animals, technology]
+  - word: BAT
+    categories: [animals, sports]
+  - word: MONKEY
+    categories: [animals, nature]
+  - word: CHEETAH
+    categories: [animals, nature]
+  - word: ZEBRA
+    categories: [animals, nature]
+  - word: GIRAFFE
+    categories: [animals, nature]
+
+  # === CITIES/PLACES ===
+  - word: TOKYO
+    categories: [cities]
+  - word: PARIS
+    categories: [cities, arts]
+  - word: BERLIN
+    categories: [cities]
+  - word: LONDON
+    categories: [cities]
+  - word: ROME
+    categories: [cities, time]
+  - word: MOSCOW
+    categories: [cities]
+  - word: SYDNEY
+    categories: [cities]
+  - word: BEIJING
+    categories: [cities]
+  - word: DUBAI
+    categories: [cities, business]
+  - word: MIAMI
+    categories: [cities]
+  - word: CHICAGO
+    categories: [cities]
+  - word: BOSTON
+    categories: [cities]
+  - word: SEATTLE
+    categories: [cities, technology]
+  - word: VEGAS
+    categories: [cities, business]
+  - word: HOLLYWOOD
+    categories: [cities, arts]
+
+  # === NATURE/GEOGRAPHY ===
+  - word: DESERT
+    categories: [nature]
+  - word: ISLAND
+    categories: [nature]
+  - word: MOUNTAIN
+    categories: [nature]
+  - word: OCEAN
+    categories: [nature]
+  - word: FOREST
+    categories: [nature]
+  - word: BEACH
+    categories: [nature]
+  - word: CANYON
+    categories: [nature]
+  - word: RIVER
+    categories: [nature]
+  - word: VOLCANO
+    categories: [nature]
+  - word: GLACIER
+    categories: [nature]
+  - word: VALLEY
+    categories: [nature]
+  - word: CLIFF
+    categories: [nature]
+  - word: CAVE
+    categories: [nature]
+  - word: LAKE
+    categories: [nature]
+  - word: JUNGLE
+    categories: [nature]
+  - word: SWAMP
+    categories: [nature]
+
+  # === FOOD/DRINK ===
+  - word: PIZZA
+    categories: [food]
+  - word: COFFEE
+    categories: [food]
+  - word: HONEY
+    categories: [food, animals]
+  - word: SALT
+    categories: [food, nature]
+  - word: APPLE
+    categories: [food, technology]
+  - word: CHOCOLATE
+    categories: [food]
+  - word: WINE
+    categories: [food]
+  - word: BREAD
+    categories: [food]
+  - word: CHEESE
+    categories: [food]
+  - word: ICE
+    categories: [food, nature]
+  - word: PEPPER
+    categories: [food]
+  - word: SUGAR
+    categories: [food]
+  - word: TEA
+    categories: [food]
+  - word: CAKE
+    categories: [food]
+  - word: MILK
+    categories: [food]
+  - word: BUTTER
+    categories: [food]
+  - word: RICE
+    categories: [food]
+  - word: LEMON
+    categories: [food]
+  - word: OLIVE
+    categories: [food]
+  - word: STEAK
+    categories: [food]
+  - word: CHICKEN
+    categories: [food, animals]
+  - word: FISH
+    categories: [food, animals]
+  - word: BACON
+    categories: [food]
+  - word: EGG
+    categories: [food]
+  - word: POTATO
+    categories: [food]
+  - word: TOMATO
+    categories: [food]
+  - word: ONION
+    categories: [food]
+  - word: CORN
+    categories: [food]
+  - word: ORANGE
+    categories: [food]
+  - word: BANANA
+    categories: [food]
+
+  # === BODY ===
+  - word: HEART
+    categories: [body, abstract]
+  - word: EYE
+    categories: [body]
+  - word: HAND
+    categories: [body]
+  - word: BRAIN
+    categories: [body, science]
+  - word: BLOOD
+    categories: [body]
+  - word: TOOTH
+    categories: [body]
+  - word: BONE
+    categories: [body]
+  - word: SKIN
+    categories: [body]
+  - word: MUSCLE
+    categories: [body, sports]
+  - word: SKULL
+    categories: [body]
+  - word: NERVE
+    categories: [body]
+  - word: THROAT
+    categories: [body]
+  - word: TONGUE
+    categories: [body]
+  - word: FINGER
+    categories: [body]
+  - word: KNEE
+    categories: [body]
+  - word: SHOULDER
+    categories: [body, transport]
+  - word: NECK
+    categories: [body]
+
+  # === TECHNOLOGY/SCIENCE ===
+  - word: ROBOT
+    categories: [technology]
+  - word: ROCKET
+    categories: [technology, science]
+  - word: LASER
+    categories: [technology, science]
+  - word: CODE
+    categories: [technology]
+  - word: BATTERY
+    categories: [technology]
+  - word: CIRCUIT
+    categories: [technology]
+  - word: ATOM
+    categories: [science]
+  - word: GALAXY
+    categories: [science, nature]
+  - word: PLANET
+    categories: [science, nature]
+  - word: STAR
+    categories: [science, arts]
+  - word: MOON
+    categories: [science, nature]
+  - word: SUN
+    categories: [science, nature]
+  - word: COMPUTER
+    categories: [technology]
+  - word: SCREEN
+    categories: [technology]
+  - word: PHONE
+    categories: [technology]
+  - word: SATELLITE
+    categories: [technology, science]
+  - word: RADAR
+    categories: [technology, military]
+  - word: MAGNET
+    categories: [science]
+  - word: MICROSCOPE
+    categories: [science]
+  - word: FORMULA
+    categories: [science]
+
+  # === NATURE ELEMENTS ===
+  - word: LIGHTNING
+    categories: [nature]
+  - word: THUNDER
+    categories: [nature]
+  - word: FIRE
+    categories: [nature]
+  - word: WATER
+    categories: [nature]
+  - word: AIR
+    categories: [nature, transport]
+  - word: EARTH
+    categories: [nature, science]
+  - word: WAVE
+    categories: [nature, science]
+
+  # === TRANSPORT ===
+  - word: TRAIN
+    categories: [transport]
+  - word: SHIP
+    categories: [transport]
+  - word: PLANE
+    categories: [transport]
+  - word: CAR
+    categories: [transport]
+  - word: HELICOPTER
+    categories: [transport]
+  - word: SUBMARINE
+    categories: [transport, military]
+  - word: TAXI
+    categories: [transport]
+  - word: BUS
+    categories: [transport]
+  - word: JET
+    categories: [transport]
+  - word: SAIL
+    categories: [transport, sports]
+  - word: ENGINE
+    categories: [transport, technology]
+  - word: WHEEL
+    categories: [transport, objects]
+  - word: TRACK
+    categories: [transport, sports]
+  - word: BOAT
+    categories: [transport]
+  - word: BALLOON
+    categories: [transport, objects]
+  - word: PARACHUTE
+    categories: [transport, military]
+
+  # === OBJECTS ===
+  - word: PIANO
+    categories: [objects, arts]
+  - word: MIRROR
+    categories: [objects]
+  - word: CROWN
+    categories: [objects, mythology]
+  - word: DIAMOND
+    categories: [objects, business]
+  - word: SWORD
+    categories: [objects, military]
+  - word: CLOCK
+    categories: [objects, time]
+  - word: BELL
+    categories: [objects]
+  - word: CANDLE
+    categories: [objects]
+  - word: BOOK
+    categories: [objects, arts]
+  - word: TELESCOPE
+    categories: [objects, science]
+  - word: COMPASS
+    categories: [objects, transport]
+  - word: ANCHOR
+    categories: [objects, transport]
+  - word: CHAIN
+    categories: [objects]
+  - word: HAMMER
+    categories: [objects]
+  - word: NEEDLE
+    categories: [objects]
+  - word: BOTTLE
+    categories: [objects]
+  - word: UMBRELLA
+    categories: [objects]
+  - word: MASK
+    categories: [objects, arts]
+  - word: KEY
+    categories: [objects]
+  - word: LAMP
+    categories: [objects]
+  - word: PENCIL
+    categories: [objects]
+  - word: SCISSORS
+    categories: [objects]
+  - word: BRUSH
+    categories: [objects, arts]
+  - word: BUCKET
+    categories: [objects]
+  - word: LADDER
+    categories: [objects]
+  - word: ROPE
+    categories: [objects]
+  - word: WIRE
+    categories: [objects, technology]
+  - word: NAIL
+    categories: [objects]
+  - word: AXE
+    categories: [objects]
+  - word: SHOVEL
+    categories: [objects]
+
+  # === ARTS/ENTERTAINMENT ===
+  - word: MOVIE
+    categories: [arts]
+  - word: MUSIC
+    categories: [arts]
+  - word: DANCE
+    categories: [arts, sports]
+  - word: PAINT
+    categories: [arts]
+  - word: STAGE
+    categories: [arts]
+  - word: CAMERA
+    categories: [arts, technology]
+  - word: FILM
+    categories: [arts]
+  - word: NOVEL
+    categories: [arts]
+  - word: CIRCUS
+    categories: [arts]
+  - word: MAGIC
+    categories: [arts, mythology]
+  - word: GAME
+    categories: [arts, sports]
+  - word: CASINO
+    categories: [arts, business]
+  - word: THEATER
+    categories: [arts, buildings]
+  - word: OPERA
+    categories: [arts]
+  - word: JAZZ
+    categories: [arts]
+  - word: ROCK
+    categories: [arts, nature]
+  - word: COMIC
+    categories: [arts]
+  - word: CONCERT
+    categories: [arts]
+  - word: ALBUM
+    categories: [arts]
+  - word: SONG
+    categories: [arts]
+
+  # === BUSINESS/MONEY ===
+  - word: BANK
+    categories: [business, buildings]
+  - word: GOLD
+    categories: [business, objects]
+  - word: STOCK
+    categories: [business]
+  - word: MARKET
+    categories: [business]
+  - word: COMPANY
+    categories: [business]
+  - word: OFFICE
+    categories: [business, buildings]
+  - word: CONTRACT
+    categories: [business]
+  - word: DEAL
+    categories: [business]
+  - word: TRADE
+    categories: [business]
+  - word: CASH
+    categories: [business]
+  - word: FORTUNE
+    categories: [business, abstract]
+  - word: PROFIT
+    categories: [business]
+  - word: CAPITAL
+    categories: [business, cities]
+  - word: BRAND
+    categories: [business]
+  - word: SALE
+    categories: [business]
+  - word: PRICE
+    categories: [business]
+  - word: TAX
+    categories: [business]
+
+  # === SPORTS ===
+  - word: BALL
+    categories: [sports]
+  - word: GOAL
+    categories: [sports, abstract]
+  - word: SCORE
+    categories: [sports]
+  - word: TEAM
+    categories: [sports]
+  - word: CHAMPION
+    categories: [sports]
+  - word: RACE
+    categories: [sports]
+  - word: MATCH
+    categories: [sports, objects]
+  - word: FIELD
+    categories: [sports, nature]
+  - word: COURT
+    categories: [sports, buildings]
+  - word: RING
+    categories: [sports, objects]
+  - word: BOX
+    categories: [sports, objects]
+  - word: KICK
+    categories: [sports]
+  - word: JUMP
+    categories: [sports]
+  - word: SWIM
+    categories: [sports]
+  - word: DIVE
+    categories: [sports]
+  - word: CLIMB
+    categories: [sports]
+  - word: FIGHT
+    categories: [sports, military]
+  - word: WIN
+    categories: [sports, abstract]
+  - word: GOLF
+    categories: [sports]
+  - word: HOCKEY
+    categories: [sports]
+  - word: BOXING
+    categories: [sports]
+  - word: SKIING
+    categories: [sports]
+  - word: SURFING
+    categories: [sports]
+
+  # === CLOTHING ===
+  - word: SUIT
+    categories: [clothing, business]
+  - word: DRESS
+    categories: [clothing]
+  - word: HAT
+    categories: [clothing]
+  - word: SHOE
+    categories: [clothing]
+  - word: GLOVE
+    categories: [clothing, sports]
+  - word: BELT
+    categories: [clothing]
+  - word: TIE
+    categories: [clothing, business]
+  - word: BUTTON
+    categories: [clothing, objects]
+  - word: POCKET
+    categories: [clothing]
+  - word: COLLAR
+    categories: [clothing]
+  - word: BOOT
+    categories: [clothing]
+  - word: JACKET
+    categories: [clothing]
+  - word: COAT
+    categories: [clothing]
+  - word: SHIRT
+    categories: [clothing]
+  - word: WATCH
+    categories: [clothing, time]
+  - word: GLASSES
+    categories: [clothing, objects]
+  - word: JEWELRY
+    categories: [clothing, objects]
+  - word: CROWN
+    categories: [clothing, mythology]
+  - word: UNIFORM
+    categories: [clothing, military]
+
+  # === MILITARY ===
+  - word: BATTLE
+    categories: [military]
+  - word: SOLDIER
+    categories: [military]
+  - word: TANK
+    categories: [military, transport]
+  - word: BOMB
+    categories: [military]
+  - word: PEACE
+    categories: [military, abstract]
+  - word: ARMY
+    categories: [military]
+  - word: NAVY
+    categories: [military]
+  - word: MISSILE
+    categories: [military, technology]
+  - word: SHIELD
+    categories: [military, objects]
+  - word: ARMOR
+    categories: [military]
+  - word: SPY
+    categories: [military]
+  - word: AGENT
+    categories: [military, business]
+  - word: MISSION
+    categories: [military]
+  - word: SECRET
+    categories: [military, abstract]
+  - word: STRATEGY
+    categories: [military, business]
+  - word: VICTORY
+    categories: [military, sports]
+  - word: DEFEAT
+    categories: [military, sports]
+  - word: WEAPON
+    categories: [military]
+  - word: FLAG
+    categories: [military, objects]
+  - word: GENERAL
+    categories: [military]
+  - word: CAPTAIN
+    categories: [military, transport]
+  - word: MEDAL
+    categories: [military, sports]
+  - word: FORTRESS
+    categories: [military, buildings]
+  - word: RIFLE
+    categories: [military]
+  - word: INVASION
+    categories: [military]
+
+  # === MYTHOLOGY/FANTASY ===
+  - word: DRAGON
+    categories: [mythology, animals]
+  - word: PHOENIX
+    categories: [mythology, animals]
+  - word: GHOST
+    categories: [mythology]
+  - word: ANGEL
+    categories: [mythology]
+  - word: DEMON
+    categories: [mythology]
+  - word: SPELL
+    categories: [mythology]
+  - word: WITCH
+    categories: [mythology]
+  - word: WIZARD
+    categories: [mythology]
+  - word: GIANT
+    categories: [mythology]
+  - word: DWARF
+    categories: [mythology]
+  - word: FAIRY
+    categories: [mythology]
+  - word: VAMPIRE
+    categories: [mythology]
+  - word: WEREWOLF
+    categories: [mythology, animals]
+  - word: ZEUS
+    categories: [mythology]
+  - word: THOR
+    categories: [mythology]
+  - word: OLYMPUS
+    categories: [mythology, nature]
+  - word: MONSTER
+    categories: [mythology]
+  - word: ZOMBIE
+    categories: [mythology]
+  - word: ALIEN
+    categories: [mythology, science]
+  - word: POTION
+    categories: [mythology]
+  - word: CRYSTAL
+    categories: [mythology, objects]
+  - word: CURSE
+    categories: [mythology]
+  - word: LEGEND
+    categories: [mythology]
+  - word: HERO
+    categories: [mythology, abstract]
+  - word: VILLAIN
+    categories: [mythology]
+  - word: TREASURE
+    categories: [mythology, business]
+  - word: QUEST
+    categories: [mythology]
+  - word: KINGDOM
+    categories: [mythology, buildings]
+
+  # === BUILDINGS/STRUCTURES ===
+  - word: BRIDGE
+    categories: [buildings, transport]
+  - word: TOWER
+    categories: [buildings]
+  - word: TEMPLE
+    categories: [buildings, mythology]
+  - word: CASTLE
+    categories: [buildings, mythology]
+  - word: CHURCH
+    categories: [buildings]
+  - word: MUSEUM
+    categories: [buildings, arts]
+  - word: HOSPITAL
+    categories: [buildings, body]
+  - word: STATION
+    categories: [buildings, transport]
+  - word: PORT
+    categories: [buildings, transport]
+  - word: AIRPORT
+    categories: [buildings, transport]
+  - word: TUNNEL
+    categories: [buildings, transport]
+  - word: GARAGE
+    categories: [buildings, transport]
+  - word: PALACE
+    categories: [buildings, mythology]
+  - word: PRISON
+    categories: [buildings]
+  - word: FACTORY
+    categories: [buildings, business]
+  - word: WAREHOUSE
+    categories: [buildings, business]
+
+  # === TIME/HISTORY ===
+  - word: PAST
+    categories: [time]
+  - word: FUTURE
+    categories: [time]
+  - word: CENTURY
+    categories: [time]
+  - word: ANCIENT
+    categories: [time]
+  - word: MODERN
+    categories: [time]
+  - word: REVOLUTION
+    categories: [time, military]
+  - word: EMPIRE
+    categories: [time, military]
+  - word: KING
+    categories: [time, mythology]
+  - word: QUEEN
+    categories: [time, mythology]
+  - word: KNIGHT
+    categories: [time, mythology]
+  - word: PIRATE
+    categories: [time, transport]
+  - word: VIKING
+    categories: [time, military]
+  - word: DINOSAUR
+    categories: [time, animals]
+  - word: STONE
+    categories: [time, nature]
+  - word: BRONZE
+    categories: [time, objects]
+  - word: IRON
+    categories: [time, objects]
+  - word: MEDIEVAL
+    categories: [time]
+  - word: COLONY
+    categories: [time]
+  - word: DISCOVERY
+    categories: [time, science]
+  - word: CIVILIZATION
+    categories: [time]
+  - word: TRADITION
+    categories: [time]
+  - word: ANCESTOR
+    categories: [time]
+  - word: MONUMENT
+    categories: [time, buildings]
+  - word: RUINS
+    categories: [time, buildings]
+  - word: ARTIFACT
+    categories: [time, objects]
+
+  # === ABSTRACT ===
+  - word: POWER
+    categories: [abstract]
+  - word: FREEDOM
+    categories: [abstract]
+  - word: JUSTICE
+    categories: [abstract]
+  - word: TRUTH
+    categories: [abstract]
+  - word: LOVE
+    categories: [abstract]
+  - word: DEATH
+    categories: [abstract]
+  - word: LIFE
+    categories: [abstract]
+  - word: HOPE
+    categories: [abstract]
+  - word: FEAR
+    categories: [abstract]
+  - word: COURAGE
+    categories: [abstract]
+  - word: HONOR
+    categories: [abstract, military]
+  - word: PRIDE
+    categories: [abstract]
+  - word: SHAME
+    categories: [abstract]
+  - word: LUCK
+    categories: [abstract]
+  - word: FATE
+    categories: [abstract]
+  - word: CHAOS
+    categories: [abstract]
+  - word: ORDER
+    categories: [abstract]
+  - word: BALANCE
+    categories: [abstract]
+  - word: MYSTERY
+    categories: [abstract]
+  - word: DREAM
+    categories: [abstract]
+  - word: MEMORY
+    categories: [abstract]
+  - word: SUCCESS
+    categories: [abstract, business]
+  - word: FAILURE
+    categories: [abstract]
+  - word: PROGRESS
+    categories: [abstract]
+  - word: CHANGE
+    categories: [abstract]
+  - word: GROWTH
+    categories: [abstract, nature]
+

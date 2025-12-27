@@ -1,17 +1,17 @@
 {
-  "timestamp": "2025-12-27T00:16:42.670151Z",
-  "model": "google/gemini-3-flash-preview",
+  "timestamp": "2025-12-27T19:48:23.065077Z",
+  "model": "anthropic/claude-haiku-4.5",
   "seed": 42,
   "num_train_examples": 30,
   "num_eval_examples": 10,
   "max_bootstrapped_demos": 4,
   "max_labeled_demos": 4,
-  "baseline_score_normalized": 0.45399999999999996,
-  "baseline_score_raw": 2.4,
-  "optimized_score_normalized": 0.5465,
-  "optimized_score_raw": 4.3,
-  "improvement_normalized": 0.09250000000000003,
-  "improvement_pct_normalized": 20.374449339207057,
-  "improvement_raw": 1.9,
-  "improvement_pct_raw": 79.16666666666666
+  "baseline_score_normalized": 0.3038,
+  "baseline_score_raw": -0.8,
+  "optimized_score_normalized": 0.5875,
+  "optimized_score_raw": 6.3,
+  "improvement_normalized": 0.2837,
+  "improvement_pct_normalized": 93.38380513495721,
+  "improvement_raw": 7.1,
+  "improvement_pct_raw": 887.4999999999998
 }

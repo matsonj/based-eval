@@ -22,6 +22,8 @@ dependencies = [
     "arena-rank>=0.1.0", # For Bradley-Terry leaderboard rankings
     "matplotlib>=3.7.0", # For leaderboard chart generation
     "dspy>=2.5.0", # For prompt optimization
+    "sentence-transformers>=2.2.0", # For semantic embeddings in puzzle generation
+    "numpy>=1.24.0", # For embedding calculations
 ]
 requires-python = ">=3.12,<3.14"
 readme = "README.md"

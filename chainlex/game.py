@@ -43,9 +43,13 @@ class ChainLexGame:
     BYSTANDERS = 7
     ASSASSINS = 1
     
-    # Scoring
-    BYSTANDER_PENALTY = -5
-    ASSASSIN_PENALTY = -28
+    # Scoring (optimization mode - for DSPy training)
+    BYSTANDER_PENALTY_OPTIMIZATION = -5
+    ASSASSIN_PENALTY_OPTIMIZATION = -28
+    
+    # Scoring (gameplay mode - for competitive play)
+    BYSTANDER_PENALTY_GAMEPLAY = -1
+    # Assassin in gameplay mode = instant loss (no penalty, game ends)
 
     def __init__(
         self,
@@ -56,12 +60,16 @@ class ChainLexGame:
         guesser_prompt: str = "",
         quiet: bool = False,
         seed: Optional[int] = None,
+        scoring_mode: str = "optimization",  # "optimization" or "gameplay"
+        puzzle: Optional[Dict[str, Any]] = None,  # Pre-defined puzzle from pool
     ):
         self.words_file = words_file
         self.player_away = player_away  # Goes first
         self.player_home = player_home  # Goes second (knows opponent's score)
         self.quiet = quiet
         self.seed = seed
+        self.scoring_mode = scoring_mode  # Controls penalty values and assassin behavior
+        self._puzzle = puzzle  # Pre-defined puzzle (if provided)
         
         self.prompt_files = {
             "clue_giver": clue_giver_prompt,
@@ -90,6 +98,24 @@ class ChainLexGame:
         self._controllog_initialized = False
         self._run_id: Optional[str] = None
         self._task_id: Optional[str] = None
+    
+    @property
+    def bystander_penalty(self) -> int:
+        """Get bystander penalty based on scoring mode."""
+        if self.scoring_mode == "gameplay":
+            return self.BYSTANDER_PENALTY_GAMEPLAY
+        return self.BYSTANDER_PENALTY_OPTIMIZATION
+    
+    @property
+    def assassin_penalty(self) -> int:
+        """Get assassin penalty based on scoring mode.
+        
+        In gameplay mode, assassin = instant loss (we still return a penalty
+        for score tracking, but the game ends immediately).
+        """
+        if self.scoring_mode == "gameplay":
+            return self.ASSASSIN_PENALTY_OPTIMIZATION  # Still tracked for records
+        return self.ASSASSIN_PENALTY_OPTIMIZATION
     
     def _print(self, *args, **kwargs):
         """Print to console unless in quiet mode."""
@@ -260,7 +286,17 @@ class ChainLexGame:
             raise
 
     def setup_board(self):
-        """Initialize the game board with random word assignment."""
+        """Initialize the game board.
+        
+        If a pre-defined puzzle was provided, use it directly.
+        Otherwise, generate a random board from the words file.
+        """
+        # Use pre-defined puzzle if provided
+        if self._puzzle is not None:
+            self._setup_board_from_puzzle(self._puzzle)
+            return
+        
+        # Legacy: random board generation
         # Set seed if provided for reproducibility
         if self.seed is not None:
             random.seed(self.seed)
@@ -294,7 +330,41 @@ class ChainLexGame:
             self.revealed[word] = False
 
         logger.info(
-            f"Board setup: {self.FRIENDLY_WORDS} friendly, {self.BYSTANDERS} bystanders, {self.ASSASSINS} assassin"
+            f"Board setup (random): {self.FRIENDLY_WORDS} friendly, {self.BYSTANDERS} bystanders, {self.ASSASSINS} assassin"
+        )
+    
+    def _setup_board_from_puzzle(self, puzzle: Dict[str, Any]):
+        """Initialize board from a pre-defined puzzle."""
+        self.board = puzzle["board"]
+        
+        # Build identity mapping from puzzle definition
+        self.identities = {}
+        self.revealed = {}
+        
+        friendly_words = set(w.upper() for w in puzzle["friendly_words"])
+        bystanders = set(w.upper() for w in puzzle["bystanders"])
+        assassin = puzzle["assassin"].upper()
+        
+        for word in self.board:
+            word_upper = word.upper()
+            if word_upper in friendly_words:
+                self.identities[word] = "friendly"
+            elif word_upper in bystanders:
+                self.identities[word] = "bystander"
+            elif word_upper == assassin:
+                self.identities[word] = "assassin"
+            else:
+                # Shouldn't happen with valid puzzles
+                logger.warning(f"Word {word} not found in puzzle definition, treating as bystander")
+                self.identities[word] = "bystander"
+            
+            self.revealed[word] = False
+        
+        puzzle_id = puzzle.get("puzzle_id", "unknown")
+        difficulty = puzzle.get("difficulty", "unknown")
+        logger.info(
+            f"Board setup (puzzle {puzzle_id}, {difficulty}): "
+            f"{self.FRIENDLY_WORDS} friendly, {self.BYSTANDERS} bystanders, {self.ASSASSINS} assassin"
         )
 
     def get_board_state(self, reveal_all: bool = False, revealed: Optional[Dict[str, bool]] = None) -> Dict[str, Any]:
@@ -516,7 +586,7 @@ class ChainLexGame:
             
             if identity == "assassin":
                 self._print(f"[black on white]💀 {guess} - THE ASSASSIN![/black on white]")
-                score += self.ASSASSIN_PENALTY
+                score += self.assassin_penalty
                 end_reason = "assassin"
                 break
             elif identity == "friendly":
@@ -535,8 +605,8 @@ class ChainLexGame:
                     end_reason = "completed"
                     break
             else:  # bystander
-                self._print(f"[yellow]✗ {guess} - Bystander! {self.BYSTANDER_PENALTY} pts[/yellow]")
-                score += self.BYSTANDER_PENALTY
+                self._print(f"[yellow]✗ {guess} - Bystander! {self.bystander_penalty} pts[/yellow]")
+                score += self.bystander_penalty
                 end_reason = "bystander"
                 break
         
@@ -686,7 +756,7 @@ class ChainLexGame:
 
         if identity == "assassin":
             self._print(f"[black on white]💀 THE ASSASSIN! Game over![/black on white]")
-            self.score += self.ASSASSIN_PENALTY
+            self.score += self.assassin_penalty
             self.game_over = True
             self.end_reason = "assassin"
             return False
@@ -710,8 +780,8 @@ class ChainLexGame:
             return True
 
         else:  # bystander
-            self._print(f"[yellow]✗ {word} is a bystander. {self.BYSTANDER_PENALTY} points.[/yellow]")
-            self.score += self.BYSTANDER_PENALTY
+            self._print(f"[yellow]✗ {word} is a bystander. {self.bystander_penalty} points.[/yellow]")
+            self.score += self.bystander_penalty
             self.game_over = True
             self.end_reason = "bystander"
             return False
@@ -750,9 +820,24 @@ class ChainLexGame:
         away_context = "You are going FIRST in a head-to-head game. Your opponent will see your score when they make their clue."
         result_away = self._play_single_turn(self.player_away, f"Away ({model_away})", away_context)
         
-        # Home player's turn (goes second, knows opponent's score)
-        home_context = f"You are going SECOND in a head-to-head game. Your opponent scored {result_away['score']} points. Make your clue with this in mind."
-        result_home = self._play_single_turn(self.player_home, f"Home ({model_home})", home_context)
+        # In gameplay mode, assassin = instant loss - home wins immediately
+        if self.scoring_mode == "gameplay" and result_away["end_reason"] == "assassin":
+            self._print(f"\n[bold red]💀 Away ({model_away}) hit the ASSASSIN![/bold red]")
+            self._print(f"[bold magenta]🏆 Home ({model_home}) WINS by instant assassin victory![/bold magenta]")
+            result_home = {
+                "player": f"Home ({model_home})",
+                "model": model_home,
+                "score": 0,
+                "correct_guesses": 0,
+                "clue": None,
+                "clue_number": None,
+                "guesses": [],
+                "end_reason": "opponent_assassin",
+            }
+        else:
+            # Home player's turn (goes second, knows opponent's score)
+            home_context = f"You are going SECOND in a head-to-head game. Your opponent scored {result_away['score']} points. Make your clue with this in mind."
+            result_home = self._play_single_turn(self.player_home, f"Home ({model_home})", home_context)
 
         self.end_time = time.time()
         duration = self.end_time - self.start_time
@@ -761,28 +846,64 @@ class ChainLexGame:
         score_away = result_away["score"]
         score_home = result_home["score"]
         
-        # Check if both players hit the assassin - instant loss for both = tie
-        both_hit_assassin = (
-            result_away["end_reason"] == "assassin" and 
-            result_home["end_reason"] == "assassin"
-        )
-        
-        if both_hit_assassin:
-            # Both hit assassin = draw, regardless of scores
-            winner = "tie"
-            winner_model = None
-        elif score_away > score_home:
-            winner = "model_away"
-            winner_model = model_away
-        elif score_home > score_away:
-            winner = "model_home"
-            winner_model = model_home
+        # In gameplay mode, assassin = instant loss for the player who hit it
+        if self.scoring_mode == "gameplay":
+            away_hit_assassin = result_away["end_reason"] == "assassin"
+            home_hit_assassin = result_home["end_reason"] == "assassin"
+            
+            if away_hit_assassin:
+                # Away hit assassin - home wins instantly (home never played)
+                winner = "model_home"
+                winner_model = model_home
+                both_hit_assassin = False
+            elif home_hit_assassin:
+                # Home hit assassin - away wins instantly
+                winner = "model_away"
+                winner_model = model_away
+                both_hit_assassin = False
+            elif score_away > score_home:
+                winner = "model_away"
+                winner_model = model_away
+                both_hit_assassin = False
+            elif score_home > score_away:
+                winner = "model_home"
+                winner_model = model_home
+                both_hit_assassin = False
+            else:
+                winner = "tie"
+                winner_model = None
+                both_hit_assassin = False
         else:
-            winner = "tie"
-            winner_model = None
+            # Optimization mode - original behavior
+            # Check if both players hit the assassin - instant loss for both = tie
+            both_hit_assassin = (
+                result_away["end_reason"] == "assassin" and 
+                result_home["end_reason"] == "assassin"
+            )
+            
+            if both_hit_assassin:
+                # Both hit assassin = draw, regardless of scores
+                winner = "tie"
+                winner_model = None
+            elif score_away > score_home:
+                winner = "model_away"
+                winner_model = model_away
+            elif score_home > score_away:
+                winner = "model_home"
+                winner_model = model_home
+            else:
+                winner = "tie"
+                winner_model = None
 
         # Compile results
         max_score = self.calculate_max_possible_score()
+        
+        # Track if game was won by assassin instant loss (gameplay mode only)
+        assassin_instant_loss = (
+            self.scoring_mode == "gameplay" and 
+            (result_away["end_reason"] == "assassin" or result_home["end_reason"] == "assassin")
+        )
+        
         result = {
             "game_id": self.game_id,
             "model_away": model_away,
@@ -794,6 +915,8 @@ class ChainLexGame:
             "margin": abs(score_away - score_home),
             "max_possible_score": max_score,
             "both_hit_assassin": both_hit_assassin,
+            "assassin_instant_loss": assassin_instant_loss,
+            "scoring_mode": self.scoring_mode,
             "result_away": result_away,
             "result_home": result_home,
             "duration": duration,
@@ -821,9 +944,15 @@ class ChainLexGame:
         self._print(f"  End: {result_home['end_reason']}")
         
         if winner == "model_away":
-            self._print(f"\n[bold]WINNER: [cyan]{model_away}[/cyan] (Away) by {result['margin']} points![/bold]")
+            if self.scoring_mode == "gameplay" and result_home["end_reason"] == "assassin":
+                self._print(f"\n[bold]🏆 WINNER: [cyan]{model_away}[/cyan] (Away) - opponent hit the ASSASSIN![/bold]")
+            else:
+                self._print(f"\n[bold]WINNER: [cyan]{model_away}[/cyan] (Away) by {result['margin']} points![/bold]")
         elif winner == "model_home":
-            self._print(f"\n[bold]WINNER: [magenta]{model_home}[/magenta] (Home) by {result['margin']} points![/bold]")
+            if self.scoring_mode == "gameplay" and result_away["end_reason"] == "assassin":
+                self._print(f"\n[bold]🏆 WINNER: [magenta]{model_home}[/magenta] (Home) - opponent hit the ASSASSIN![/bold]")
+            else:
+                self._print(f"\n[bold]WINNER: [magenta]{model_home}[/magenta] (Home) by {result['margin']} points![/bold]")
         elif both_hit_assassin:
             self._print(f"\n[bold yellow]DRAW: Both players hit the assassin![/bold yellow]")
         else:
@@ -867,6 +996,8 @@ class ChainLexGame:
                 "clue_away": result_away.get("clue"),
                 "clue_home": result_home.get("clue"),
                 "both_hit_assassin": both_hit_assassin,
+                "assassin_instant_loss": assassin_instant_loss,
+                "scoring_mode": self.scoring_mode,
             },
         )
 

@@ -1,5 +1,7 @@
 You are playing ChainLex-1, a word association game. Give a one-word clue and number to maximize your score.
 
+{{HEAD_TO_HEAD_CONTEXT}}
+
 ## Scoring
 - Each correct guess earns points: 1st=1pt, 2nd=2pt, 3rd=3pt, etc. (triangular scoring)
 - Maximum possible: 36 points (all 8 friendly words: 1+2+3+4+5+6+7+8)

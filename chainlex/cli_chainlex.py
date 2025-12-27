@@ -105,11 +105,20 @@ def run(
         "chainlex/prompts/guesser.md", help="Guesser prompt file"
     ),
     log_path: str = typer.Option("logs/chainlex", help="Directory for log files"),
+    scoring_mode: str = typer.Option(
+        "gameplay", 
+        "--scoring-mode", "-s",
+        help="Scoring mode: 'gameplay' (assassin=instant loss, bystander=-1) or 'optimization' (original DSPy scoring)"
+    ),
     verbose: bool = typer.Option(False, help="Enable verbose logging"),
 ):
     """Run a ChainLex-1 head-to-head game between two models.
     
     Away model goes first. Home model goes second and knows the away model's score.
+    
+    Scoring modes:
+      - gameplay: Assassin = instant loss, Bystander = -1 (competitive play)
+      - optimization: Assassin = -28, Bystander = -5 (for DSPy training)
     """
     
     _validate_api_keys_and_models(model_away, model_home)
@@ -145,6 +154,7 @@ def run(
                 clue_giver_prompt=clue_giver_prompt,
                 guesser_prompt=guesser_prompt,
                 seed=seed + game_num if seed is not None else None,
+                scoring_mode=scoring_mode,
             )
 
             game.init_controllog(Path("logs"), run_id)  # Use top-level logs for controllog
@@ -169,6 +179,16 @@ def _display_head_to_head_summary(results: list, model_away: str, model_home: st
     wins_home = sum(1 for r in results if r.get("winner") == "model_home")
     ties = sum(1 for r in results if r.get("winner") == "tie")
     
+    # Track assassin instant losses
+    assassin_losses_away = sum(
+        1 for r in results 
+        if r.get("result_away", {}).get("end_reason") == "assassin"
+    )
+    assassin_losses_home = sum(
+        1 for r in results 
+        if r.get("result_home", {}).get("end_reason") == "assassin"
+    )
+    
     total_score_away = sum(r.get("score_away", 0) for r in results)
     total_score_home = sum(r.get("score_home", 0) for r in results)
     
@@ -183,6 +203,7 @@ def _display_head_to_head_summary(results: list, model_away: str, model_home: st
     table.add_row("Wins", str(wins_away), str(wins_home))
     table.add_row("Ties", str(ties), str(ties))
     table.add_row("Win Rate", f"{wins_away/total_games*100:.1f}%", f"{wins_home/total_games*100:.1f}%")
+    table.add_row("Assassin Hits", str(assassin_losses_away), str(assassin_losses_home))
     table.add_row("Total Score", str(total_score_away), str(total_score_home))
     table.add_row("Avg Score", f"{avg_score_away:.1f}", f"{avg_score_home:.1f}")
 
@@ -352,8 +373,13 @@ def _run_single_game(
     run_id: str,
     prompt_files: Dict[str, str],
     lock: threading.Lock,
+    scoring_mode: str = "gameplay",
+    puzzle: Optional[Dict[str, Any]] = None,
 ) -> Tuple[str, Optional[Dict[str, Any]], Optional[str]]:
     """Run a single ChainLex-1 head-to-head game.
+    
+    Args:
+        puzzle: Optional pre-defined puzzle from EVAL pool. If None, uses legacy random.
     
     Returns: (game_id, result_dict, error_message)
     """
@@ -367,6 +393,8 @@ def _run_single_game(
             player_home=player_home,
             quiet=True,
             seed=seed,
+            scoring_mode=scoring_mode,
+            puzzle=puzzle,  # Use pre-defined puzzle from EVAL pool
             **prompt_files,
         )
         
@@ -392,6 +420,11 @@ def run_eval(
     output: Path = typer.Option(Path("logs/chainlex/eval"), "--output", "-o", help="Output directory"),
     clue_giver_prompt: str = typer.Option("chainlex/prompts/clue_giver.md"),
     guesser_prompt: str = typer.Option("chainlex/prompts/guesser.md"),
+    scoring_mode: str = typer.Option(
+        "gameplay",
+        "--scoring-mode", "-s",
+        help="Scoring mode: 'gameplay' (assassin=instant loss, bystander=-1) or 'optimization' (original DSPy scoring)"
+    ),
     dry_run: bool = typer.Option(False, "--dry-run", help="Show matchup schedule and cost estimate without running games"),
     verbose: bool = typer.Option(False, "--verbose", "-v"),
 ):
@@ -402,6 +435,10 @@ def run_eval(
     
     Use --dry-run to preview the matchup schedule and estimated cost.
     Use --add-model to add a new model to an existing evaluation (appends to results.csv).
+    
+    Scoring modes:
+      - gameplay: Assassin = instant loss, Bystander = -1 (competitive play)
+      - optimization: Assassin = -28, Bystander = -5 (for DSPy training)
     """
     if not dry_run and not os.getenv("OPENROUTER_API_KEY"):
         console.print("[red]Error: OPENROUTER_API_KEY not set. Try `source .env`[/red]")
@@ -454,11 +491,30 @@ def run_eval(
     log_dir.mkdir(exist_ok=True)
     setup_logging(log_dir, verbose)
     
+    # Load puzzles from EVAL pool (never training pool)
+    from chainlex.puzzle_loader import PuzzleLoader, PuzzlePool
+    
+    puzzle_loader = PuzzleLoader(pool=PuzzlePool.EVAL)
+    eval_pool_size = puzzle_loader.get_puzzle_count()
+    
+    if eval_pool_size > 0:
+        console.print(f"[green]📦 Using EVAL puzzle pool ({eval_pool_size} puzzles)[/green]")
+    else:
+        console.print(f"[yellow]⚠️ EVAL puzzle pool not found, using legacy random generation[/yellow]")
+        console.print(f"[dim]Run 'uv run based chainlex generate-puzzles' to create puzzle pools[/dim]")
+    
     # Generate fixed seeds upfront - every matchup uses the same seeds
     # Each seed is played twice (once per home/away configuration)
     # With 4 games: seed 0 for games 1&2 (swapped), seed 1 for games 3&4 (swapped)
     num_unique_boards = games_per_matchup // 2
     game_seeds = [seed + i for i in range(num_unique_boards)]
+    
+    # Load puzzles for each unique board (if using puzzle pool)
+    board_puzzles: Dict[int, Optional[Dict]] = {}
+    if eval_pool_size > 0:
+        for board_seed in game_seeds:
+            puzzle = puzzle_loader.get_puzzle(seed=board_seed)
+            board_puzzles[board_seed] = puzzle
     
     # Generate matchups
     matchups = []
@@ -469,12 +525,14 @@ def run_eval(
         for opponent in sorted(opponent_models):
             # For each seed, play two games with swapped home/away
             for board_idx, board_seed in enumerate(game_seeds):
+                puzzle = board_puzzles.get(board_seed)
                 # Game A: new_model away, opponent home
                 matchups.append({
                     "model_away": new_model,
                     "model_home": opponent,
                     "seed": board_seed,
                     "game_idx": board_idx * 2,
+                    "puzzle": puzzle,
                 })
                 # Game B: opponent away, new_model home (same board)
                 matchups.append({
@@ -482,6 +540,7 @@ def run_eval(
                     "model_home": new_model,
                     "seed": board_seed,
                     "game_idx": board_idx * 2 + 1,
+                    "puzzle": puzzle,
                 })
     else:
         # Full round-robin mode
@@ -490,12 +549,14 @@ def run_eval(
             for model_2 in eval_models_sorted[i + 1:]:
                 # For each seed, play two games with swapped home/away
                 for board_idx, board_seed in enumerate(game_seeds):
+                    puzzle = board_puzzles.get(board_seed)
                     # Game A: model_1 away, model_2 home
                     matchups.append({
                         "model_away": model_1,
                         "model_home": model_2,
                         "seed": board_seed,
                         "game_idx": board_idx * 2,
+                        "puzzle": puzzle,
                     })
                     # Game B: model_2 away, model_1 home (same board)
                     matchups.append({
@@ -503,6 +564,7 @@ def run_eval(
                         "model_home": model_1,
                         "seed": board_seed,
                         "game_idx": board_idx * 2 + 1,
+                        "puzzle": puzzle,
                     })
     
     total_games = len(matchups)
@@ -651,6 +713,8 @@ def run_eval(
                     run_id,
                     prompt_files,
                     lock,
+                    scoring_mode,
+                    matchup.get("puzzle"),  # Pass puzzle from EVAL pool
                 )
                 futures[future] = matchup
             
@@ -817,6 +881,231 @@ def list_canonical():
     console.print(f"\n💡 Run evaluation: [bold]uv run based chainlex eval --all[/bold]")
 
 
+@app.command("generate-puzzles")
+def generate_puzzles(
+    num_training: int = typer.Option(50, "--num-training", "-t", help="Number of training puzzles"),
+    num_eval: int = typer.Option(50, "--num-eval", "-e", help="Number of eval puzzles"),
+    seed: int = typer.Option(42, "--seed", "-s", help="Random seed for reproducibility"),
+    output_dir: Path = typer.Option(
+        Path("chainlex/inputs"),
+        "--output", "-o",
+        help="Output directory for puzzle YAML files",
+    ),
+    verbose: bool = typer.Option(False, "--verbose", "-v", help="Show detailed progress"),
+):
+    """Generate puzzle pools using semantic clustering algorithm.
+    
+    Creates two separate pools:
+    - Training pool: Used ONLY by the optimizer (50 puzzles by default)
+    - Eval pool: Used by eval and run commands (50 puzzles by default)
+    
+    Puzzles are generated with varying difficulty (easy/medium/hard) and
+    designed to create meaningful tension through semantic clustering.
+    
+    Examples:
+        # Generate default pools (50 training + 50 eval)
+        uv run based chainlex generate-puzzles
+        
+        # Generate with more puzzles
+        uv run based chainlex generate-puzzles --num-training 100 --num-eval 100
+        
+        # Generate with specific seed for reproducibility
+        uv run based chainlex generate-puzzles --seed 12345
+    """
+    from chainlex.puzzle_generator import PuzzleGenerator, Difficulty
+    
+    if verbose:
+        logging.basicConfig(level=logging.INFO)
+    
+    output_dir.mkdir(parents=True, exist_ok=True)
+    
+    console.print("[bold blue]🧩 ChainLex Puzzle Generator[/bold blue]")
+    console.print(f"Training puzzles: {num_training}")
+    console.print(f"Eval puzzles: {num_eval}")
+    console.print(f"Seed: {seed}")
+    console.print(f"Output: {output_dir}")
+    console.print()
+    
+    try:
+        generator = PuzzleGenerator()
+        
+        # Generate training puzzles
+        console.print("[cyan]Generating training puzzles...[/cyan]")
+        with Progress(
+            SpinnerColumn(),
+            TextColumn("[progress.description]{task.description}"),
+            BarColumn(),
+            TaskProgressColumn(),
+            console=console,
+        ) as progress:
+            task = progress.add_task("Training puzzles", total=num_training)
+            
+            training_puzzles = []
+            difficulty_dist = {
+                Difficulty.EASY: 0.33,
+                Difficulty.MEDIUM: 0.34,
+                Difficulty.HARD: 0.33,
+            }
+            
+            for difficulty, frac in difficulty_dist.items():
+                count = int(num_training * frac)
+                for i in range(count):
+                    puzzle_seed = seed + len(training_puzzles) * 1000
+                    puzzle = generator.generate_puzzle(difficulty, seed=puzzle_seed)
+                    if puzzle:
+                        training_puzzles.append(puzzle)
+                        progress.advance(task)
+            
+            # Fill remaining if needed
+            while len(training_puzzles) < num_training:
+                puzzle_seed = seed + len(training_puzzles) * 1000
+                puzzle = generator.generate_puzzle(Difficulty.MEDIUM, seed=puzzle_seed)
+                if puzzle:
+                    training_puzzles.append(puzzle)
+                    progress.advance(task)
+        
+        training_path = output_dir / "puzzles_training.yaml"
+        generator.save_puzzle_pool(training_puzzles, str(training_path), "training")
+        console.print(f"[green]✓ Saved {len(training_puzzles)} training puzzles to {training_path}[/green]")
+        
+        # Generate eval puzzles (different seed space)
+        console.print("\n[cyan]Generating eval puzzles...[/cyan]")
+        with Progress(
+            SpinnerColumn(),
+            TextColumn("[progress.description]{task.description}"),
+            BarColumn(),
+            TaskProgressColumn(),
+            console=console,
+        ) as progress:
+            task = progress.add_task("Eval puzzles", total=num_eval)
+            
+            eval_puzzles = []
+            eval_seed = seed + 100000  # Different seed space
+            
+            for difficulty, frac in difficulty_dist.items():
+                count = int(num_eval * frac)
+                for i in range(count):
+                    puzzle_seed = eval_seed + len(eval_puzzles) * 1000
+                    puzzle = generator.generate_puzzle(difficulty, seed=puzzle_seed)
+                    if puzzle:
+                        eval_puzzles.append(puzzle)
+                        progress.advance(task)
+            
+            # Fill remaining if needed
+            while len(eval_puzzles) < num_eval:
+                puzzle_seed = eval_seed + len(eval_puzzles) * 1000
+                puzzle = generator.generate_puzzle(Difficulty.MEDIUM, seed=puzzle_seed)
+                if puzzle:
+                    eval_puzzles.append(puzzle)
+                    progress.advance(task)
+        
+        eval_path = output_dir / "puzzles_eval.yaml"
+        generator.save_puzzle_pool(eval_puzzles, str(eval_path), "eval")
+        console.print(f"[green]✓ Saved {len(eval_puzzles)} eval puzzles to {eval_path}[/green]")
+        
+        # Summary statistics
+        console.print(f"\n[bold]📊 Puzzle Pool Summary[/bold]")
+        
+        for pool_name, puzzles in [("Training", training_puzzles), ("Eval", eval_puzzles)]:
+            console.print(f"\n[cyan]{pool_name} Pool:[/cyan]")
+            
+            difficulty_counts = {}
+            avg_cohesion = 0.0
+            avg_assassin_sim = 0.0
+            
+            for p in puzzles:
+                difficulty_counts[p.difficulty] = difficulty_counts.get(p.difficulty, 0) + 1
+                avg_cohesion += p.metrics.friendly_cohesion
+                avg_assassin_sim += p.metrics.assassin_max_friendly_sim
+            
+            avg_cohesion /= len(puzzles)
+            avg_assassin_sim /= len(puzzles)
+            
+            for diff, count in sorted(difficulty_counts.items()):
+                console.print(f"  {diff}: {count} puzzles")
+            
+            console.print(f"  Avg friendly cohesion: {avg_cohesion:.3f}")
+            console.print(f"  Avg assassin similarity: {avg_assassin_sim:.3f}")
+        
+        console.print(f"\n[bold green]✅ Puzzle generation complete![/bold green]")
+        console.print(f"[dim]Training pool: {training_path}[/dim]")
+        console.print(f"[dim]Eval pool: {eval_path}[/dim]")
+        
+    except ImportError as e:
+        console.print(f"[red]Error: Missing dependency - {e}[/red]")
+        console.print("[yellow]Install with: uv add sentence-transformers numpy[/yellow]")
+        raise typer.Exit(1)
+    except Exception as e:
+        console.print(f"[red]Error generating puzzles: {e}[/red]")
+        if verbose:
+            import traceback
+            console.print(traceback.format_exc())
+        raise typer.Exit(1)
+
+
+@app.command("list-puzzles")
+def list_puzzles(
+    pool: str = typer.Argument("eval", help="Pool to list: 'training' or 'eval'"),
+    difficulty: Optional[str] = typer.Option(None, "--difficulty", "-d", help="Filter by difficulty"),
+    limit: int = typer.Option(10, "--limit", "-n", help="Max puzzles to show"),
+):
+    """List puzzles in a puzzle pool.
+    
+    Examples:
+        # List eval puzzles
+        uv run based chainlex list-puzzles eval
+        
+        # List hard training puzzles
+        uv run based chainlex list-puzzles training --difficulty hard
+    """
+    from chainlex.puzzle_loader import PuzzleLoader, PuzzlePool
+    
+    try:
+        pool_enum = PuzzlePool(pool)
+    except ValueError:
+        console.print(f"[red]Invalid pool: {pool}. Use 'training' or 'eval'[/red]")
+        raise typer.Exit(1)
+    
+    loader = PuzzleLoader(pool=pool_enum)
+    
+    try:
+        all_puzzles = loader.get_all_puzzles()
+    except Exception as e:
+        console.print(f"[red]Error loading puzzles: {e}[/red]")
+        console.print("[yellow]Run 'uv run based chainlex generate-puzzles' first[/yellow]")
+        raise typer.Exit(1)
+    
+    if difficulty:
+        all_puzzles = [p for p in all_puzzles if p.get("difficulty") == difficulty]
+    
+    console.print(f"[bold]{pool.upper()} Pool: {len(all_puzzles)} puzzles[/bold]")
+    
+    if difficulty:
+        console.print(f"[dim]Filtered by difficulty: {difficulty}[/dim]")
+    
+    table = Table(title=f"Puzzles ({min(limit, len(all_puzzles))} shown)")
+    table.add_column("ID", style="cyan")
+    table.add_column("Difficulty", style="yellow")
+    table.add_column("Cohesion", justify="right")
+    table.add_column("Assassin Sim", justify="right")
+    table.add_column("Tags")
+    
+    for p in all_puzzles[:limit]:
+        metrics = p.get("metrics", {})
+        table.add_row(
+            p.get("puzzle_id", "N/A")[:16],
+            p.get("difficulty", "?"),
+            f"{metrics.get('friendly_cohesion', 0):.2f}",
+            f"{metrics.get('assassin_max_friendly_sim', 0):.2f}",
+            ", ".join(p.get("tags", [])[:3]),
+        )
+    
+    console.print(table)
+    
+    if len(all_puzzles) > limit:
+        console.print(f"[dim]... and {len(all_puzzles) - limit} more[/dim]")
+
+
 @app.command()
 def optimize(
     output: Path = typer.Option(
@@ -850,6 +1139,11 @@ def optimize(
         help="Maximum few-shot demonstrations to bootstrap",
     ),
     seed: int = typer.Option(42, "--seed", "-s", help="Random seed"),
+    budget: str = typer.Option(
+        "light",
+        "--budget", "-b",
+        help="Optimizer budget: 'light' (~50 calls), 'medium' (~1000 calls), 'heavy' (~5000 calls)",
+    ),
     dry_run: bool = typer.Option(
         False,
         "--dry-run",
@@ -861,6 +1155,11 @@ def optimize(
     guesser_prompt: Optional[Path] = typer.Option(
         None, "--guesser-prompt", help="Custom guesser prompt file"
     ),
+    blend: bool = typer.Option(
+        False,
+        "--blend",
+        help="Round-robin between gemini-3-flash, gpt5-mini, haiku-4.5 for cross-model optimization",
+    ),
     verbose: bool = typer.Option(False, "--verbose", "-v", help="Verbose logging"),
 ):
     """Optimize prompts using DSPy GEPA (Genetic Evolution of Prompts Algorithm).
@@ -868,15 +1167,27 @@ def optimize(
     GEPA uses evolutionary optimization with textual feedback to evolve
     better instructions. It reflects on failures and proposes improvements.
     
+    Budget options:
+      - light: ~50 metric calls, quick test (~2-5 min)
+      - medium: ~1000 metric calls, standard optimization (~30-60 min)
+      - heavy: ~5000 metric calls, thorough optimization (~2-4 hours)
+    
+    Blend mode (--blend):
+      Round-robins between gemini-3-flash, gpt5-mini, and haiku-4.5 during
+      optimization to create prompts that generalize across model architectures.
+    
     Examples:
-        # Dry run to test setup
-        uv run based chainlex optimize --dry-run
+        # Quick test with light budget
+        uv run based chainlex optimize --budget light --num-train 10 --num-eval 3
         
-        # Full optimization with GEPA
-        uv run based chainlex optimize --num-train 50 --num-eval 15
+        # Full optimization
+        uv run based chainlex optimize --budget medium --num-train 50 --num-eval 15
+        
+        # Cross-model optimization (recommended for best generalization)
+        uv run based chainlex optimize --blend --budget light
         
         # Use specific model
-        uv run based chainlex optimize --model claude-3.5-sonnet
+        uv run based chainlex optimize --model haiku-4.5 --budget light
     """
     from chainlex.optimization.optimize import run_optimization, export_optimized_prompts
     
@@ -885,23 +1196,43 @@ def optimize(
         console.print("[red]Error: OPENROUTER_API_KEY environment variable not set[/red]")
         raise typer.Exit(1)
     
-    # Validate model
+    # Handle blend mode vs single model
     model_mappings = _load_model_mappings()
-    if model not in model_mappings:
-        console.print(f"[red]Error: Invalid model '{model}'[/red]")
-        console.print(f"Available models: {', '.join(sorted(model_mappings.keys()))}")
-        raise typer.Exit(1)
+    blend_models = None
     
-    openrouter_model = model_mappings[model]
+    if blend:
+        # Blend mode: use three lightweight models from major labs
+        blend_model_names = ["gemini-3-flash", "gpt5-mini", "haiku-4.5"]
+        blend_models = []
+        for m in blend_model_names:
+            if m not in model_mappings:
+                console.print(f"[red]Error: Blend model '{m}' not found in model mappings[/red]")
+                raise typer.Exit(1)
+            blend_models.append(model_mappings[m])
+        openrouter_model = blend_models[0]  # Primary model for setup
+    else:
+        # Single model mode
+        if model not in model_mappings:
+            console.print(f"[red]Error: Invalid model '{model}'[/red]")
+            console.print(f"Available models: {', '.join(sorted(model_mappings.keys()))}")
+            raise typer.Exit(1)
+        openrouter_model = model_mappings[model]
     
     # Setup logging
     if verbose:
         logging.basicConfig(level=logging.INFO)
     
     console.print("[bold blue]🧪 ChainLex-1 DSPy Optimization[/bold blue]")
-    console.print(f"Model: {model} ({openrouter_model})")
+    if blend:
+        console.print(f"Mode: [bold magenta]BLEND[/bold magenta] (round-robin across 3 models)")
+        console.print(f"  • gemini-3-flash ({blend_models[0]})")
+        console.print(f"  • gpt5-mini ({blend_models[1]})")
+        console.print(f"  • haiku-4.5 ({blend_models[2]})")
+    else:
+        console.print(f"Model: {model} ({openrouter_model})")
     console.print(f"Training examples: {num_train}")
     console.print(f"Evaluation examples: {num_eval}")
+    console.print(f"Budget: {budget}")
     console.print(f"Max demos: {max_demos}")
     console.print(f"Output: {output}")
     
@@ -923,6 +1254,8 @@ def optimize(
             clue_giver_prompt=str(clue_giver_prompt) if clue_giver_prompt else None,
             guesser_prompt=str(guesser_prompt) if guesser_prompt else None,
             dry_run=dry_run,
+            optimizer_budget=budget,
+            blend_models=blend_models,
         )
         
         if dry_run:

@@ -156,7 +156,7 @@ def load_words(words_file: str = "inputs/names.yaml") -> List[str]:
 
 
 def generate_board(words: List[str], seed: Optional[int] = None) -> Dict[str, Any]:
-    """Generate a random ChainLex-1 board.
+    """Generate a random ChainLex-1 board (legacy mode).
     
     Returns:
         Dict with board, friendly_words, bystanders, assassin
@@ -191,14 +191,47 @@ def create_training_examples(
     num_examples: int = 50,
     words_file: str = "inputs/names.yaml",
     base_seed: int = 42,
+    use_puzzle_pool: bool = True,
 ) -> List[dspy.Example]:
     """Generate training examples for DSPy optimization.
 
-    Creates diverse board states including some with challenging configurations
-    that are more likely to test assassin avoidance and clue quality.
+    Uses the TRAINING puzzle pool by default for semantically-designed puzzles.
+    Falls back to legacy random generation if pool is not available.
+    
+    IMPORTANT: Training pool is ONLY used by the optimizer, never by eval or run.
     """
-    words = load_words(words_file)
     examples = []
+    
+    if use_puzzle_pool:
+        try:
+            from chainlex.puzzle_loader import PuzzleLoader, PuzzlePool
+            
+            loader = PuzzleLoader(pool=PuzzlePool.TRAINING)
+            pool_size = loader.get_puzzle_count()
+            
+            if pool_size > 0:
+                logger.info(f"Loading {num_examples} examples from TRAINING pool ({pool_size} available)")
+                puzzles = loader.get_puzzles(count=num_examples, seed=base_seed, shuffle=True)
+                
+                for puzzle in puzzles:
+                    example = dspy.Example(
+                        board=", ".join(puzzle["board"]),
+                        friendly_words=", ".join(puzzle["friendly_words"]),
+                        bystanders=", ".join(puzzle["bystanders"]),
+                        assassin=puzzle["assassin"],
+                    ).with_inputs("board", "friendly_words", "bystanders", "assassin")
+                    examples.append(example)
+                
+                logger.info(f"Loaded {len(examples)} training examples from puzzle pool")
+                return examples
+            else:
+                logger.warning("Training puzzle pool is empty, falling back to legacy generation")
+        except Exception as e:
+            logger.warning(f"Could not load training pool: {e}, falling back to legacy generation")
+    
+    # Legacy random generation fallback
+    logger.info(f"Using legacy random generation for {num_examples} training examples")
+    words = load_words(words_file)
 
     for i in range(num_examples):
         # Use different seeds to ensure diversity
@@ -214,63 +247,28 @@ def create_training_examples(
 
         examples.append(example)
 
-    # Add some curated challenging examples if we have enough words
-    if len(words) >= 20:  # Ensure we have enough words for curated examples
-        curated_examples = create_curated_challenging_examples(words, base_seed + 10000)
-        examples.extend(curated_examples[:min(10, num_examples // 5)])  # Add up to 10% curated examples
-
     return examples
 
 
-def create_curated_challenging_examples(words: List[str], seed: int) -> List[dspy.Example]:
-    """Create challenging examples designed to test specific failure modes.
+def create_eval_examples(
+    num_examples: int = 20,
+    words_file: str = "inputs/names.yaml",
+    base_seed: int = 42,
+    use_puzzle_pool: bool = True,
+) -> List[dspy.Example]:
+    """Generate evaluation examples for DSPy optimization.
 
-    These examples are crafted to have assassins that are semantically close
-    to friendly words, making assassin avoidance more difficult.
+    Uses a SEPARATE seed space from training to ensure independence.
+    For optimizer internal eval, we use training pool with different seed.
     """
-    examples = []
-    random.seed(seed)
-
-    # Example 1: Assassin that's a type of the friendly words
-    # (e.g., friendly words are animals, assassin is another animal)
-    animal_words = [w for w in words if w.upper() in {
-        'LION', 'TIGER', 'BEAR', 'WOLF', 'EAGLE', 'SHARK', 'SNAKE', 'ELEPHANT',
-        'HORSE', 'DOG', 'CAT', 'BIRD', 'FISH', 'SPIDER', 'BEE', 'ANT'
-    }]
-
-    if len(animal_words) >= 10:
-        board_words = random.sample(words, 16)
-        animal_friendly = [w for w in board_words if w.upper() in {w.upper() for w in animal_words}][:6]
-        if len(animal_friendly) >= 4:
-            # Add more animals to make it challenging
-            remaining_animals = [w for w in animal_words if w not in board_words][:2]
-            for animal in remaining_animals:
-                # Replace a random word with another animal
-                idx = random.randint(0, 15)
-                board_words[idx] = animal
-
-            # Make sure we have at least 4 animal friends
-            animal_positions = [i for i, w in enumerate(board_words) if w.upper() in {w.upper() for w in animal_words}]
-            if len(animal_positions) >= 5:
-                friendly_positions = set(random.sample(animal_positions, 5))
-                bystander_positions = set(random.sample([i for i in range(16) if i not in friendly_positions], 7))
-                assassin_position = random.choice([i for i in range(16) if i not in friendly_positions and i not in bystander_positions])
-
-                friendly_words = [board_words[i] for i in friendly_positions]
-                bystanders = [board_words[i] for i in bystander_positions]
-                assassin = board_words[assassin_position]
-
-                examples.append(dspy.Example(
-                    board=", ".join(board_words),
-                    friendly_words=", ".join(friendly_words),
-                    bystanders=", ".join(bystanders),
-                    assassin=assassin,
-                ).with_inputs("board", "friendly_words", "bystanders", "assassin"))
-
-    # Example 2: Assassin that's conceptually related to friendly words
-    # (This is harder to implement generically, so we'll create a simple version)
-
-    return examples
+    # For optimizer's internal eval, use training pool but different seed
+    # This keeps train/eval independent while using designed puzzles
+    return create_training_examples(
+        num_examples=num_examples,
+        words_file=words_file,
+        base_seed=base_seed + 50000,  # Different seed space
+        use_puzzle_pool=use_puzzle_pool,
+    )
 
 
 def run_optimization(
@@ -287,6 +285,7 @@ def run_optimization(
     guesser_prompt: Optional[str] = None,
     dry_run: bool = False,
     optimizer_budget: str = "medium",  # New parameter for optimizer intensity
+    blend_models: Optional[List[str]] = None,  # List of models for round-robin blending
 ) -> Dict[str, Any]:
     """Run DSPy optimization on ChainLex-1 pipeline.
     
@@ -320,30 +319,93 @@ def run_optimization(
     if not api_key:
         raise ValueError("OPENROUTER_API_KEY environment variable not set")
 
-    # Enable caching for optimization efficiency, but use deterministic settings
-    lm = dspy.LM(
-        model=f"openrouter/{model}",
-        api_key=api_key,
-        api_base="https://openrouter.ai/api/v1",
-        cache=True,  # Enable caching for efficiency during optimization
-        temperature=0.0,  # Deterministic generation for reproducibility
-        max_tokens=2048,  # Ensure sufficient context
-    )
-    dspy.configure(lm=lm)
+    # Setup model(s) for optimization
+    if blend_models:
+        # Blend mode: create LMs for all models and set up rotation
+        logger.info(f"BLEND MODE: Round-robin across {len(blend_models)} models")
+        blend_lms = []
+        
+        # Reasoning models (like gpt-5) require temperature=1.0 and higher max_tokens
+        reasoning_model_patterns = ["gpt-5", "o1", "o3"]
+        
+        for blend_model in blend_models:
+            is_reasoning = any(p in blend_model.lower() for p in reasoning_model_patterns)
+            
+            if is_reasoning:
+                lm = dspy.LM(
+                    model=f"openrouter/{blend_model}",
+                    api_key=api_key,
+                    api_base="https://openrouter.ai/api/v1",
+                    cache=True,
+                    temperature=1.0,  # Required for reasoning models
+                    max_tokens=16000,  # Required for reasoning models
+                )
+                logger.info(f"  - Initialized (reasoning): {blend_model}")
+            else:
+                lm = dspy.LM(
+                    model=f"openrouter/{blend_model}",
+                    api_key=api_key,
+                    api_base="https://openrouter.ai/api/v1",
+                    cache=True,
+                    temperature=0.0,
+                    max_tokens=8192,
+                )
+                logger.info(f"  - Initialized: {blend_model}")
+            
+            blend_lms.append(lm)
+        
+        # Create a rotating model selector (thread-safe)
+        import threading
+        
+        class ModelRotator:
+            def __init__(self, lms: List[dspy.LM]):
+                self.lms = lms
+                self.index = 0
+                self._lock = threading.Lock()
+            
+            def next(self) -> dspy.LM:
+                with self._lock:
+                    lm = self.lms[self.index]
+                    self.index = (self.index + 1) % len(self.lms)
+                    return lm
+            
+            def current_model_name(self) -> str:
+                with self._lock:
+                    return self.lms[self.index].model
+        
+        model_rotator = ModelRotator(blend_lms)
+        
+        # Start with first model
+        dspy.configure(lm=blend_lms[0])
+    else:
+        # Single model mode
+        model_rotator = None
+        lm = dspy.LM(
+            model=f"openrouter/{model}",
+            api_key=api_key,
+            api_base="https://openrouter.ai/api/v1",
+            cache=True,  # Enable caching for efficiency during optimization
+            temperature=0.0,  # Deterministic generation for reproducibility
+            max_tokens=8192,  # Large enough for GEPA's evolved prompts
+        )
+        dspy.configure(lm=lm)
     
-    # Generate training and evaluation examples
-    logger.info("Generating training examples...")
+    # Generate training and evaluation examples from TRAINING pool
+    # NOTE: Optimizer uses TRAINING pool only - never sees EVAL pool puzzles
+    logger.info("Loading training examples from TRAINING puzzle pool...")
     train_examples = create_training_examples(
         num_examples=num_train_examples,
         words_file=words_file,
         base_seed=seed,
+        use_puzzle_pool=True,
     )
     
-    logger.info("Generating evaluation examples...")
-    eval_examples = create_training_examples(
+    logger.info("Loading evaluation examples from TRAINING puzzle pool (different seed)...")
+    eval_examples = create_eval_examples(
         num_examples=num_eval_examples,
         words_file=words_file,
-        base_seed=seed + 10000,  # Different seed for eval
+        base_seed=seed,  # create_eval_examples adds offset internally
+        use_puzzle_pool=True,
     )
     
     if dry_run:
@@ -418,10 +480,30 @@ def run_optimization(
             api_base="https://openrouter.ai/api/v1",
             temperature=0.0,  # Deterministic for reflection
             cache=False,
+            max_tokens=8192,  # Large enough for GEPA's evolved prompts
         )
 
+        # Create blending metric if in blend mode
+        if model_rotator is not None:
+            logger.info("Using BLEND metric: rotating models on each evaluation")
+            
+            def blend_gepa_metric(example, prediction, trace=None, pred_name=None, pred_trace=None):
+                """GEPA metric that rotates through blend models.
+                
+                Uses dspy.context() for thread-safe model switching.
+                """
+                # Rotate to next model (thread-safe)
+                next_lm = model_rotator.next()
+                # Use context manager for thread-safe model switching
+                with dspy.context(lm=next_lm):
+                    return gepa_feedback_metric(example, prediction, trace, pred_name, pred_trace)
+            
+            optimization_metric = blend_gepa_metric
+        else:
+            optimization_metric = gepa_feedback_metric
+
         optimizer = GEPA(
-            metric=gepa_feedback_metric,  # Use feedback-aware metric
+            metric=optimization_metric,  # Use feedback-aware metric (optionally with blending)
             auto=optimizer_budget,  # Configurable optimization budget
             reflection_lm=reflection_lm,
             num_threads=num_threads,
@@ -441,8 +523,19 @@ def run_optimization(
         try:
             from dspy.teleprompt import MIPROv2
 
+            # Create blending metric for fallback optimizers too
+            if model_rotator is not None:
+                def blend_normalized_metric(example, prediction, trace=None):
+                    """Normalized metric that rotates through blend models (thread-safe)."""
+                    next_lm = model_rotator.next()
+                    with dspy.context(lm=next_lm):
+                        return normalized_metric(example, prediction, trace)
+                fallback_metric = blend_normalized_metric
+            else:
+                fallback_metric = normalized_metric
+
             optimizer = MIPROv2(
-                metric=normalized_metric,
+                metric=fallback_metric,
                 auto=optimizer_budget,
                 num_threads=num_threads,
                 seed=seed,
@@ -459,7 +552,7 @@ def run_optimization(
         except Exception as e:
             logger.warning(f"MIPROv2 failed ({e}), falling back to BootstrapFewShot")
             optimizer = dspy.BootstrapFewShot(
-                metric=normalized_metric,
+                metric=fallback_metric if model_rotator else normalized_metric,
                 max_bootstrapped_demos=max_bootstrapped_demos,
                 max_labeled_demos=max_labeled_demos,
                 max_rounds=2,  # Increased from 1 for better optimization
@@ -504,6 +597,8 @@ def run_optimization(
     results = {
         "timestamp": datetime.utcnow().isoformat() + "Z",
         "model": model,
+        "blend_mode": blend_models is not None,
+        "blend_models": blend_models if blend_models else None,
         "seed": seed,
         "num_train_examples": num_train_examples,
         "num_eval_examples": num_eval_examples,
@@ -533,9 +628,12 @@ def export_optimized_prompts(
 ) -> None:
     """Export optimized pipeline back to markdown prompt files.
     
-    Extracts the optimized instructions and few-shot examples from the
-    DSPy pipeline and writes them as markdown files compatible with
-    the game's template system.
+    Extracts the EVOLVED INSTRUCTIONS from GEPA optimization.
+    The key insight is that GEPA stores the improved prompt text in:
+    - pipeline_data["clue_giver.generate_clue.predict"]["signature"]["instructions"]
+    - pipeline_data["guesser.make_guesses.predict"]["signature"]["instructions"]
+    
+    NOT in the demos (which are often empty with GEPA).
     """
     output_dir = Path(output_dir)
     output_dir.mkdir(parents=True, exist_ok=True)
@@ -544,100 +642,87 @@ def export_optimized_prompts(
     with open(pipeline_path, "r") as f:
         pipeline_data = json.load(f)
     
-    # Extract and format clue giver prompt
-    clue_giver_demos = []
-    if "clue_giver.generate_clue" in pipeline_data:
-        demos = pipeline_data["clue_giver.generate_clue"].get("demos", [])
-        for demo in demos:
-            if "clue" in demo and "reasoning" in demo:
-                clue_giver_demos.append(demo)
+    # Extract evolved clue giver instructions from GEPA
+    clue_giver_instructions = None
+    clue_giver_key = "clue_giver.generate_clue.predict"
+    if clue_giver_key in pipeline_data:
+        signature = pipeline_data[clue_giver_key].get("signature", {})
+        clue_giver_instructions = signature.get("instructions")
+        logger.info(f"Extracted clue_giver instructions: {len(clue_giver_instructions) if clue_giver_instructions else 0} chars")
     
-    # Extract and format guesser prompt
-    guesser_demos = []
-    if "guesser.make_guesses" in pipeline_data:
-        demos = pipeline_data["guesser.make_guesses"].get("demos", [])
-        for demo in demos:
-            if "guesses" in demo and "reasoning" in demo:
-                guesser_demos.append(demo)
+    # Extract evolved guesser instructions from GEPA
+    guesser_instructions = None
+    guesser_key = "guesser.make_guesses.predict"
+    if guesser_key in pipeline_data:
+        signature = pipeline_data[guesser_key].get("signature", {})
+        guesser_instructions = signature.get("instructions")
+        logger.info(f"Extracted guesser instructions: {len(guesser_instructions) if guesser_instructions else 0} chars")
     
     # Write optimized clue giver prompt
     clue_giver_path = output_dir / "clue_giver_optimized.md"
-    _write_clue_giver_prompt(clue_giver_path, clue_giver_demos)
+    _write_clue_giver_prompt(clue_giver_path, clue_giver_instructions)
     logger.info(f"Wrote optimized clue giver prompt to {clue_giver_path}")
     
     # Write optimized guesser prompt  
     guesser_path = output_dir / "guesser_optimized.md"
-    _write_guesser_prompt(guesser_path, guesser_demos)
+    _write_guesser_prompt(guesser_path, guesser_instructions)
     logger.info(f"Wrote optimized guesser prompt to {guesser_path}")
 
 
-def _write_clue_giver_prompt(path: Path, demos: List[Dict]) -> None:
-    """Write clue giver prompt with optimized few-shot examples."""
-    # Load base prompt
-    base_prompt_path = Path(__file__).parent.parent / "prompts" / "clue_giver.md"
-    base_prompt = base_prompt_path.read_text()
+def _write_clue_giver_prompt(path: Path, evolved_instructions: Optional[str]) -> None:
+    """Write clue giver prompt with GEPA-evolved instructions.
     
-    # If we have demos, add them as examples
-    if demos:
-        examples_section = "\n\n## Optimized Examples\n"
-        for i, demo in enumerate(demos, 1):
-            examples_section += f"\n**Example {i}:**\n"
-            if "board" in demo:
-                examples_section += f"Board: {demo['board']}\n"
-            if "friendly_words" in demo:
-                examples_section += f"Friendly: {demo['friendly_words']}\n"
-            if "bystanders" in demo:
-                examples_section += f"Bystanders: {demo['bystanders']}\n"
-            if "assassin" in demo:
-                examples_section += f"Assassin: {demo['assassin']}\n"
-            if "reasoning" in demo:
-                examples_section += f"Reasoning: {demo['reasoning']}\n"
-            if "clue" in demo and "number" in demo:
-                examples_section += f"→ CLUE: {demo['clue']}, NUMBER: {demo['number']}\n"
+    If GEPA evolved the instructions, use those directly.
+    Otherwise, fall back to the base prompt.
+    """
+    if evolved_instructions:
+        # GEPA evolved the prompt - use the evolved instructions directly
+        # Add the template variables that the game expects
+        prompt = evolved_instructions
         
-        # Insert before the CURRENT GAME section
-        if "## CURRENT GAME" in base_prompt:
-            base_prompt = base_prompt.replace(
-                "## CURRENT GAME",
-                f"{examples_section}\n---\n\n## CURRENT GAME"
-            )
-    
-    path.write_text(base_prompt)
+        # Ensure the template has the required placeholders for the game
+        # These should already be in GEPA's output, but let's verify
+        if "{{HEAD_TO_HEAD_CONTEXT}}" not in prompt:
+            prompt = "{{HEAD_TO_HEAD_CONTEXT}}\n\n" + prompt
+        
+        # Clean up any stray ``` from GEPA output
+        prompt = prompt.rstrip("`\n ")
+        
+        path.write_text(prompt)
+        logger.info(f"Wrote GEPA-evolved clue_giver prompt ({len(prompt)} chars)")
+    else:
+        # Fall back to base prompt if no evolved instructions
+        base_prompt_path = Path(__file__).parent.parent / "prompts" / "clue_giver.md"
+        base_prompt = base_prompt_path.read_text()
+        path.write_text(base_prompt)
+        logger.warning("No evolved instructions found, using base prompt")
 
 
-def _write_guesser_prompt(path: Path, demos: List[Dict]) -> None:
-    """Write guesser prompt with optimized few-shot examples."""
-    # Load base prompt
-    base_prompt_path = Path(__file__).parent.parent / "prompts" / "guesser.md"
-    base_prompt = base_prompt_path.read_text()
+def _write_guesser_prompt(path: Path, evolved_instructions: Optional[str]) -> None:
+    """Write guesser prompt with GEPA-evolved instructions.
     
-    # If we have demos, add them as examples
-    if demos:
-        examples_section = "\n\n## Optimized Examples\n"
-        for i, demo in enumerate(demos, 1):
-            examples_section += f"\n**Example {i}:**\n"
-            if "board" in demo:
-                examples_section += f"Board: {demo['board']}\n"
-            if "clue" in demo:
-                examples_section += f"Clue: {demo['clue']}"
-            if "number" in demo:
-                examples_section += f" ({demo['number']})\n"
-            if "reasoning" in demo:
-                examples_section += f"Reasoning: {demo['reasoning']}\n"
-            if "guesses" in demo:
-                guesses = demo['guesses']
-                if isinstance(guesses, list):
-                    guesses = ", ".join(guesses)
-                examples_section += f"→ Guesses: {guesses}\n"
+    If GEPA evolved the instructions, use those directly.
+    Otherwise, fall back to the base prompt.
+    """
+    if evolved_instructions:
+        # GEPA evolved the prompt - use the evolved instructions directly
+        prompt = evolved_instructions
         
-        # Insert before the CURRENT GAME section
-        if "## CURRENT GAME" in base_prompt:
-            base_prompt = base_prompt.replace(
-                "## CURRENT GAME",
-                f"{examples_section}\n---\n\n## CURRENT GAME"
-            )
-    
-    path.write_text(base_prompt)
+        # Ensure the template has the required placeholders
+        if "{{HEAD_TO_HEAD_CONTEXT}}" not in prompt:
+            prompt = "{{HEAD_TO_HEAD_CONTEXT}}\n\n" + prompt
+        
+        # Clean up any stray ``` from GEPA output
+        prompt = prompt.rstrip("`\n ")
+        
+        path.write_text(prompt)
+        logger.info(f"Wrote GEPA-evolved guesser prompt ({len(prompt)} chars)")
+    else:
+        # Fall back to base prompt if no evolved instructions
+        base_prompt_path = Path(__file__).parent.parent / "prompts" / "guesser.md"
+        base_prompt = base_prompt_path.read_text()
+        path.write_text(base_prompt)
+        logger.warning("No evolved instructions found, using base prompt")
 
 
 def deploy_optimized_prompts(

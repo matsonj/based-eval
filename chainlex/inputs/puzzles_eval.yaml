@@ -1,0 +1,2981 @@
+pool_name: eval
+count: 50
+difficulty_distribution:
+  easy: 16
+  medium: 18
+  hard: 16
+puzzles:
+- id: easy_2f9ec54e
+  difficulty: easy
+  board:
+  - EARTH
+  - DEFEAT
+  - DEATH
+  - LOVE
+  - MOUSE
+  - FILM
+  - HEART
+  - OFFICE
+  - CAMERA
+  - APPLE
+  - LIFE
+  - OLYMPUS
+  - PHONE
+  - COMPUTER
+  - CAR
+  - GALAXY
+  friendly:
+  - APPLE
+  - PHONE
+  - COMPUTER
+  - CAMERA
+  - LIFE
+  - LOVE
+  - HEART
+  - DEATH
+  bystanders:
+  - FILM
+  - GALAXY
+  - DEFEAT
+  - CAR
+  - MOUSE
+  - EARTH
+  - OFFICE
+  assassin: OLYMPUS
+  tags:
+  - cluster:technology
+  - cluster:abstract
+  - semantic_trap
+  - bridge_hazard
+  metrics:
+    friendly_cohesion: 0.4093802571296692
+    friendly_bystander_avg_sim: 0.541861755507333
+    assassin_max_friendly_sim: 0.5119702816009521
+    num_confusing_bystanders: 7
+    num_singleton_friendlies: 0
+    dominant_cluster:
+    - APPLE
+    - PHONE
+    - COMPUTER
+    - CAMERA
+    bridge_bystanders:
+    - FILM
+    - GALAXY
+    - DEFEAT
+    - CAR
+    - EARTH
+    - OFFICE
+- id: easy_b45b9328
+  difficulty: easy
+  board:
+  - FIGHT
+  - CHICAGO
+  - WIN
+  - CASTLE
+  - TOKYO
+  - MOSCOW
+  - BOXING
+  - FORTRESS
+  - PARIS
+  - THEATER
+  - VICTORY
+  - HOLLYWOOD
+  - BATTLE
+  - FILM
+  - DEFEAT
+  - BEIJING
+  friendly:
+  - TOKYO
+  - HOLLYWOOD
+  - PARIS
+  - CHICAGO
+  - FORTRESS
+  - BATTLE
+  - FIGHT
+  - VICTORY
+  bystanders:
+  - DEFEAT
+  - WIN
+  - THEATER
+  - CASTLE
+  - FILM
+  - BEIJING
+  - BOXING
+  assassin: MOSCOW
+  tags:
+  - cluster:cities
+  - cluster:military
+  - semantic_trap
+  - bridge_hazard
+  metrics:
+    friendly_cohesion: 0.36225828528404236
+    friendly_bystander_avg_sim: 0.6680804235594613
+    assassin_max_friendly_sim: 0.6140815019607544
+    num_confusing_bystanders: 7
+    num_singleton_friendlies: 0
+    dominant_cluster:
+    - TOKYO
+    - HOLLYWOOD
+    - PARIS
+    - CHICAGO
+    bridge_bystanders:
+    - THEATER
+    - CASTLE
+    - FILM
+- id: easy_834e29f3
+  difficulty: easy
+  board:
+  - MILK
+  - PEPPER
+  - DINOSAUR
+  - FROG
+  - PIZZA
+  - CHOCOLATE
+  - ELEPHANT
+  - RABBIT
+  - SNAKE
+  - TOMATO
+  - CHEESE
+  - BEAR
+  - TURTLE
+  - WINE
+  - OCTOPUS
+  - BOTTLE
+  friendly:
+  - WINE
+  - CHEESE
+  - CHOCOLATE
+  - PIZZA
+  - BEAR
+  - RABBIT
+  - FROG
+  - TURTLE
+  bystanders:
+  - SNAKE
+  - MILK
+  - BOTTLE
+  - ELEPHANT
+  - DINOSAUR
+  - TOMATO
+  - PEPPER
+  assassin: OCTOPUS
+  tags:
+  - cluster:food
+  - cluster:animals
+  - semantic_trap
+  - bridge_hazard
+  metrics:
+    friendly_cohesion: 0.39176806807518005
+    friendly_bystander_avg_sim: 0.609852135181427
+    assassin_max_friendly_sim: 0.5678765773773193
+    num_confusing_bystanders: 7
+    num_singleton_friendlies: 0
+    dominant_cluster:
+    - BEAR
+    - RABBIT
+    - FROG
+    - TURTLE
+    bridge_bystanders:
+    - SNAKE
+    - MILK
+    - BOTTLE
+    - ELEPHANT
+    - DINOSAUR
+    - TOMATO
+    - PEPPER
+- id: easy_08cf3a47
+  difficulty: easy
+  board:
+  - SURFING
+  - JACKET
+  - DIVE
+  - COAT
+  - SHIRT
+  - SWIM
+  - OCEAN
+  - SHIP
+  - WATER
+  - BOAT
+  - UNIFORM
+  - BEACH
+  - BELT
+  - ARMOR
+  - SAIL
+  - SUIT
+  friendly:
+  - DIVE
+  - SURFING
+  - SAIL
+  - SWIM
+  - UNIFORM
+  - JACKET
+  - SHIRT
+  - COAT
+  bystanders:
+  - BOAT
+  - SUIT
+  - SHIP
+  - WATER
+  - BEACH
+  - OCEAN
+  - ARMOR
+  assassin: BELT
+  tags:
+  - cluster:sports
+  - cluster:clothing
+  - semantic_trap
+  - bridge_hazard
+  metrics:
+    friendly_cohesion: 0.38033249974250793
+    friendly_bystander_avg_sim: 0.6223713500159127
+    assassin_max_friendly_sim: 0.5645794868469238
+    num_confusing_bystanders: 7
+    num_singleton_friendlies: 0
+    dominant_cluster:
+    - UNIFORM
+    - JACKET
+    - SHIRT
+    - COAT
+    bridge_bystanders:
+    - BOAT
+    - SUIT
+    - SHIP
+    - WATER
+    - OCEAN
+    - ARMOR
+- id: easy_dc3a5acb
+  difficulty: easy
+  board:
+  - MODERN
+  - CIVILIZATION
+  - CAMERA
+  - CASTLE
+  - PHONE
+  - APPLE
+  - CAR
+  - CENTURY
+  - MEDIEVAL
+  - FILM
+  - ROME
+  - MOUSE
+  - ANCIENT
+  - GALAXY
+  - COMPUTER
+  - KINGDOM
+  friendly:
+  - MODERN
+  - MEDIEVAL
+  - ANCIENT
+  - CENTURY
+  - PHONE
+  - APPLE
+  - COMPUTER
+  - CAMERA
+  bystanders:
+  - CIVILIZATION
+  - FILM
+  - GALAXY
+  - ROME
+  - CAR
+  - MOUSE
+  - KINGDOM
+  assassin: CASTLE
+  tags:
+  - cluster:time
+  - cluster:technology
+  - bridge_hazard
+  metrics:
+    friendly_cohesion: 0.37519145011901855
+    friendly_bystander_avg_sim: 0.5513311113630023
+    assassin_max_friendly_sim: 0.479736328125
+    num_confusing_bystanders: 7
+    num_singleton_friendlies: 0
+    dominant_cluster:
+    - MODERN
+    - MEDIEVAL
+    - ANCIENT
+    - CENTURY
+    bridge_bystanders:
+    - CIVILIZATION
+    - FILM
+    - ROME
+    - KINGDOM
+- id: easy_bec54380
+  difficulty: easy
+  board:
+  - APPLE
+  - COMPUTER
+  - THEATER
+  - LONDON
+  - MOSCOW
+  - PHONE
+  - BEIJING
+  - CAMERA
+  - TOKYO
+  - CHICAGO
+  - HOLLYWOOD
+  - ROME
+  - FILM
+  - MOVIE
+  - BERLIN
+  - PARIS
+  friendly:
+  - HOLLYWOOD
+  - TOKYO
+  - PARIS
+  - CHICAGO
+  - APPLE
+  - PHONE
+  - COMPUTER
+  - CAMERA
+  bystanders:
+  - THEATER
+  - FILM
+  - BEIJING
+  - MOSCOW
+  - LONDON
+  - BERLIN
+  - MOVIE
+  assassin: ROME
+  tags:
+  - cluster:cities
+  - cluster:technology
+  - semantic_trap
+  - bridge_hazard
+  metrics:
+    friendly_cohesion: 0.3973085880279541
+    friendly_bystander_avg_sim: 0.6056846295084272
+    assassin_max_friendly_sim: 0.5529648661613464
+    num_confusing_bystanders: 7
+    num_singleton_friendlies: 0
+    dominant_cluster:
+    - HOLLYWOOD
+    - TOKYO
+    - PARIS
+    - CHICAGO
+    bridge_bystanders:
+    - THEATER
+    - FILM
+    - BEIJING
+    - MOSCOW
+    - LONDON
+    - BERLIN
+    - MOVIE
+- id: easy_d9a2272b
+  difficulty: easy
+  board:
+  - ROCKET
+  - ENGINE
+  - GARAGE
+  - TURTLE
+  - BEAR
+  - ELEPHANT
+  - SNAKE
+  - FISH
+  - DINOSAUR
+  - FROG
+  - RABBIT
+  - CAR
+  - PLANE
+  - HELICOPTER
+  - DRAGON
+  - OCTOPUS
+  friendly:
+  - RABBIT
+  - BEAR
+  - FROG
+  - TURTLE
+  - GARAGE
+  - ENGINE
+  - HELICOPTER
+  - CAR
+  bystanders:
+  - SNAKE
+  - ELEPHANT
+  - DINOSAUR
+  - PLANE
+  - OCTOPUS
+  - ROCKET
+  - FISH
+  assassin: DRAGON
+  tags:
+  - cluster:nature
+  - cluster:transport
+  - semantic_trap
+  - bridge_hazard
+  metrics:
+    friendly_cohesion: 0.39873433113098145
+    friendly_bystander_avg_sim: 0.5868443591254098
+    assassin_max_friendly_sim: 0.5540375113487244
+    num_confusing_bystanders: 7
+    num_singleton_friendlies: 0
+    dominant_cluster:
+    - RABBIT
+    - BEAR
+    - FROG
+    - TURTLE
+    bridge_bystanders:
+    - SNAKE
+    - ELEPHANT
+    - DINOSAUR
+    - PLANE
+    - OCTOPUS
+    - ROCKET
+    - FISH
+- id: easy_be1c15f0
+  difficulty: easy
+  board:
+  - KINGDOM
+  - PHOENIX
+  - DESERT
+  - CENTURY
+  - MOUNTAIN
+  - CLIFF
+  - CIVILIZATION
+  - CLIMB
+  - ROME
+  - ANCIENT
+  - GLACIER
+  - CANYON
+  - VOLCANO
+  - VALLEY
+  - MEDIEVAL
+  - MODERN
+  friendly:
+  - VOLCANO
+  - MOUNTAIN
+  - VALLEY
+  - CANYON
+  - MODERN
+  - MEDIEVAL
+  - ANCIENT
+  - CENTURY
+  bystanders:
+  - CLIMB
+  - CIVILIZATION
+  - DESERT
+  - CLIFF
+  - ROME
+  - GLACIER
+  - PHOENIX
+  assassin: KINGDOM
+  tags:
+  - cluster:nature
+  - cluster:time
+  - semantic_trap
+  - bridge_hazard
+  metrics:
+    friendly_cohesion: 0.3675241768360138
+    friendly_bystander_avg_sim: 0.5596424766949245
+    assassin_max_friendly_sim: 0.5241155028343201
+    num_confusing_bystanders: 7
+    num_singleton_friendlies: 0
+    dominant_cluster:
+    - MODERN
+    - MEDIEVAL
+    - ANCIENT
+    - CENTURY
+    bridge_bystanders:
+    - CIVILIZATION
+    - DESERT
+    - ROME
+- id: easy_489e8963
+  difficulty: easy
+  board:
+  - DEFEAT
+  - MOUNTAIN
+  - CANYON
+  - FORTRESS
+  - VICTORY
+  - CLIMB
+  - FIGHT
+  - WIN
+  - DESERT
+  - BATTLE
+  - GAME
+  - VALLEY
+  - CASTLE
+  - BOXING
+  - MATCH
+  - VOLCANO
+  friendly:
+  - FORTRESS
+  - BATTLE
+  - FIGHT
+  - VICTORY
+  - VOLCANO
+  - MOUNTAIN
+  - VALLEY
+  - CANYON
+  bystanders:
+  - DEFEAT
+  - WIN
+  - CASTLE
+  - BOXING
+  - CLIMB
+  - MATCH
+  - GAME
+  assassin: DESERT
+  tags:
+  - cluster:military
+  - cluster:nature
+  - semantic_trap
+  - bridge_hazard
+  metrics:
+    friendly_cohesion: 0.40403810143470764
+    friendly_bystander_avg_sim: 0.6496668287685939
+    assassin_max_friendly_sim: 0.5628155469894409
+    num_confusing_bystanders: 7
+    num_singleton_friendlies: 0
+    dominant_cluster:
+    - VOLCANO
+    - MOUNTAIN
+    - VALLEY
+    - CANYON
+    bridge_bystanders:
+    - DEFEAT
+    - CASTLE
+    - BOXING
+    - CLIMB
+    - GAME
+- id: easy_a2d17e50
+  difficulty: easy
+  board:
+  - BEAR
+  - SUIT
+  - ARMOR
+  - ELEPHANT
+  - FROG
+  - BELT
+  - TURTLE
+  - SHIRT
+  - UNIFORM
+  - RABBIT
+  - OCTOPUS
+  - COAT
+  - DINOSAUR
+  - JACKET
+  - PAINT
+  - SNAKE
+  friendly:
+  - UNIFORM
+  - JACKET
+  - SHIRT
+  - COAT
+  - RABBIT
+  - BEAR
+  - FROG
+  - TURTLE
+  bystanders:
+  - SNAKE
+  - SUIT
+  - ELEPHANT
+  - DINOSAUR
+  - ARMOR
+  - OCTOPUS
+  - BELT
+  assassin: PAINT
+  tags:
+  - cluster:clothing
+  - cluster:nature
+  - semantic_trap
+  - bridge_hazard
+  metrics:
+    friendly_cohesion: 0.4022146165370941
+    friendly_bystander_avg_sim: 0.6005986673491341
+    assassin_max_friendly_sim: 0.5560399293899536
+    num_confusing_bystanders: 7
+    num_singleton_friendlies: 0
+    dominant_cluster:
+    - UNIFORM
+    - JACKET
+    - SHIRT
+    - COAT
+    bridge_bystanders:
+    - SNAKE
+    - SUIT
+    - ELEPHANT
+    - ARMOR
+    - BELT
+- id: easy_bcb7adcf
+  difficulty: easy
+  board:
+  - PIANO
+  - FACTORY
+  - DANCE
+  - BRAND
+  - SONG
+  - OFFICE
+  - CONCERT
+  - JAZZ
+  - ROCK
+  - STOCK
+  - MUSIC
+  - ALBUM
+  - SALE
+  - STONE
+  - MARKET
+  - COMPANY
+  friendly:
+  - JAZZ
+  - MUSIC
+  - DANCE
+  - ROCK
+  - COMPANY
+  - MARKET
+  - BRAND
+  - STOCK
+  bystanders:
+  - STONE
+  - PIANO
+  - SONG
+  - SALE
+  - FACTORY
+  - CONCERT
+  - ALBUM
+  assassin: OFFICE
+  tags:
+  - cluster:arts
+  - cluster:business
+  - semantic_trap
+  - bridge_hazard
+  metrics:
+    friendly_cohesion: 0.3870082199573517
+    friendly_bystander_avg_sim: 0.6052150981766837
+    assassin_max_friendly_sim: 0.5429242253303528
+    num_confusing_bystanders: 7
+    num_singleton_friendlies: 0
+    dominant_cluster:
+    - COMPANY
+    - MARKET
+    - BRAND
+    - STOCK
+    bridge_bystanders:
+    - STONE
+    - SONG
+    - SALE
+    - FACTORY
+    - ALBUM
+- id: easy_4dfda25f
+  difficulty: easy
+  board:
+  - TOWER
+  - COAT
+  - PAINT
+  - ARMOR
+  - FORTRESS
+  - ARMY
+  - KINGDOM
+  - UNIFORM
+  - PALACE
+  - MONUMENT
+  - SHIRT
+  - CASTLE
+  - BELT
+  - JACKET
+  - SOLDIER
+  - SUIT
+  friendly:
+  - TOWER
+  - PALACE
+  - CASTLE
+  - FORTRESS
+  - UNIFORM
+  - JACKET
+  - SHIRT
+  - COAT
+  bystanders:
+  - SUIT
+  - ARMOR
+  - BELT
+  - MONUMENT
+  - PAINT
+  - ARMY
+  - KINGDOM
+  assassin: SOLDIER
+  tags:
+  - cluster:buildings
+  - cluster:clothing
+  - semantic_trap
+  - bridge_hazard
+  metrics:
+    friendly_cohesion: 0.3683468997478485
+    friendly_bystander_avg_sim: 0.5700866665158953
+    assassin_max_friendly_sim: 0.5320783257484436
+    num_confusing_bystanders: 7
+    num_singleton_friendlies: 0
+    dominant_cluster:
+    - UNIFORM
+    - JACKET
+    - SHIRT
+    - COAT
+    bridge_bystanders:
+    - ARMOR
+    - BELT
+    - ARMY
+    - KINGDOM
+- id: easy_c508e67d
+  difficulty: easy
+  board:
+  - FACTORY
+  - PLANE
+  - HEART
+  - LOVE
+  - PARACHUTE
+  - ENGINE
+  - CAR
+  - COMPUTER
+  - PHONE
+  - TAXI
+  - ROCKET
+  - GARAGE
+  - LIFE
+  - DEFEAT
+  - DEATH
+  - HELICOPTER
+  friendly:
+  - ENGINE
+  - GARAGE
+  - HELICOPTER
+  - CAR
+  - LOVE
+  - LIFE
+  - HEART
+  - DEATH
+  bystanders:
+  - PLANE
+  - ROCKET
+  - FACTORY
+  - DEFEAT
+  - PHONE
+  - COMPUTER
+  - TAXI
+  assassin: PARACHUTE
+  tags:
+  - cluster:transport
+  - cluster:abstract
+  - semantic_trap
+  - bridge_hazard
+  metrics:
+    friendly_cohesion: 0.4031781554222107
+    friendly_bystander_avg_sim: 0.5482053501265389
+    assassin_max_friendly_sim: 0.5052834749221802
+    num_confusing_bystanders: 7
+    num_singleton_friendlies: 0
+    dominant_cluster:
+    - ENGINE
+    - GARAGE
+    - HELICOPTER
+    - CAR
+    bridge_bystanders:
+    - ROCKET
+    - FACTORY
+    - DEFEAT
+    - PHONE
+    - COMPUTER
+    - TAXI
+- id: easy_637aaf03
+  difficulty: easy
+  board:
+  - VOLCANO
+  - RING
+  - CLIMB
+  - GOLD
+  - MEDAL
+  - CLIFF
+  - GLACIER
+  - CANYON
+  - DESERT
+  - VALLEY
+  - JEWELRY
+  - DIAMOND
+  - BRONZE
+  - MOUNTAIN
+  - CRYSTAL
+  - STONE
+  friendly:
+  - VOLCANO
+  - MOUNTAIN
+  - VALLEY
+  - CANYON
+  - BRONZE
+  - DIAMOND
+  - GOLD
+  - JEWELRY
+  bystanders:
+  - RING
+  - CLIMB
+  - MEDAL
+  - STONE
+  - DESERT
+  - CLIFF
+  - CRYSTAL
+  assassin: GLACIER
+  tags:
+  - cluster:nature
+  - cluster:objects
+  - semantic_trap
+  - bridge_hazard
+  metrics:
+    friendly_cohesion: 0.36975064873695374
+    friendly_bystander_avg_sim: 0.5805095093590873
+    assassin_max_friendly_sim: 0.530951201915741
+    num_confusing_bystanders: 7
+    num_singleton_friendlies: 0
+    dominant_cluster:
+    - VOLCANO
+    - MOUNTAIN
+    - VALLEY
+    - CANYON
+    bridge_bystanders:
+    - CLIMB
+    - STONE
+    - CLIFF
+- id: easy_05d57ce5
+  difficulty: easy
+  board:
+  - CROWN
+  - OFFICE
+  - APPLE
+  - FILM
+  - CAMERA
+  - JEWELRY
+  - DIAMOND
+  - STONE
+  - COMPUTER
+  - BRONZE
+  - CRYSTAL
+  - GALAXY
+  - CAR
+  - MOUSE
+  - RING
+  - PHONE
+  friendly:
+  - PHONE
+  - APPLE
+  - COMPUTER
+  - CAMERA
+  - CROWN
+  - DIAMOND
+  - JEWELRY
+  - RING
+  bystanders:
+  - STONE
+  - FILM
+  - GALAXY
+  - CAR
+  - CRYSTAL
+  - BRONZE
+  - MOUSE
+  assassin: OFFICE
+  tags:
+  - cluster:technology
+  - cluster:objects
+  - semantic_trap
+  - bridge_hazard
+  metrics:
+    friendly_cohesion: 0.39912399649620056
+    friendly_bystander_avg_sim: 0.5516468627112252
+    assassin_max_friendly_sim: 0.5214858055114746
+    num_confusing_bystanders: 7
+    num_singleton_friendlies: 0
+    dominant_cluster:
+    - PHONE
+    - APPLE
+    - COMPUTER
+    - CAMERA
+    bridge_bystanders:
+    - STONE
+    - FILM
+    - GALAXY
+    - CAR
+    - CRYSTAL
+    - BRONZE
+- id: easy_f69e6d43
+  difficulty: easy
+  board:
+  - RIVER
+  - DEFEAT
+  - LIFE
+  - MOUNTAIN
+  - GLACIER
+  - CLIFF
+  - VALLEY
+  - PHOENIX
+  - DESERT
+  - SKIING
+  - CLIMB
+  - CANYON
+  - VOLCANO
+  - LOVE
+  - HEART
+  - DEATH
+  friendly:
+  - VOLCANO
+  - MOUNTAIN
+  - VALLEY
+  - CANYON
+  - LIFE
+  - LOVE
+  - HEART
+  - DEATH
+  bystanders:
+  - CLIMB
+  - DESERT
+  - DEFEAT
+  - CLIFF
+  - GLACIER
+  - PHOENIX
+  - RIVER
+  assassin: SKIING
+  tags:
+  - cluster:nature
+  - cluster:abstract
+  - bridge_hazard
+  metrics:
+    friendly_cohesion: 0.35554519295692444
+    friendly_bystander_avg_sim: 0.5505891186850411
+    assassin_max_friendly_sim: 0.4938632845878601
+    num_confusing_bystanders: 7
+    num_singleton_friendlies: 0
+    dominant_cluster:
+    - VOLCANO
+    - MOUNTAIN
+    - VALLEY
+    - CANYON
+    bridge_bystanders:
+    - DEFEAT
+    - CLIFF
+- id: medium_ba4e5720
+  difficulty: medium
+  board:
+  - PEACE
+  - REVOLUTION
+  - ANGEL
+  - KING
+  - KINGDOM
+  - EMPIRE
+  - DRAGON
+  - MONSTER
+  - QUEEN
+  - VICTORY
+  - BATTLE
+  - FIGHT
+  - WIN
+  - ZEUS
+  - DEFEAT
+  - BOMB
+  friendly:
+  - REVOLUTION
+  - DEFEAT
+  - BOMB
+  - PEACE
+  - KINGDOM
+  - MONSTER
+  - ZEUS
+  - ANGEL
+  bystanders:
+  - VICTORY
+  - KING
+  - FIGHT
+  - BATTLE
+  - WIN
+  - DRAGON
+  - QUEEN
+  assassin: EMPIRE
+  tags:
+  - cluster:military
+  - cluster:mythology
+  - semantic_trap
+  - bridge_hazard
+  metrics:
+    friendly_cohesion: 0.3495059907436371
+    friendly_bystander_avg_sim: 0.6734423467091152
+    assassin_max_friendly_sim: 0.5425203442573547
+    num_confusing_bystanders: 7
+    num_singleton_friendlies: 0
+    dominant_cluster:
+    - KINGDOM
+    - MONSTER
+    - ZEUS
+    - ANGEL
+    bridge_bystanders:
+    - VICTORY
+    - KING
+    - FIGHT
+    - BATTLE
+    - WIN
+    - DRAGON
+    - QUEEN
+- id: medium_b28e2c43
+  difficulty: medium
+  board:
+  - OLYMPUS
+  - THEATER
+  - VILLAIN
+  - GOLD
+  - FORTRESS
+  - HOLLYWOOD
+  - PRISON
+  - PALACE
+  - HERO
+  - CONCERT
+  - STAGE
+  - CASTLE
+  - FILM
+  - ZEUS
+  - CHAMPION
+  - LEGEND
+  friendly:
+  - ZEUS
+  - VILLAIN
+  - OLYMPUS
+  - HERO
+  - THEATER
+  - PRISON
+  - PALACE
+  - FORTRESS
+  bystanders:
+  - HOLLYWOOD
+  - CASTLE
+  - FILM
+  - LEGEND
+  - CONCERT
+  - STAGE
+  - CHAMPION
+  assassin: GOLD
+  tags:
+  - cluster:mythology
+  - cluster:buildings
+  - semantic_trap
+  - bridge_hazard
+  metrics:
+    friendly_cohesion: 0.3211199641227722
+    friendly_bystander_avg_sim: 0.5965474077633449
+    assassin_max_friendly_sim: 0.5209254026412964
+    num_confusing_bystanders: 7
+    num_singleton_friendlies: 0
+    dominant_cluster:
+    - ZEUS
+    - VILLAIN
+    - OLYMPUS
+    - HERO
+    bridge_bystanders:
+    - HOLLYWOOD
+    - FILM
+    - CHAMPION
+- id: medium_616e6c1a
+  difficulty: medium
+  board:
+  - LION
+  - MUSEUM
+  - FILM
+  - MOVIE
+  - FOREST
+  - JUNGLE
+  - BOOK
+  - BANANA
+  - ALBUM
+  - TIGER
+  - SONG
+  - NOVEL
+  - MONKEY
+  - CAMERA
+  - EAGLE
+  - HAWK
+  friendly:
+  - HAWK
+  - LION
+  - FOREST
+  - MONKEY
+  - ALBUM
+  - MUSEUM
+  - CAMERA
+  - BOOK
+  bystanders:
+  - NOVEL
+  - SONG
+  - TIGER
+  - BANANA
+  - JUNGLE
+  - MOVIE
+  - FILM
+  assassin: EAGLE
+  tags:
+  - cluster:nature
+  - cluster:arts
+  - semantic_trap
+  - bridge_hazard
+  metrics:
+    friendly_cohesion: 0.3332274556159973
+    friendly_bystander_avg_sim: 0.6482042329651969
+    assassin_max_friendly_sim: 0.5690893530845642
+    num_confusing_bystanders: 7
+    num_singleton_friendlies: 0
+    dominant_cluster:
+    - HAWK
+    - LION
+    - FOREST
+    - MONKEY
+    bridge_bystanders:
+    - NOVEL
+    - BANANA
+    - JUNGLE
+    - MOVIE
+    - FILM
+- id: medium_064ddca3
+  difficulty: medium
+  board:
+  - BATTLE
+  - KICK
+  - WIN
+  - FISH
+  - SHARK
+  - VICTORY
+  - DEER
+  - OCTOPUS
+  - SWIM
+  - CRAB
+  - FIGHT
+  - BALL
+  - DEFEAT
+  - LOBSTER
+  - EAGLE
+  - DIVE
+  friendly:
+  - VICTORY
+  - KICK
+  - DIVE
+  - BALL
+  - LOBSTER
+  - EAGLE
+  - DEER
+  - OCTOPUS
+  bystanders:
+  - DEFEAT
+  - CRAB
+  - WIN
+  - BATTLE
+  - FIGHT
+  - SHARK
+  - FISH
+  assassin: SWIM
+  tags:
+  - cluster:sports
+  - cluster:animals
+  - semantic_trap
+  - bridge_hazard
+  metrics:
+    friendly_cohesion: 0.32023176550865173
+    friendly_bystander_avg_sim: 0.6800370216369629
+    assassin_max_friendly_sim: 0.5854001045227051
+    num_confusing_bystanders: 7
+    num_singleton_friendlies: 0
+    dominant_cluster:
+    - VICTORY
+    - KICK
+    - DIVE
+    - BALL
+    bridge_bystanders:
+    - CRAB
+    - BATTLE
+    - FIGHT
+    - SHARK
+    - FISH
+- id: medium_8cfca8d7
+  difficulty: medium
+  board:
+  - SKULL
+  - GAME
+  - BOXING
+  - FIGHT
+  - TEAM
+  - NECK
+  - BONE
+  - NERVE
+  - WIN
+  - DANCE
+  - VICTORY
+  - MUSIC
+  - SHOULDER
+  - DEFEAT
+  - BRAIN
+  - BLOOD
+  friendly:
+  - BONE
+  - SHOULDER
+  - BLOOD
+  - BRAIN
+  - GAME
+  - DANCE
+  - BOXING
+  - WIN
+  bystanders:
+  - VICTORY
+  - DEFEAT
+  - FIGHT
+  - NERVE
+  - SKULL
+  - MUSIC
+  - TEAM
+  assassin: NECK
+  tags:
+  - cluster:body
+  - cluster:sports
+  - semantic_trap
+  - bridge_hazard
+  metrics:
+    friendly_cohesion: 0.3491859436035156
+    friendly_bystander_avg_sim: 0.621542922088078
+    assassin_max_friendly_sim: 0.5692663788795471
+    num_confusing_bystanders: 7
+    num_singleton_friendlies: 0
+    dominant_cluster:
+    - BONE
+    - SHOULDER
+    - BLOOD
+    - BRAIN
+    bridge_bystanders:
+    - VICTORY
+    - DEFEAT
+    - FIGHT
+    - NERVE
+    - SKULL
+    - MUSIC
+    - TEAM
+- id: medium_d4de4ec2
+  difficulty: medium
+  board:
+  - PROFIT
+  - LEGEND
+  - CHAMPION
+  - DEAL
+  - SPIDER
+  - TAX
+  - TRADE
+  - CONTRACT
+  - SALE
+  - MARKET
+  - GOLD
+  - HERO
+  - PRICE
+  - OLYMPUS
+  - VILLAIN
+  - ZEUS
+  friendly:
+  - TAX
+  - SALE
+  - TRADE
+  - CONTRACT
+  - ZEUS
+  - VILLAIN
+  - OLYMPUS
+  - HERO
+  bystanders:
+  - PRICE
+  - DEAL
+  - LEGEND
+  - MARKET
+  - CHAMPION
+  - PROFIT
+  - GOLD
+  assassin: SPIDER
+  tags:
+  - cluster:business
+  - cluster:mythology
+  - semantic_trap
+  - bridge_hazard
+  - low_cohesion
+  metrics:
+    friendly_cohesion: 0.28028595447540283
+    friendly_bystander_avg_sim: 0.5962015305246625
+    assassin_max_friendly_sim: 0.5123887062072754
+    num_confusing_bystanders: 7
+    num_singleton_friendlies: 0
+    dominant_cluster:
+    - ZEUS
+    - VILLAIN
+    - OLYMPUS
+    - HERO
+    bridge_bystanders:
+    - CHAMPION
+    - GOLD
+- id: medium_b0ecf395
+  difficulty: medium
+  board:
+  - MYSTERY
+  - GARAGE
+  - HELICOPTER
+  - JET
+  - POWER
+  - SAIL
+  - BOAT
+  - GOAL
+  - SHIP
+  - CAR
+  - LIFE
+  - FISH
+  - DEATH
+  - PLANE
+  - OCEAN
+  - SUBMARINE
+  friendly:
+  - LIFE
+  - MYSTERY
+  - GOAL
+  - POWER
+  - HELICOPTER
+  - BOAT
+  - GARAGE
+  - JET
+  bystanders:
+  - SAIL
+  - SUBMARINE
+  - DEATH
+  - PLANE
+  - CAR
+  - SHIP
+  - FISH
+  assassin: OCEAN
+  tags:
+  - cluster:abstract
+  - cluster:transport
+  - semantic_trap
+  - bridge_hazard
+  metrics:
+    friendly_cohesion: 0.35151219367980957
+    friendly_bystander_avg_sim: 0.6261601022311619
+    assassin_max_friendly_sim: 0.5790489912033081
+    num_confusing_bystanders: 7
+    num_singleton_friendlies: 0
+    dominant_cluster:
+    - HELICOPTER
+    - BOAT
+    - GARAGE
+    - JET
+    bridge_bystanders:
+    - SAIL
+    - SUBMARINE
+    - DEATH
+    - PLANE
+    - CAR
+    - SHIP
+    - FISH
+- id: medium_49c575e6
+  difficulty: medium
+  board:
+  - ALBUM
+  - ORANGE
+  - SONG
+  - CHEESE
+  - BACON
+  - MOVIE
+  - MONUMENT
+  - CAMERA
+  - SALT
+  - BOOK
+  - FILM
+  - PIZZA
+  - MILK
+  - CHOCOLATE
+  - MUSEUM
+  - NOVEL
+  friendly:
+  - ALBUM
+  - MUSEUM
+  - CAMERA
+  - BOOK
+  - ORANGE
+  - CHEESE
+  - SALT
+  - BACON
+  bystanders:
+  - NOVEL
+  - SONG
+  - MILK
+  - PIZZA
+  - MOVIE
+  - FILM
+  - CHOCOLATE
+  assassin: MONUMENT
+  tags:
+  - cluster:arts
+  - cluster:food
+  - semantic_trap
+  - bridge_hazard
+  metrics:
+    friendly_cohesion: 0.32884976267814636
+    friendly_bystander_avg_sim: 0.6344341124807086
+    assassin_max_friendly_sim: 0.5615746378898621
+    num_confusing_bystanders: 7
+    num_singleton_friendlies: 0
+    dominant_cluster:
+    - ALBUM
+    - MUSEUM
+    - CAMERA
+    - BOOK
+    bridge_bystanders:
+    - NOVEL
+    - PIZZA
+    - MOVIE
+    - FILM
+- id: medium_494d3624
+  difficulty: medium
+  board:
+  - PENGUIN
+  - GAME
+  - CROW
+  - SNAKE
+  - LIFE
+  - HAWK
+  - DEATH
+  - SECRET
+  - GOAL
+  - MYSTERY
+  - DINOSAUR
+  - POWER
+  - SCORE
+  - OCTOPUS
+  - TURTLE
+  - EAGLE
+  friendly:
+  - LIFE
+  - MYSTERY
+  - GOAL
+  - POWER
+  - CROW
+  - TURTLE
+  - HAWK
+  - PENGUIN
+  bystanders:
+  - SNAKE
+  - DEATH
+  - SECRET
+  - DINOSAUR
+  - OCTOPUS
+  - EAGLE
+  - GAME
+  assassin: SCORE
+  tags:
+  - cluster:abstract
+  - cluster:animals
+  - semantic_trap
+  - bridge_hazard
+  metrics:
+    friendly_cohesion: 0.32640379667282104
+    friendly_bystander_avg_sim: 0.5909061261585781
+    assassin_max_friendly_sim: 0.5490637421607971
+    num_confusing_bystanders: 7
+    num_singleton_friendlies: 0
+    dominant_cluster:
+    - LIFE
+    - MYSTERY
+    - GOAL
+    - POWER
+    bridge_bystanders:
+    - SNAKE
+    - DEATH
+    - SECRET
+    - DINOSAUR
+    - OCTOPUS
+    - EAGLE
+    - GAME
+- id: medium_189c86ac
+  difficulty: medium
+  board:
+  - CAR
+  - JUNGLE
+  - CASTLE
+  - MONKEY
+  - FOREST
+  - HAWK
+  - BANANA
+  - PALACE
+  - TIGER
+  - MONUMENT
+  - LION
+  - GARAGE
+  - TEMPLE
+  - EAGLE
+  - WAREHOUSE
+  - ELEPHANT
+  friendly:
+  - GARAGE
+  - PALACE
+  - TEMPLE
+  - WAREHOUSE
+  - HAWK
+  - LION
+  - FOREST
+  - MONKEY
+  bystanders:
+  - TIGER
+  - BANANA
+  - JUNGLE
+  - CAR
+  - MONUMENT
+  - EAGLE
+  - ELEPHANT
+  assassin: CASTLE
+  tags:
+  - cluster:buildings
+  - cluster:nature
+  - semantic_trap
+  - bridge_hazard
+  metrics:
+    friendly_cohesion: 0.3224644958972931
+    friendly_bystander_avg_sim: 0.6054419279098511
+    assassin_max_friendly_sim: 0.5567421913146973
+    num_confusing_bystanders: 7
+    num_singleton_friendlies: 0
+    dominant_cluster:
+    - GARAGE
+    - PALACE
+    - TEMPLE
+    - WAREHOUSE
+    bridge_bystanders:
+    - TIGER
+    - BANANA
+    - JUNGLE
+    - CAR
+    - MONUMENT
+    - EAGLE
+    - ELEPHANT
+- id: medium_6541df67
+  difficulty: medium
+  board:
+  - TIGER
+  - CRAB
+  - LOBSTER
+  - JUNGLE
+  - FOX
+  - WHALE
+  - BUTTERFLY
+  - LION
+  - OWL
+  - ELEPHANT
+  - HAWK
+  - MONKEY
+  - FOREST
+  - EAGLE
+  - FROG
+  - BANANA
+  friendly:
+  - HAWK
+  - LION
+  - FOREST
+  - MONKEY
+  - ELEPHANT
+  - EAGLE
+  - BUTTERFLY
+  - CRAB
+  bystanders:
+  - LOBSTER
+  - TIGER
+  - BANANA
+  - JUNGLE
+  - FROG
+  - OWL
+  - WHALE
+  assassin: FOX
+  tags:
+  - cluster:nature
+  - cluster:animals
+  - semantic_trap
+  - bridge_hazard
+  metrics:
+    friendly_cohesion: 0.3941139280796051
+    friendly_bystander_avg_sim: 0.6306236641747611
+    assassin_max_friendly_sim: 0.54099440574646
+    num_confusing_bystanders: 7
+    num_singleton_friendlies: 0
+    dominant_cluster:
+    - HAWK
+    - LION
+    - FOREST
+    - MONKEY
+    bridge_bystanders:
+    - TIGER
+    - BANANA
+    - JUNGLE
+    - FROG
+    - OWL
+    - WHALE
+- id: medium_82696a2e
+  difficulty: medium
+  board:
+  - CAMERA
+  - RING
+  - STONE
+  - JEWELRY
+  - MEDAL
+  - FILM
+  - ALBUM
+  - GOLD
+  - SONG
+  - DIAMOND
+  - MONUMENT
+  - NOVEL
+  - MOVIE
+  - BOOK
+  - CHAIN
+  - MUSEUM
+  friendly:
+  - CHAIN
+  - RING
+  - DIAMOND
+  - GOLD
+  - MUSEUM
+  - ALBUM
+  - CAMERA
+  - BOOK
+  bystanders:
+  - NOVEL
+  - SONG
+  - JEWELRY
+  - STONE
+  - MOVIE
+  - FILM
+  - MEDAL
+  assassin: MONUMENT
+  tags:
+  - cluster:objects
+  - cluster:arts
+  - semantic_trap
+  - bridge_hazard
+  metrics:
+    friendly_cohesion: 0.3475789427757263
+    friendly_bystander_avg_sim: 0.6271037629672459
+    assassin_max_friendly_sim: 0.5615746378898621
+    num_confusing_bystanders: 7
+    num_singleton_friendlies: 0
+    dominant_cluster:
+    - MUSEUM
+    - ALBUM
+    - CAMERA
+    - BOOK
+    bridge_bystanders:
+    - SONG
+    - JEWELRY
+    - STONE
+    - MOVIE
+    - FILM
+    - MEDAL
+- id: medium_ae7e1ec3
+  difficulty: medium
+  board:
+  - MOVIE
+  - MUSIC
+  - COMIC
+  - SPELL
+  - BAT
+  - ROCK
+  - STONE
+  - MAGIC
+  - MOUSE
+  - CAMERA
+  - BOOK
+  - FILM
+  - NOVEL
+  - BATTERY
+  - ROBOT
+  - WIZARD
+  friendly:
+  - ROBOT
+  - CAMERA
+  - BATTERY
+  - MOUSE
+  - MAGIC
+  - ROCK
+  - COMIC
+  - BOOK
+  bystanders:
+  - NOVEL
+  - STONE
+  - MUSIC
+  - SPELL
+  - WIZARD
+  - BAT
+  - MOVIE
+  assassin: FILM
+  tags:
+  - cluster:technology
+  - cluster:arts
+  - semantic_trap
+  - bridge_hazard
+  metrics:
+    friendly_cohesion: 0.3517914414405823
+    friendly_bystander_avg_sim: 0.6367961508887154
+    assassin_max_friendly_sim: 0.5740780830383301
+    num_confusing_bystanders: 7
+    num_singleton_friendlies: 0
+    dominant_cluster:
+    - ROBOT
+    - CAMERA
+    - BATTERY
+    - MOUSE
+    bridge_bystanders:
+    - STONE
+    - MUSIC
+    - SPELL
+    - WIZARD
+    - BAT
+    - MOVIE
+- id: medium_edd216e2
+  difficulty: medium
+  board:
+  - CAR
+  - WAREHOUSE
+  - MONUMENT
+  - CASTLE
+  - PALACE
+  - ENGINE
+  - PLANET
+  - GARAGE
+  - MISSILE
+  - LASER
+  - TEMPLE
+  - EARTH
+  - ROCKET
+  - MOON
+  - JET
+  - TELESCOPE
+  friendly:
+  - GARAGE
+  - PALACE
+  - TEMPLE
+  - WAREHOUSE
+  - TELESCOPE
+  - LASER
+  - MOON
+  - ROCKET
+  bystanders:
+  - MISSILE
+  - CAR
+  - MONUMENT
+  - PLANET
+  - JET
+  - ENGINE
+  - EARTH
+  assassin: CASTLE
+  tags:
+  - cluster:buildings
+  - cluster:science
+  - semantic_trap
+  - bridge_hazard
+  metrics:
+    friendly_cohesion: 0.3254963755607605
+    friendly_bystander_avg_sim: 0.5911622302872794
+    assassin_max_friendly_sim: 0.5567421913146973
+    num_confusing_bystanders: 7
+    num_singleton_friendlies: 0
+    dominant_cluster:
+    - GARAGE
+    - PALACE
+    - TEMPLE
+    - WAREHOUSE
+    bridge_bystanders:
+    - CAR
+    - MONUMENT
+    - PLANET
+    - ENGINE
+    - EARTH
+- id: medium_7506e25d
+  difficulty: medium
+  board:
+  - SAIL
+  - PLANE
+  - PRICE
+  - CONTRACT
+  - CAR
+  - HELICOPTER
+  - BOAT
+  - SHIP
+  - SUBMARINE
+  - FISH
+  - SALE
+  - GARAGE
+  - TAX
+  - TRADE
+  - JET
+  - DEAL
+  friendly:
+  - HELICOPTER
+  - BOAT
+  - GARAGE
+  - JET
+  - TAX
+  - SALE
+  - TRADE
+  - CONTRACT
+  bystanders:
+  - SAIL
+  - PRICE
+  - DEAL
+  - SUBMARINE
+  - PLANE
+  - CAR
+  - SHIP
+  assassin: FISH
+  tags:
+  - cluster:transport
+  - cluster:business
+  - semantic_trap
+  - bridge_hazard
+  metrics:
+    friendly_cohesion: 0.3214661180973053
+    friendly_bystander_avg_sim: 0.6487216523715428
+    assassin_max_friendly_sim: 0.5834130644798279
+    num_confusing_bystanders: 7
+    num_singleton_friendlies: 0
+    dominant_cluster:
+    - HELICOPTER
+    - BOAT
+    - GARAGE
+    - JET
+    bridge_bystanders:
+    - PLANE
+    - CAR
+    - SHIP
+- id: medium_e24382d8
+  difficulty: medium
+  board:
+  - PLANE
+  - BOAT
+  - SAIL
+  - OCEAN
+  - GARAGE
+  - CAR
+  - JET
+  - GOAL
+  - MYSTERY
+  - DEATH
+  - SUBMARINE
+  - HELICOPTER
+  - POWER
+  - FISH
+  - SHIP
+  - LIFE
+  friendly:
+  - LIFE
+  - MYSTERY
+  - GOAL
+  - POWER
+  - HELICOPTER
+  - BOAT
+  - GARAGE
+  - JET
+  bystanders:
+  - SAIL
+  - SUBMARINE
+  - DEATH
+  - PLANE
+  - CAR
+  - SHIP
+  - FISH
+  assassin: OCEAN
+  tags:
+  - cluster:abstract
+  - cluster:transport
+  - semantic_trap
+  - bridge_hazard
+  metrics:
+    friendly_cohesion: 0.35151219367980957
+    friendly_bystander_avg_sim: 0.6261601022311619
+    assassin_max_friendly_sim: 0.5790489912033081
+    num_confusing_bystanders: 7
+    num_singleton_friendlies: 0
+    dominant_cluster:
+    - HELICOPTER
+    - BOAT
+    - GARAGE
+    - JET
+    bridge_bystanders:
+    - SAIL
+    - SUBMARINE
+    - DEATH
+    - PLANE
+    - CAR
+    - SHIP
+    - FISH
+- id: medium_1b96f8c4
+  difficulty: medium
+  board:
+  - PRICE
+  - SALE
+  - TRADE
+  - PLANET
+  - MARKET
+  - CONTRACT
+  - JET
+  - DEAL
+  - ROCKET
+  - ENGINE
+  - MOON
+  - TAX
+  - LASER
+  - MISSILE
+  - TELESCOPE
+  - PROFIT
+  friendly:
+  - TAX
+  - SALE
+  - TRADE
+  - CONTRACT
+  - TELESCOPE
+  - LASER
+  - MOON
+  - ROCKET
+  bystanders:
+  - PRICE
+  - MISSILE
+  - DEAL
+  - MARKET
+  - PLANET
+  - JET
+  - ENGINE
+  assassin: PROFIT
+  tags:
+  - cluster:business
+  - cluster:science
+  - semantic_trap
+  - bridge_hazard
+  metrics:
+    friendly_cohesion: 0.3064902126789093
+    friendly_bystander_avg_sim: 0.6195688843727112
+    assassin_max_friendly_sim: 0.5491868257522583
+    num_confusing_bystanders: 7
+    num_singleton_friendlies: 0
+    dominant_cluster:
+    - TAX
+    - SALE
+    - TRADE
+    - CONTRACT
+    bridge_bystanders:
+    - JET
+    - ENGINE
+- id: hard_6083beb9
+  difficulty: hard
+  board:
+  - PARACHUTE
+  - HAND
+  - GLOVE
+  - REVOLUTION
+  - BRONZE
+  - WIN
+  - VIKING
+  - MEDAL
+  - BATTLE
+  - FIGHT
+  - TEAM
+  - TRACK
+  - DEFEAT
+  - JUMP
+  - VICTORY
+  - FINGER
+  friendly:
+  - GLOVE
+  - JUMP
+  - TEAM
+  - TRACK
+  - DEFEAT
+  - VIKING
+  - MEDAL
+  - REVOLUTION
+  bystanders:
+  - VICTORY
+  - FIGHT
+  - BATTLE
+  - HAND
+  - WIN
+  - PARACHUTE
+  - FINGER
+  assassin: BRONZE
+  tags:
+  - cluster:sports
+  - cluster:military
+  - semantic_trap
+  - bridge_hazard
+  - low_cohesion
+  metrics:
+    friendly_cohesion: 0.28197401762008667
+    friendly_bystander_avg_sim: 0.6806280102048602
+    assassin_max_friendly_sim: 0.5948224067687988
+    num_confusing_bystanders: 7
+    num_singleton_friendlies: 0
+    dominant_cluster:
+    - DEFEAT
+    - VIKING
+    - MEDAL
+    - REVOLUTION
+    bridge_bystanders:
+    - VICTORY
+    - FIGHT
+    - BATTLE
+    - HAND
+    - WIN
+    - FINGER
+- id: hard_fae84105
+  difficulty: hard
+  board:
+  - SUIT
+  - LOBSTER
+  - TIE
+  - NECK
+  - ZEBRA
+  - ROPE
+  - UNIFORM
+  - FISH
+  - GLASSES
+  - EYE
+  - DOLPHIN
+  - CROW
+  - COLLAR
+  - BEAR
+  - CRAB
+  - OCTOPUS
+  friendly:
+  - ZEBRA
+  - BEAR
+  - LOBSTER
+  - CROW
+  - UNIFORM
+  - GLASSES
+  - TIE
+  - COLLAR
+  bystanders:
+  - CRAB
+  - NECK
+  - EYE
+  - OCTOPUS
+  - FISH
+  - SUIT
+  - ROPE
+  assassin: DOLPHIN
+  tags:
+  - cluster:animals
+  - cluster:clothing
+  - semantic_trap
+  - bridge_hazard
+  - low_cohesion
+  metrics:
+    friendly_cohesion: 0.298677921295166
+    friendly_bystander_avg_sim: 0.6052406770842416
+    assassin_max_friendly_sim: 0.5377036929130554
+    num_confusing_bystanders: 7
+    num_singleton_friendlies: 0
+    dominant_cluster:
+    - ZEBRA
+    - BEAR
+    - LOBSTER
+    - CROW
+    bridge_bystanders:
+    - CRAB
+    - NECK
+    - EYE
+    - OCTOPUS
+    - FISH
+    - SUIT
+    - ROPE
+- id: hard_9e87bbc9
+  difficulty: hard
+  board:
+  - ZEBRA
+  - THROAT
+  - LOVE
+  - COLLAR
+  - HEART
+  - NERVE
+  - FISH
+  - BEAR
+  - HOSPITAL
+  - OCTOPUS
+  - CROW
+  - NECK
+  - SKULL
+  - CRAB
+  - BRAIN
+  - LOBSTER
+  friendly:
+  - NECK
+  - HOSPITAL
+  - HEART
+  - NERVE
+  - ZEBRA
+  - BEAR
+  - LOBSTER
+  - CROW
+  bystanders:
+  - CRAB
+  - SKULL
+  - COLLAR
+  - BRAIN
+  - LOVE
+  - OCTOPUS
+  - FISH
+  assassin: THROAT
+  tags:
+  - cluster:body
+  - cluster:animals
+  - semantic_trap
+  - bridge_hazard
+  - low_cohesion
+  metrics:
+    friendly_cohesion: 0.2894917130470276
+    friendly_bystander_avg_sim: 0.6237349254744393
+    assassin_max_friendly_sim: 0.5728282928466797
+    num_confusing_bystanders: 7
+    num_singleton_friendlies: 0
+    dominant_cluster:
+    - NECK
+    - HOSPITAL
+    - HEART
+    - NERVE
+    bridge_bystanders:
+    - CRAB
+    - SKULL
+    - COLLAR
+    - BRAIN
+    - LOVE
+    - OCTOPUS
+    - FISH
+- id: hard_32206700
+  difficulty: hard
+  board:
+  - NAIL
+  - CANDLE
+  - TIE
+  - HAMMER
+  - LAMP
+  - SUIT
+  - UNIFORM
+  - PIANO
+  - COLLAR
+  - BUTTON
+  - MUSIC
+  - GLASSES
+  - SHOVEL
+  - NECK
+  - EYE
+  - WEAPON
+  friendly:
+  - HAMMER
+  - LAMP
+  - BUTTON
+  - PIANO
+  - UNIFORM
+  - GLASSES
+  - TIE
+  - COLLAR
+  bystanders:
+  - MUSIC
+  - NECK
+  - CANDLE
+  - EYE
+  - NAIL
+  - WEAPON
+  - SUIT
+  assassin: SHOVEL
+  tags:
+  - cluster:objects
+  - cluster:clothing
+  - semantic_trap
+  - bridge_hazard
+  - low_cohesion
+  metrics:
+    friendly_cohesion: 0.2840135395526886
+    friendly_bystander_avg_sim: 0.5922784549849374
+    assassin_max_friendly_sim: 0.5098268389701843
+    num_confusing_bystanders: 7
+    num_singleton_friendlies: 0
+    dominant_cluster:
+    - HAMMER
+    - LAMP
+    - BUTTON
+    - PIANO
+    bridge_bystanders:
+    - MUSIC
+    - NECK
+    - EYE
+    - NAIL
+    - WEAPON
+- id: hard_fb2a5181
+  difficulty: hard
+  board:
+  - DESERT
+  - TIE
+  - UNIFORM
+  - SNAKE
+  - QUEST
+  - TURTLE
+  - VEGAS
+  - FAIRY
+  - MONSTER
+  - LION
+  - DRAGON
+  - EYE
+  - COLLAR
+  - GLASSES
+  - PHOENIX
+  - NECK
+  friendly:
+  - UNIFORM
+  - GLASSES
+  - TIE
+  - COLLAR
+  - FAIRY
+  - PHOENIX
+  - QUEST
+  - DRAGON
+  bystanders:
+  - NECK
+  - EYE
+  - SNAKE
+  - VEGAS
+  - MONSTER
+  - DESERT
+  - TURTLE
+  assassin: LION
+  tags:
+  - cluster:clothing
+  - cluster:mythology
+  - semantic_trap
+  - bridge_hazard
+  - low_cohesion
+  metrics:
+    friendly_cohesion: 0.2709577977657318
+    friendly_bystander_avg_sim: 0.5814011693000793
+    assassin_max_friendly_sim: 0.5406066179275513
+    num_confusing_bystanders: 7
+    num_singleton_friendlies: 0
+    dominant_cluster:
+    - FAIRY
+    - PHOENIX
+    - QUEST
+    - DRAGON
+    bridge_bystanders:
+    - NECK
+    - EYE
+    - SNAKE
+    - VEGAS
+    - MONSTER
+    - DESERT
+    - TURTLE
+- id: hard_f697a1ab
+  difficulty: hard
+  board:
+  - CAPITAL
+  - PHOENIX
+  - TOKYO
+  - MIAMI
+  - CIRCUIT
+  - MISSILE
+  - LONDON
+  - SYDNEY
+  - SATELLITE
+  - VEGAS
+  - WIRE
+  - MOUSE
+  - CASINO
+  - BERLIN
+  - ROCKET
+  - MOSCOW
+  friendly:
+  - ROCKET
+  - CIRCUIT
+  - MOUSE
+  - SATELLITE
+  - VEGAS
+  - BERLIN
+  - CAPITAL
+  - SYDNEY
+  bystanders:
+  - MISSILE
+  - CASINO
+  - MOSCOW
+  - MIAMI
+  - LONDON
+  - WIRE
+  - TOKYO
+  assassin: PHOENIX
+  tags:
+  - cluster:technology
+  - cluster:cities
+  - semantic_trap
+  - bridge_hazard
+  - low_cohesion
+  metrics:
+    friendly_cohesion: 0.25102469325065613
+    friendly_bystander_avg_sim: 0.6316810250282288
+    assassin_max_friendly_sim: 0.5762526988983154
+    num_confusing_bystanders: 7
+    num_singleton_friendlies: 0
+    dominant_cluster:
+    - VEGAS
+    - BERLIN
+    - CAPITAL
+    - SYDNEY
+    bridge_bystanders:
+    - MOSCOW
+    - MIAMI
+- id: hard_db4ae139
+  difficulty: hard
+  board:
+  - SUCCESS
+  - FAILURE
+  - SALE
+  - MIAMI
+  - SYDNEY
+  - MOSCOW
+  - CASINO
+  - VEGAS
+  - PROGRESS
+  - BERLIN
+  - CAPITAL
+  - PRICE
+  - BRAND
+  - TREASURE
+  - TOKYO
+  - LONDON
+  friendly:
+  - BERLIN
+  - VEGAS
+  - CAPITAL
+  - SYDNEY
+  - SUCCESS
+  - TREASURE
+  - BRAND
+  - PRICE
+  bystanders:
+  - SALE
+  - CASINO
+  - FAILURE
+  - MOSCOW
+  - MIAMI
+  - LONDON
+  - PROGRESS
+  assassin: TOKYO
+  tags:
+  - cluster:cities
+  - cluster:business
+  - semantic_trap
+  - low_cohesion
+  metrics:
+    friendly_cohesion: 0.2668202519416809
+    friendly_bystander_avg_sim: 0.6470499890191215
+    assassin_max_friendly_sim: 0.5767155885696411
+    num_confusing_bystanders: 7
+    num_singleton_friendlies: 0
+    dominant_cluster:
+    - BERLIN
+    - VEGAS
+    - CAPITAL
+    - SYDNEY
+    bridge_bystanders:
+    - CASINO
+- id: hard_3ee174b5
+  difficulty: hard
+  board:
+  - LONDON
+  - TOKYO
+  - CAPITAL
+  - CASINO
+  - MOSCOW
+  - VIKING
+  - MONUMENT
+  - BERLIN
+  - TEMPLE
+  - MIAMI
+  - RUINS
+  - SYDNEY
+  - ANCIENT
+  - VEGAS
+  - MEDIEVAL
+  - PHOENIX
+  friendly:
+  - VEGAS
+  - BERLIN
+  - CAPITAL
+  - SYDNEY
+  - RUINS
+  - MEDIEVAL
+  - MONUMENT
+  - VIKING
+  bystanders:
+  - CASINO
+  - MOSCOW
+  - MIAMI
+  - ANCIENT
+  - LONDON
+  - TEMPLE
+  - TOKYO
+  assassin: PHOENIX
+  tags:
+  - cluster:cities
+  - cluster:time
+  - semantic_trap
+  - bridge_hazard
+  - low_cohesion
+  metrics:
+    friendly_cohesion: 0.290481835603714
+    friendly_bystander_avg_sim: 0.6238487022263663
+    assassin_max_friendly_sim: 0.5762526988983154
+    num_confusing_bystanders: 7
+    num_singleton_friendlies: 0
+    dominant_cluster:
+    - VEGAS
+    - BERLIN
+    - CAPITAL
+    - SYDNEY
+    bridge_bystanders:
+    - CASINO
+    - MOSCOW
+    - LONDON
+    - TEMPLE
+    - TOKYO
+- id: hard_ba41c04e
+  difficulty: hard
+  board:
+  - TREASURE
+  - VICTORY
+  - DEFEAT
+  - KNIGHT
+  - VAMPIRE
+  - VIKING
+  - BRONZE
+  - GOLD
+  - MEDAL
+  - BATTLE
+  - FIGHT
+  - WOLF
+  - POTION
+  - WIN
+  - WEREWOLF
+  - REVOLUTION
+  friendly:
+  - WEREWOLF
+  - POTION
+  - TREASURE
+  - KNIGHT
+  - DEFEAT
+  - VIKING
+  - MEDAL
+  - REVOLUTION
+  bystanders:
+  - VICTORY
+  - WOLF
+  - FIGHT
+  - BATTLE
+  - WIN
+  - BRONZE
+  - VAMPIRE
+  assassin: GOLD
+  tags:
+  - cluster:mythology
+  - cluster:military
+  - semantic_trap
+  - bridge_hazard
+  - low_cohesion
+  metrics:
+    friendly_cohesion: 0.2977481782436371
+    friendly_bystander_avg_sim: 0.6774475659642901
+    assassin_max_friendly_sim: 0.5637898445129395
+    num_confusing_bystanders: 7
+    num_singleton_friendlies: 0
+    dominant_cluster:
+    - DEFEAT
+    - VIKING
+    - MEDAL
+    - REVOLUTION
+    bridge_bystanders:
+    - VICTORY
+    - WOLF
+    - FIGHT
+    - BATTLE
+    - WIN
+    - BRONZE
+- id: hard_270e7fc8
+  difficulty: hard
+  board:
+  - NERVE
+  - HEART
+  - MEDIEVAL
+  - SKULL
+  - VIKING
+  - HOSPITAL
+  - BRAIN
+  - TEMPLE
+  - THROAT
+  - MONUMENT
+  - RUINS
+  - LOVE
+  - NECK
+  - SHOULDER
+  - COLLAR
+  - ANCIENT
+  friendly:
+  - NECK
+  - HOSPITAL
+  - HEART
+  - NERVE
+  - RUINS
+  - MEDIEVAL
+  - MONUMENT
+  - VIKING
+  bystanders:
+  - SKULL
+  - COLLAR
+  - ANCIENT
+  - BRAIN
+  - LOVE
+  - TEMPLE
+  - THROAT
+  assassin: SHOULDER
+  tags:
+  - cluster:body
+  - cluster:time
+  - semantic_trap
+  - bridge_hazard
+  - low_cohesion
+  metrics:
+    friendly_cohesion: 0.26220303773880005
+    friendly_bystander_avg_sim: 0.6056131550243923
+    assassin_max_friendly_sim: 0.5692663788795471
+    num_confusing_bystanders: 7
+    num_singleton_friendlies: 0
+    dominant_cluster:
+    - NECK
+    - HOSPITAL
+    - HEART
+    - NERVE
+    bridge_bystanders:
+    - SKULL
+    - COLLAR
+    - TEMPLE
+- id: hard_b5f5064c
+  difficulty: hard
+  board:
+  - ROCKET
+  - BUTTON
+  - MOUSE
+  - MISSILE
+  - ENGINE
+  - NAIL
+  - CANDLE
+  - LAMP
+  - PIANO
+  - MUSIC
+  - WIRE
+  - JET
+  - WEAPON
+  - SATELLITE
+  - CIRCUIT
+  - HAMMER
+  friendly:
+  - HAMMER
+  - LAMP
+  - BUTTON
+  - PIANO
+  - CIRCUIT
+  - ROCKET
+  - MOUSE
+  - SATELLITE
+  bystanders:
+  - MISSILE
+  - MUSIC
+  - CANDLE
+  - WIRE
+  - JET
+  - NAIL
+  - ENGINE
+  assassin: WEAPON
+  tags:
+  - cluster:objects
+  - cluster:technology
+  - semantic_trap
+  - bridge_hazard
+  - low_cohesion
+  metrics:
+    friendly_cohesion: 0.29956117272377014
+    friendly_bystander_avg_sim: 0.6024976968765259
+    assassin_max_friendly_sim: 0.5529454350471497
+    num_confusing_bystanders: 7
+    num_singleton_friendlies: 0
+    dominant_cluster:
+    - HAMMER
+    - LAMP
+    - BUTTON
+    - PIANO
+    bridge_bystanders:
+    - MISSILE
+    - MUSIC
+    - CANDLE
+    - WIRE
+    - JET
+    - NAIL
+    - ENGINE
+- id: hard_936dca72
+  difficulty: hard
+  board:
+  - HEART
+  - LOVE
+  - HOSPITAL
+  - TURTLE
+  - SNAKE
+  - THUNDER
+  - CAVE
+  - LIGHTNING
+  - NECK
+  - SALT
+  - SKULL
+  - NERVE
+  - COLLAR
+  - FROG
+  - BRAIN
+  - THROAT
+  friendly:
+  - CAVE
+  - SNAKE
+  - SALT
+  - THUNDER
+  - NECK
+  - HOSPITAL
+  - HEART
+  - NERVE
+  bystanders:
+  - TURTLE
+  - LIGHTNING
+  - SKULL
+  - COLLAR
+  - BRAIN
+  - LOVE
+  - FROG
+  assassin: THROAT
+  tags:
+  - cluster:nature
+  - cluster:body
+  - semantic_trap
+  - bridge_hazard
+  - low_cohesion
+  metrics:
+    friendly_cohesion: 0.2988975942134857
+    friendly_bystander_avg_sim: 0.6211142029081073
+    assassin_max_friendly_sim: 0.5728282928466797
+    num_confusing_bystanders: 7
+    num_singleton_friendlies: 0
+    dominant_cluster:
+    - NECK
+    - HOSPITAL
+    - HEART
+    - NERVE
+    bridge_bystanders:
+    - TURTLE
+    - LIGHTNING
+    - SKULL
+    - COLLAR
+    - BRAIN
+    - LOVE
+    - FROG
+- id: hard_0649ebdc
+  difficulty: hard
+  board:
+  - CONCERT
+  - THEATER
+  - MISSILE
+  - STAGE
+  - SATELLITE
+  - BRIDGE
+  - FORTRESS
+  - ROCKET
+  - FILM
+  - WIRE
+  - OFFICE
+  - JET
+  - MOUSE
+  - HOLLYWOOD
+  - CIRCUIT
+  - CASTLE
+  friendly:
+  - FORTRESS
+  - BRIDGE
+  - THEATER
+  - OFFICE
+  - ROCKET
+  - CIRCUIT
+  - MOUSE
+  - SATELLITE
+  bystanders:
+  - MISSILE
+  - HOLLYWOOD
+  - CASTLE
+  - FILM
+  - WIRE
+  - JET
+  - CONCERT
+  assassin: STAGE
+  tags:
+  - cluster:buildings
+  - cluster:technology
+  - semantic_trap
+  - bridge_hazard
+  - low_cohesion
+  metrics:
+    friendly_cohesion: 0.2833896279335022
+    friendly_bystander_avg_sim: 0.6141074810709272
+    assassin_max_friendly_sim: 0.5569524168968201
+    num_confusing_bystanders: 7
+    num_singleton_friendlies: 0
+    dominant_cluster:
+    - FORTRESS
+    - BRIDGE
+    - THEATER
+    - OFFICE
+    bridge_bystanders:
+    - MISSILE
+    - HOLLYWOOD
+    - FILM
+    - WIRE
+    - JET
+    - CONCERT
+- id: hard_48324ca9
+  difficulty: hard
+  board:
+  - FILM
+  - BATTLE
+  - HOLLYWOOD
+  - VICTORY
+  - PARACHUTE
+  - BRIDGE
+  - THEATER
+  - SUBMARINE
+  - FIGHT
+  - DEFEAT
+  - FORTRESS
+  - CASTLE
+  - VIKING
+  - WIN
+  - BOAT
+  - OFFICE
+  friendly:
+  - VICTORY
+  - SUBMARINE
+  - PARACHUTE
+  - VIKING
+  - FORTRESS
+  - BRIDGE
+  - THEATER
+  - OFFICE
+  bystanders:
+  - DEFEAT
+  - WIN
+  - BATTLE
+  - BOAT
+  - HOLLYWOOD
+  - CASTLE
+  - FIGHT
+  assassin: FILM
+  tags:
+  - cluster:military
+  - cluster:buildings
+  - semantic_trap
+  - bridge_hazard
+  - low_cohesion
+  metrics:
+    friendly_cohesion: 0.28670868277549744
+    friendly_bystander_avg_sim: 0.6876858643123082
+    assassin_max_friendly_sim: 0.6043214797973633
+    num_confusing_bystanders: 7
+    num_singleton_friendlies: 0
+    dominant_cluster:
+    - FORTRESS
+    - BRIDGE
+    - THEATER
+    - OFFICE
+    bridge_bystanders:
+    - DEFEAT
+    - WIN
+    - BATTLE
+    - BOAT
+    - CASTLE
+    - FIGHT
+- id: hard_8eed1112
+  difficulty: hard
+  board:
+  - SALE
+  - STAR
+  - COMPANY
+  - MAGNET
+  - FAILURE
+  - PROGRESS
+  - BRAND
+  - TREASURE
+  - SUCCESS
+  - EARTH
+  - MICROSCOPE
+  - OCEAN
+  - VICTORY
+  - PRICE
+  - DEAL
+  - PLANET
+  friendly:
+  - SUCCESS
+  - TREASURE
+  - BRAND
+  - PRICE
+  - MICROSCOPE
+  - MAGNET
+  - EARTH
+  - STAR
+  bystanders:
+  - SALE
+  - FAILURE
+  - PLANET
+  - OCEAN
+  - PROGRESS
+  - COMPANY
+  - DEAL
+  assassin: VICTORY
+  tags:
+  - cluster:business
+  - cluster:science
+  - semantic_trap
+  - bridge_hazard
+  - low_cohesion
+  metrics:
+    friendly_cohesion: 0.27596792578697205
+    friendly_bystander_avg_sim: 0.629558971949986
+    assassin_max_friendly_sim: 0.5390244722366333
+    num_confusing_bystanders: 7
+    num_singleton_friendlies: 0
+    dominant_cluster:
+    - SUCCESS
+    - TREASURE
+    - BRAND
+    - PRICE
+    bridge_bystanders:
+    - FAILURE
+    - PLANET
+    - OCEAN
+    - PROGRESS
+    - COMPANY
+- id: hard_d3059d63
+  difficulty: hard
+  board:
+  - SHOULDER
+  - THEATER
+  - FILM
+  - OFFICE
+  - HOLLYWOOD
+  - DANCE
+  - FORTRESS
+  - HAND
+  - MUSIC
+  - GLOVE
+  - CASTLE
+  - BRIDGE
+  - MUSCLE
+  - RING
+  - JEWELRY
+  - FINGER
+  friendly:
+  - FORTRESS
+  - BRIDGE
+  - THEATER
+  - OFFICE
+  - RING
+  - GLOVE
+  - MUSCLE
+  - DANCE
+  bystanders:
+  - HAND
+  - HOLLYWOOD
+  - CASTLE
+  - JEWELRY
+  - FINGER
+  - FILM
+  - MUSIC
+  assassin: SHOULDER
+  tags:
+  - cluster:buildings
+  - cluster:sports
+  - semantic_trap
+  - bridge_hazard
+  - low_cohesion
+  metrics:
+    friendly_cohesion: 0.28304779529571533
+    friendly_bystander_avg_sim: 0.6282607742718288
+    assassin_max_friendly_sim: 0.5606995820999146
+    num_confusing_bystanders: 7
+    num_singleton_friendlies: 0
+    dominant_cluster:
+    - RING
+    - GLOVE
+    - MUSCLE
+    - DANCE
+    bridge_bystanders:
+    - HAND
+    - HOLLYWOOD
+    - CASTLE
+    - FINGER
+    - FILM
+    - MUSIC
+- id: medium_906684c8
+  difficulty: medium
+  board:
+  - BOOK
+  - BUTTERFLY
+  - FROG
+  - ELEPHANT
+  - CAMERA
+  - SONG
+  - ALBUM
+  - HAWK
+  - EAGLE
+  - NOVEL
+  - LOBSTER
+  - MUSEUM
+  - CRAB
+  - MOVIE
+  - OWL
+  - WHALE
+  friendly:
+  - MUSEUM
+  - ALBUM
+  - CAMERA
+  - BOOK
+  - ELEPHANT
+  - EAGLE
+  - BUTTERFLY
+  - CRAB
+  bystanders:
+  - NOVEL
+  - LOBSTER
+  - SONG
+  - FROG
+  - OWL
+  - WHALE
+  - MOVIE
+  assassin: HAWK
+  tags:
+  - cluster:arts
+  - cluster:animals
+  - semantic_trap
+  - bridge_hazard
+  metrics:
+    friendly_cohesion: 0.34458979964256287
+    friendly_bystander_avg_sim: 0.6483962450708661
+    assassin_max_friendly_sim: 0.5690893530845642
+    num_confusing_bystanders: 7
+    num_singleton_friendlies: 0
+    dominant_cluster:
+    - ELEPHANT
+    - EAGLE
+    - BUTTERFLY
+    - CRAB
+    bridge_bystanders:
+    - NOVEL
+    - SONG
+    - FROG
+    - OWL
+    - WHALE
+    - MOVIE

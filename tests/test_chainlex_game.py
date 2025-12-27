@@ -369,7 +369,10 @@ class TestChainLexConstants:
         assert ChainLexGame.ASSASSINS == 1
 
     def test_penalty_values(self):
-        """Test penalty constants."""
-        assert ChainLexGame.BYSTANDER_PENALTY == -5
-        assert ChainLexGame.ASSASSIN_PENALTY == -28
+        """Test penalty constants for both scoring modes."""
+        # Optimization mode penalties (for DSPy training)
+        assert ChainLexGame.BYSTANDER_PENALTY_OPTIMIZATION == -5
+        assert ChainLexGame.ASSASSIN_PENALTY_OPTIMIZATION == -28
+        # Gameplay mode penalties (for competitive play)
+        assert ChainLexGame.BYSTANDER_PENALTY_GAMEPLAY == -1
 
