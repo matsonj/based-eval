@@ -6,11 +6,9 @@
 # See: https://matsonj.github.io/eval-connections/
 canonical_models:
   # 100% win rate
-  - gpt5.2-pro
   - gemini-3-pro
   - o3
   - gpt5
-  - grok4
   - gpt5.2
   - grok4-fast
   - gemini-3-flash
@@ -33,6 +31,8 @@ canonical_models:
   # Added (pending Connections eval verification)
   - o3-mini
   - o4-mini
+  - glm-4.7
+  - minimax-m2.1
 
 models:
   thinking:
@@ -85,6 +85,7 @@ models:
     ring-1t: "inclusionai/ring-1t"
     ernie-4.5: "baidu/ernie-4.5-21b-a3b-thinking"
     glm-4.6: "z-ai/glm-4.6"
+    glm-4.7: "z-ai/glm-4.7"
     kimi-k2-thinking: "moonshotai/kimi-k2-thinking"
     sherlock-think-alpha: "openrouter/sherlock-think-alpha"
 
@@ -153,4 +154,7 @@ models:
     # Perplexity models
     pplx-70b: "perplexity/llama-3.1-sonar-large-128k-online"
     pplx-8b: "perplexity/llama-3.1-sonar-small-128k-online"
+    
+    # Minimax models
+    minimax-m2.1: "minimax/minimax-m2.1"
 

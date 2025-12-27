@@ -262,3 +262,59 @@ def utility(*, task_id: str, project_id: str, metric: str, value: float, agent_i
         source="runtime",
     )
 
+
+def game_complete(
+    *,
+    task_id: str,
+    project_id: str,
+    game_id: str,
+    model_away: str,
+    model_home: str,
+    outcome: str,  # "model_away_win", "model_home_win", "tie"
+    winner_model: Optional[str],
+    score_away: int,
+    score_home: int,
+    margin: int,
+    correct_guesses_away: int,
+    correct_guesses_home: int,
+    total_guesses: int,
+    wall_ms: int,
+    cost_money: Optional[float] = None,
+    upstream_cost_money: Optional[float] = None,
+    run_id: Optional[str] = None,
+    payload: Optional[Dict[str, Any]] = None,
+) -> None:
+    """Emit a game_complete summary event for leaderboard/analytics queries.
+
+    This is a summary event with no balanced postings - it's purely for analytics
+    and querying game outcomes, head-to-head matchups, and efficiency metrics.
+    """
+    payload_base: Dict[str, Any] = {
+        "game_id": game_id,
+        "model_away": model_away,
+        "model_home": model_home,
+        "outcome": outcome,
+        "winner_model": winner_model,
+        "score_away": score_away,
+        "score_home": score_home,
+        "margin": margin,
+        "correct_guesses_away": correct_guesses_away,
+        "correct_guesses_home": correct_guesses_home,
+        "total_guesses": total_guesses,
+        "wall_ms": wall_ms,
+    }
+    if cost_money is not None:
+        payload_base["cost_money"] = cost_money
+    if upstream_cost_money is not None:
+        payload_base["upstream_cost_money"] = upstream_cost_money
+
+    event(
+        kind="game_complete",
+        actor={"task_id": task_id},
+        run_id=run_id,
+        payload={**payload_base, **(payload or {})},
+        postings=[],  # Summary event - no balanced postings needed
+        project_id=project_id,
+        source="runtime",
+    )
+

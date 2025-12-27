@@ -1,0 +1,79 @@
+{
+  "clue_giver.generate_clue.predict": {
+    "traces": [],
+    "train": [],
+    "demos": [],
+    "signature": {
+      "instructions": "ASSASSIN CHECK: [assassin word] associates with: [list 3-5 specific concepts/words to avoid]\n\nREASONING: [Explain why the clue is safe from the assassin. List the specific friendly words you are targeting and why the clue connects them. Mention why it avoids nearby bystanders.]\n\nCLUE: [SINGLE WORD]\nNUMBER: [1-8]",
+      "fields": [
+        {
+          "prefix": "Board:",
+          "description": "All 16 words on the board"
+        },
+        {
+          "prefix": "Friendly Words:",
+          "description": "Your target words"
+        },
+        {
+          "prefix": "Bystanders:",
+          "description": "Neutral words (-5 penalty)"
+        },
+        {
+          "prefix": "Assassin:",
+          "description": "Word to avoid (-28 penalty)"
+        },
+        {
+          "prefix": "Reasoning:",
+          "description": "Your reasoning"
+        },
+        {
+          "prefix": "Clue:",
+          "description": "Single word clue"
+        },
+        {
+          "prefix": "Number:",
+          "description": "Number of words (1-8)"
+        }
+      ]
+    },
+    "lm": null
+  },
+  "guesser.make_guesses.predict": {
+    "traces": [],
+    "train": [],
+    "demos": [],
+    "signature": {
+      "instructions": "You are playing ChainLex-1, a strategic word association game. Your goal is to identify \"friendly\" words on a board based on a provided clue and number, while strictly avoiding \"Bystander\" (neutral) and \"Assassin\" (game-ending) words.\n\n## Scoring & Risks\n- Correct Guess: Points increase per consecutive correct word (1st=1pt, 2nd=2pt, 3rd=3pt, etc.).\n- Bystander: -5 points and IMMEDIATELY ends your turn.\n- Assassin: -28 points and IMMEDIATELY ends your turn. This is a critical failure.\n\n## Strategy: The \"Safety-First\" Approach\n1. Analyze the Board: Look at all available words. Identify potential traps where the clue might accidentally point to a non-friendly word.\n2. Rank by Confidence: Only list words you are highly certain are \"friendly.\"\n3. The \"Stop\" Rule: You are allowed to guess up to [NUMBER + 1] words, but you should NEVER guess just because you have remaining slots. If a word has a 50/50 chance of being a Bystander or Assassin, STOP your turn early.\n4. Assassin Avoidance: Before finalizing your list, check if any of your guesses could be interpreted as the Assassin. If the clue \"POST\" is given and \"ROCK\" is the Assassin, do not guess \"ROCK\" even if \"Post-rock\" is a valid linguistic connection.\n\n## Domain-Specific Knowledge for ChainLex-1\n- Linguistic Connections: Words can be linked by synonyms, compound words (e.g., \"Post\" + \"Station\"), categories (e.g., \"Predators\"), or cultural associations (e.g., \"Miami\" as a business hub).\n- Multi-Meaning Clues: Be wary of clues with multiple meanings (e.g., \"POST\" can mean mail, a physical pole, or a prefix like \"post-game\"). Ensure your guesses align with the most likely intended meaning for the friendly words.\n- Common Pitfalls: \n    - Avoid \"stretches\" (e.g., \"Coffee\" for \"Business\" is weak; \"Entrepreneur\" is strong).\n    - Avoid niche genre associations (e.g., \"Post-rock\") if they are high-risk.\n\n## Input Format\n- Available Words: A list of words currently on the board.\n- Board Layout: The visual arrangement.\n- Clue (Number): The hint and the intended number of words.\n\n## Output Format\n1. Reasoning: Evaluate the board. Identify the strongest matches. Explicitly look for \"Assassin\" traps. Decide where to stop to protect your score.\n2. Guesses: List your guesses, one per line, in descending order of confidence.\n\nExample of a safe response:\nClue: POST (3)\nReasoning: STATION and HORSE are strong matches. While ROCK and THROW have connections to \"Post,\" they are ambiguous and could be bystanders or the assassin. I will stop at 2 to secure points and avoid the -5 or -28 penalty.\nGuesses:\nSTATION\nHORSE",
+      "fields": [
+        {
+          "prefix": "Board:",
+          "description": "All 16 words on the board"
+        },
+        {
+          "prefix": "Clue:",
+          "description": "The clue word"
+        },
+        {
+          "prefix": "Number:",
+          "description": "Number indicated by clue giver"
+        },
+        {
+          "prefix": "Reasoning:",
+          "description": "Your reasoning"
+        },
+        {
+          "prefix": "Guesses:",
+          "description": "Comma-separated guesses, most confident first"
+        }
+      ]
+    },
+    "lm": null
+  },
+  "metadata": {
+    "dependency_versions": {
+      "python": "3.12",
+      "dspy": "3.0.4",
+      "cloudpickle": "3.1"
+    }
+  }
+}

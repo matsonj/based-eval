@@ -1,0 +1,823 @@
+{
+  "spymaster.generate_clue.predict": {
+    "traces": [],
+    "train": [],
+    "demos": [
+      {
+        "augmented": true,
+        "available_words": "PASTA, PORT, PORTAL, SPY, YACHT, SALARY, CODE, FORTRESS, JOGGING, CHEESE, BRACELET, MISSILE, TRAIL, SALE",
+        "team_agents": "YACHT, SALARY, CODE, FORTRESS, JOGGING",
+        "enemy_agents": "PASTA, PORT, PORTAL, SPY",
+        "bystanders": "CHEESE, BRACELET, MISSILE, TRAIL",
+        "assassin": "SALE",
+        "reasoning": "YACHT and SALARY both relate to wealth and high-end living. FORTRESS often implies a massive, expensive stone structure. CODE relates to high-paying tech sectors (software development). 'LUXURY' targets YACHT and SALARY directly, and reasonably connects to the grandeur of a FORTRESS, while remaining disconnected from the assassin word SALE (which is a bargain) and the enemy words centered on travel or food.",
+        "clue": "LUXURY",
+        "number": 3
+      },
+      {
+        "augmented": true,
+        "available_words": "MANAGER, BELT, HEELS, PEPPER, RUINS, ARMOR, GROWTH, ROME, OCTOPUS, CAVE, BAND, TANK, SPEAKER, SCREW, BLESSING",
+        "team_agents": "MANAGER, BELT, HEELS, PEPPER, RUINS, ARMOR",
+        "enemy_agents": "GROWTH, ROME",
+        "bystanders": "OCTOPUS, CAVE, BAND, TANK, SPEAKER, SCREW",
+        "assassin": "BLESSING",
+        "reasoning": "The words HEELS and BELT are both fashion accessories. ARMOR and HEELS/BELT are items one \"wears.\" MANAGER is a role that often requires professional attire (Heels/Belt). RUINS and ARMOR both relate to ancient/historical contexts, but \"Accessory\" or \"Clothing\" is safer to avoid ROME and BLESSING. I will focus on BELT and HEELS as a strong pair.",
+        "clue": "ACCESSORY",
+        "number": 2
+      },
+      {
+        "available_words": [
+          "PENGUIN",
+          "MANAGER",
+          "SANDALS",
+          "HAMMER",
+          "MONUMENT",
+          "SOCCER",
+          "TRUST",
+          "COMPUTER",
+          "SWIM",
+          "GOLF",
+          "OPERA",
+          "BERLIN"
+        ],
+        "team_agents": [
+          "PENGUIN",
+          "MANAGER",
+          "SANDALS",
+          "HAMMER"
+        ],
+        "enemy_agents": [
+          "MONUMENT",
+          "SOCCER"
+        ],
+        "bystanders": [
+          "TRUST",
+          "COMPUTER",
+          "SWIM",
+          "GOLF",
+          "OPERA"
+        ],
+        "assassin": "BERLIN",
+        "expected_clue": "FORMAL",
+        "expected_number": 3,
+        "expected_guesses": [
+          "BERLIN",
+          "COMPUTER",
+          "MANAGER",
+          "PENGUIN"
+        ],
+        "expected_score": -999.0
+      },
+      {
+        "available_words": [
+          "WALLET",
+          "BASEBALL",
+          "PASTA",
+          "PORT",
+          "PORTAL",
+          "SPY",
+          "RAT",
+          "MEDAL",
+          "CRAB",
+          "CRYSTAL",
+          "YACHT",
+          "SHOULDER",
+          "SALARY",
+          "CODE",
+          "HAIR",
+          "FORTRESS",
+          "JOGGING",
+          "SHORTS",
+          "JUNGLE",
+          "CHEESE",
+          "BRACELET",
+          "MISSILE",
+          "TRAIL",
+          "WRESTLING",
+          "SALE"
+        ],
+        "team_agents": [
+          "WALLET",
+          "BASEBALL",
+          "PASTA",
+          "PORT",
+          "PORTAL",
+          "SPY",
+          "RAT",
+          "MEDAL",
+          "CRAB"
+        ],
+        "enemy_agents": [
+          "CRYSTAL",
+          "YACHT",
+          "SHOULDER",
+          "SALARY",
+          "CODE",
+          "HAIR",
+          "FORTRESS",
+          "JOGGING"
+        ],
+        "bystanders": [
+          "SHORTS",
+          "JUNGLE",
+          "CHEESE",
+          "BRACELET",
+          "MISSILE",
+          "TRAIL",
+          "WRESTLING"
+        ],
+        "assassin": "SALE",
+        "expected_clue": "GAME",
+        "expected_number": 3,
+        "expected_guesses": [
+          "BASEBALL",
+          "WRESTLING",
+          "PORTAL",
+          "TRAIL"
+        ],
+        "expected_score": 0.5
+      },
+      {
+        "available_words": [
+          "ENERGY",
+          "FOX",
+          "STONE",
+          "INVESTMENT",
+          "GIANT",
+          "MODERN",
+          "SCORE",
+          "NAVY",
+          "CHAMPION",
+          "CASH",
+          "RUN",
+          "DUNGEON",
+          "POCKET",
+          "VEGAS",
+          "SHAME",
+          "SCIENTIST",
+          "CHAIN"
+        ],
+        "team_agents": [
+          "ENERGY",
+          "FOX",
+          "STONE",
+          "INVESTMENT",
+          "GIANT",
+          "MODERN",
+          "SCORE"
+        ],
+        "enemy_agents": [
+          "NAVY",
+          "CHAMPION"
+        ],
+        "bystanders": [
+          "CASH",
+          "RUN",
+          "DUNGEON",
+          "POCKET",
+          "VEGAS",
+          "SHAME",
+          "SCIENTIST"
+        ],
+        "assassin": "CHAIN",
+        "expected_clue": "MOVIE",
+        "expected_number": 3,
+        "expected_guesses": [
+          "GIANT",
+          "CHAMPION",
+          "SCORE",
+          "STONE"
+        ],
+        "expected_score": 0.0
+      },
+      {
+        "available_words": [
+          "DEAL",
+          "TOMATO",
+          "MASK",
+          "CHICKEN",
+          "TEA",
+          "CAKE",
+          "ANGER",
+          "TEMPLE",
+          "TAPE",
+          "PEPPER",
+          "EYE",
+          "CEREMONY",
+          "CIVILIZATION",
+          "OFFICE",
+          "PRODUCT",
+          "HELICOPTER",
+          "TEAM"
+        ],
+        "team_agents": [
+          "DEAL",
+          "TOMATO",
+          "MASK",
+          "CHICKEN"
+        ],
+        "enemy_agents": [
+          "TEA",
+          "CAKE",
+          "ANGER",
+          "TEMPLE",
+          "TAPE"
+        ],
+        "bystanders": [
+          "PEPPER",
+          "EYE",
+          "CEREMONY",
+          "CIVILIZATION",
+          "OFFICE",
+          "PRODUCT",
+          "HELICOPTER"
+        ],
+        "assassin": "TEAM",
+        "expected_clue": "Costume",
+        "expected_number": 3,
+        "expected_guesses": [
+          "MASK"
+        ],
+        "expected_score": 1.0
+      },
+      {
+        "available_words": [
+          "BLOUSE",
+          "AGENT",
+          "MEMORY",
+          "SURFING",
+          "PEACE",
+          "COMPASS",
+          "BRAIN",
+          "JOGGING",
+          "SCORE",
+          "JEWELRY",
+          "HOSE",
+          "COFFEE",
+          "DREAM",
+          "AIRCRAFT",
+          "WIN",
+          "BOWLING",
+          "LEMON",
+          "COURAGE",
+          "NECKLACE",
+          "PATH",
+          "APPLE",
+          "BORDER",
+          "DINOSAUR",
+          "AXE",
+          "SANDALS"
+        ],
+        "team_agents": [
+          "SCORE",
+          "JEWELRY",
+          "HOSE",
+          "COFFEE",
+          "DREAM",
+          "AIRCRAFT",
+          "WIN",
+          "BOWLING",
+          "LEMON"
+        ],
+        "enemy_agents": [
+          "BLOUSE",
+          "AGENT",
+          "MEMORY",
+          "SURFING",
+          "PEACE",
+          "COMPASS",
+          "BRAIN",
+          "JOGGING"
+        ],
+        "bystanders": [
+          "COURAGE",
+          "NECKLACE",
+          "PATH",
+          "APPLE",
+          "BORDER",
+          "DINOSAUR",
+          "AXE"
+        ],
+        "assassin": "SANDALS",
+        "expected_clue": "DREAMLINER",
+        "expected_number": 2,
+        "expected_guesses": [
+          "AIRCRAFT",
+          "DREAM"
+        ],
+        "expected_score": 2.0
+      },
+      {
+        "available_words": [
+          "MIRROR",
+          "COLLAR",
+          "BOAT",
+          "HERITAGE",
+          "CONTRACT",
+          "MITTENS",
+          "GARLIC",
+          "MISSION",
+          "COFFEE",
+          "OPERA",
+          "BATTERY",
+          "FIGHT",
+          "CROWN",
+          "TRENCH",
+          "SURPRISE",
+          "PISTOL",
+          "DANCE",
+          "ISLAND",
+          "BALLOON",
+          "LUCK",
+          "CLIFF",
+          "FILM",
+          "BEAN",
+          "BRAND"
+        ],
+        "team_agents": [
+          "MIRROR",
+          "COLLAR",
+          "BOAT",
+          "HERITAGE",
+          "CONTRACT",
+          "MITTENS",
+          "GARLIC",
+          "MISSION"
+        ],
+        "enemy_agents": [
+          "COFFEE",
+          "OPERA",
+          "BATTERY",
+          "FIGHT",
+          "CROWN",
+          "TRENCH",
+          "SURPRISE",
+          "PISTOL"
+        ],
+        "bystanders": [
+          "DANCE",
+          "ISLAND",
+          "BALLOON",
+          "LUCK",
+          "CLIFF",
+          "FILM",
+          "BEAN"
+        ],
+        "assassin": "BRAND",
+        "expected_clue": "SILVER",
+        "expected_number": 4,
+        "expected_guesses": [
+          "MIRROR",
+          "BATTERY",
+          "FILM",
+          "PISTOL",
+          "CROWN"
+        ],
+        "expected_score": 0.0
+      }
+    ],
+    "signature": {
+      "instructions": "Give a one-word clue and number to help your operative find your team's agents.\n\nYou are the Spymaster in Codenames. You see the full board and know which words belong to your team.\nGive a clue that connects as many of your team's words as possible while avoiding:\n- Enemy agents (opponent's words)\n- Bystanders (neutral words)  \n- The Assassin (instant loss if guessed)\n\nYour clue must be a single word (compound words and proper nouns allowed).\nThe number indicates how many of your team's words relate to this clue.",
+      "fields": [
+        {
+          "prefix": "Available Words:",
+          "description": "All unrevealed words on the board, comma-separated"
+        },
+        {
+          "prefix": "Team Agents:",
+          "description": "Your team's agent words (try to get these guessed)"
+        },
+        {
+          "prefix": "Enemy Agents:",
+          "description": "Enemy team's agent words (avoid these)"
+        },
+        {
+          "prefix": "Bystanders:",
+          "description": "Neutral bystander words (avoid these)"
+        },
+        {
+          "prefix": "Assassin:",
+          "description": "The ASSASSIN word - if guessed, your team loses instantly!"
+        },
+        {
+          "prefix": "Reasoning:",
+          "description": "Brief explanation of which words you're targeting and why this clue is safe"
+        },
+        {
+          "prefix": "Clue:",
+          "description": "A single word clue (no sentences, no explanations)"
+        },
+        {
+          "prefix": "Number:",
+          "description": "How many of YOUR team's words this clue relates to"
+        }
+      ]
+    },
+    "lm": null
+  },
+  "operative.make_guesses.predict": {
+    "traces": [],
+    "train": [],
+    "demos": [
+      {
+        "augmented": true,
+        "available_words": "PASTA, PORT, PORTAL, SPY, YACHT, SALARY, CODE, FORTRESS, JOGGING, CHEESE, BRACELET, MISSILE, TRAIL, SALE",
+        "clue": "LUXURY",
+        "number": 3,
+        "reasoning": "YACHT is highly associated with luxury and expensive leisure. SALARY relates to money, and a high salary is necessary for a luxury lifestyle. BRACELET is jewelry, which is a common luxury item. While PORT and CHEESE can be associated with \"gourmet\" luxury, YACHT, SALARY, and BRACELET are the most direct connections to the theme of wealth and high-end living.",
+        "guesses": "YACHT, BRACELET, SALARY"
+      },
+      {
+        "augmented": true,
+        "available_words": "MANAGER, BELT, HEELS, PEPPER, RUINS, ARMOR, GROWTH, ROME, OCTOPUS, CAVE, BAND, TANK, SPEAKER, SCREW, BLESSING",
+        "clue": "ACCESSORY",
+        "number": 2,
+        "reasoning": "In the context of fashion and personal attire, \"BELT\" is a standard functional accessory worn with trousers or dresses, and \"HEELS\" (a type of footwear) are frequently categorized as fashion accessories.",
+        "guesses": "BELT, HEELS"
+      },
+      {
+        "available_words": [
+          "DEAL",
+          "TOMATO",
+          "MASK",
+          "CHICKEN",
+          "TEA",
+          "CAKE",
+          "ANGER",
+          "TEMPLE",
+          "TAPE",
+          "PEPPER",
+          "EYE",
+          "CEREMONY",
+          "CIVILIZATION",
+          "OFFICE",
+          "PRODUCT",
+          "HELICOPTER",
+          "TEAM"
+        ],
+        "team_agents": [
+          "DEAL",
+          "TOMATO",
+          "MASK",
+          "CHICKEN"
+        ],
+        "enemy_agents": [
+          "TEA",
+          "CAKE",
+          "ANGER",
+          "TEMPLE",
+          "TAPE"
+        ],
+        "bystanders": [
+          "PEPPER",
+          "EYE",
+          "CEREMONY",
+          "CIVILIZATION",
+          "OFFICE",
+          "PRODUCT",
+          "HELICOPTER"
+        ],
+        "assassin": "TEAM",
+        "expected_clue": "Costume",
+        "expected_number": 3,
+        "expected_guesses": [
+          "MASK"
+        ],
+        "expected_score": 1.0
+      },
+      {
+        "available_words": [
+          "ENERGY",
+          "FOX",
+          "STONE",
+          "INVESTMENT",
+          "GIANT",
+          "MODERN",
+          "SCORE",
+          "NAVY",
+          "CHAMPION",
+          "CASH",
+          "RUN",
+          "DUNGEON",
+          "POCKET",
+          "VEGAS",
+          "SHAME",
+          "SCIENTIST",
+          "CHAIN"
+        ],
+        "team_agents": [
+          "ENERGY",
+          "FOX",
+          "STONE",
+          "INVESTMENT",
+          "GIANT",
+          "MODERN",
+          "SCORE"
+        ],
+        "enemy_agents": [
+          "NAVY",
+          "CHAMPION"
+        ],
+        "bystanders": [
+          "CASH",
+          "RUN",
+          "DUNGEON",
+          "POCKET",
+          "VEGAS",
+          "SHAME",
+          "SCIENTIST"
+        ],
+        "assassin": "CHAIN",
+        "expected_clue": "MOVIE",
+        "expected_number": 3,
+        "expected_guesses": [
+          "GIANT",
+          "CHAMPION",
+          "SCORE",
+          "STONE"
+        ],
+        "expected_score": 0.0
+      },
+      {
+        "available_words": [
+          "MIRROR",
+          "COLLAR",
+          "BOAT",
+          "HERITAGE",
+          "CONTRACT",
+          "MITTENS",
+          "GARLIC",
+          "MISSION",
+          "COFFEE",
+          "OPERA",
+          "BATTERY",
+          "FIGHT",
+          "CROWN",
+          "TRENCH",
+          "SURPRISE",
+          "PISTOL",
+          "DANCE",
+          "ISLAND",
+          "BALLOON",
+          "LUCK",
+          "CLIFF",
+          "FILM",
+          "BEAN",
+          "BRAND"
+        ],
+        "team_agents": [
+          "MIRROR",
+          "COLLAR",
+          "BOAT",
+          "HERITAGE",
+          "CONTRACT",
+          "MITTENS",
+          "GARLIC",
+          "MISSION"
+        ],
+        "enemy_agents": [
+          "COFFEE",
+          "OPERA",
+          "BATTERY",
+          "FIGHT",
+          "CROWN",
+          "TRENCH",
+          "SURPRISE",
+          "PISTOL"
+        ],
+        "bystanders": [
+          "DANCE",
+          "ISLAND",
+          "BALLOON",
+          "LUCK",
+          "CLIFF",
+          "FILM",
+          "BEAN"
+        ],
+        "assassin": "BRAND",
+        "expected_clue": "SILVER",
+        "expected_number": 4,
+        "expected_guesses": [
+          "MIRROR",
+          "BATTERY",
+          "FILM",
+          "PISTOL",
+          "CROWN"
+        ],
+        "expected_score": 0.0
+      },
+      {
+        "available_words": [
+          "WALLET",
+          "BASEBALL",
+          "PASTA",
+          "PORT",
+          "PORTAL",
+          "SPY",
+          "RAT",
+          "MEDAL",
+          "CRAB",
+          "CRYSTAL",
+          "YACHT",
+          "SHOULDER",
+          "SALARY",
+          "CODE",
+          "HAIR",
+          "FORTRESS",
+          "JOGGING",
+          "SHORTS",
+          "JUNGLE",
+          "CHEESE",
+          "BRACELET",
+          "MISSILE",
+          "TRAIL",
+          "WRESTLING",
+          "SALE"
+        ],
+        "team_agents": [
+          "WALLET",
+          "BASEBALL",
+          "PASTA",
+          "PORT",
+          "PORTAL",
+          "SPY",
+          "RAT",
+          "MEDAL",
+          "CRAB"
+        ],
+        "enemy_agents": [
+          "CRYSTAL",
+          "YACHT",
+          "SHOULDER",
+          "SALARY",
+          "CODE",
+          "HAIR",
+          "FORTRESS",
+          "JOGGING"
+        ],
+        "bystanders": [
+          "SHORTS",
+          "JUNGLE",
+          "CHEESE",
+          "BRACELET",
+          "MISSILE",
+          "TRAIL",
+          "WRESTLING"
+        ],
+        "assassin": "SALE",
+        "expected_clue": "GAME",
+        "expected_number": 3,
+        "expected_guesses": [
+          "BASEBALL",
+          "WRESTLING",
+          "PORTAL",
+          "TRAIL"
+        ],
+        "expected_score": 0.5
+      },
+      {
+        "available_words": [
+          "PENGUIN",
+          "MANAGER",
+          "SANDALS",
+          "HAMMER",
+          "MONUMENT",
+          "SOCCER",
+          "TRUST",
+          "COMPUTER",
+          "SWIM",
+          "GOLF",
+          "OPERA",
+          "BERLIN"
+        ],
+        "team_agents": [
+          "PENGUIN",
+          "MANAGER",
+          "SANDALS",
+          "HAMMER"
+        ],
+        "enemy_agents": [
+          "MONUMENT",
+          "SOCCER"
+        ],
+        "bystanders": [
+          "TRUST",
+          "COMPUTER",
+          "SWIM",
+          "GOLF",
+          "OPERA"
+        ],
+        "assassin": "BERLIN",
+        "expected_clue": "FORMAL",
+        "expected_number": 3,
+        "expected_guesses": [
+          "BERLIN",
+          "COMPUTER",
+          "MANAGER",
+          "PENGUIN"
+        ],
+        "expected_score": -999.0
+      },
+      {
+        "available_words": [
+          "BLOUSE",
+          "AGENT",
+          "MEMORY",
+          "SURFING",
+          "PEACE",
+          "COMPASS",
+          "BRAIN",
+          "JOGGING",
+          "SCORE",
+          "JEWELRY",
+          "HOSE",
+          "COFFEE",
+          "DREAM",
+          "AIRCRAFT",
+          "WIN",
+          "BOWLING",
+          "LEMON",
+          "COURAGE",
+          "NECKLACE",
+          "PATH",
+          "APPLE",
+          "BORDER",
+          "DINOSAUR",
+          "AXE",
+          "SANDALS"
+        ],
+        "team_agents": [
+          "SCORE",
+          "JEWELRY",
+          "HOSE",
+          "COFFEE",
+          "DREAM",
+          "AIRCRAFT",
+          "WIN",
+          "BOWLING",
+          "LEMON"
+        ],
+        "enemy_agents": [
+          "BLOUSE",
+          "AGENT",
+          "MEMORY",
+          "SURFING",
+          "PEACE",
+          "COMPASS",
+          "BRAIN",
+          "JOGGING"
+        ],
+        "bystanders": [
+          "COURAGE",
+          "NECKLACE",
+          "PATH",
+          "APPLE",
+          "BORDER",
+          "DINOSAUR",
+          "AXE"
+        ],
+        "assassin": "SANDALS",
+        "expected_clue": "DREAMLINER",
+        "expected_number": 2,
+        "expected_guesses": [
+          "AIRCRAFT",
+          "DREAM"
+        ],
+        "expected_score": 2.0
+      }
+    ],
+    "signature": {
+      "instructions": "Guess words on the board based on your Spymaster's clue.\n\nYou are the Operative in Codenames. You see only the board words (not their identities).\nYour Spymaster gave you a clue and number - find the words that match.\n\nBe strategic:\n- The number tells you how many words to look for\n- You can guess up to number+1 words (plus-one rule)\n- Stop guessing if you're unsure - wrong guesses help the enemy or end the game",
+      "fields": [
+        {
+          "prefix": "Available Words:",
+          "description": "Unrevealed words on the board, comma-separated"
+        },
+        {
+          "prefix": "Clue:",
+          "description": "The one-word clue from your Spymaster"
+        },
+        {
+          "prefix": "Number:",
+          "description": "How many words the Spymaster says relate to this clue"
+        },
+        {
+          "prefix": "Reasoning:",
+          "description": "Brief explanation of why each word matches the clue"
+        },
+        {
+          "prefix": "Guesses:",
+          "description": "Words to guess, comma-separated, in order of confidence (most confident first)"
+        }
+      ]
+    },
+    "lm": null
+  },
+  "metadata": {
+    "dependency_versions": {
+      "python": "3.12",
+      "dspy": "3.0.4",
+      "cloudpickle": "3.1"
+    }
+  }
+}

@@ -1,0 +1,13 @@
+{
+  "model": "google/gemini-3-flash-preview",
+  "num_train_examples": 175,
+  "num_val_examples": 44,
+  "baseline_score": -2106.82,
+  "optimized_score": 171.59,
+  "improvement": 2278.4100000000003,
+  "optimizer_config": {
+    "max_bootstrapped_demos": 4,
+    "max_labeled_demos": 8,
+    "num_candidates": 10
+  }
+}
