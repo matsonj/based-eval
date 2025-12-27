@@ -134,6 +134,8 @@ class ChainLexGame:
         latency_ms: float,
         cost: Optional[float] = None,
         upstream_cost: Optional[float] = None,
+        request_text: Optional[str] = None,
+        response_text: Optional[str] = None,
         payload: Optional[Dict] = None,
     ) -> None:
         """Emit model_prompt and model_completion events via controllog."""
@@ -151,6 +153,7 @@ class ChainLexGame:
                 provider="openrouter",
                 model=model_id,
                 prompt_tokens=prompt_tokens,
+                request_text=request_text,
                 payload={
                     "game_id": self.game_id,
                     "call_type": call_type,
@@ -168,6 +171,7 @@ class ChainLexGame:
                 model=model_id,
                 completion_tokens=completion_tokens,
                 wall_ms=int(latency_ms),
+                response_text=response_text,
                 cost_money=cost,
                 upstream_cost_money=upstream_cost,
                 payload={
@@ -416,6 +420,8 @@ class ChainLexGame:
                     latency_ms=metadata["latency_ms"],
                     cost=metadata.get("openrouter_cost"),
                     upstream_cost=metadata.get("upstream_cost"),
+                    request_text=metadata.get("request_text"),
+                    response_text=metadata.get("response_text"),
                     payload={
                         "player": player_label,
                         "clue": clue,
@@ -481,6 +487,8 @@ class ChainLexGame:
                     latency_ms=metadata["latency_ms"],
                     cost=metadata.get("openrouter_cost"),
                     upstream_cost=metadata.get("upstream_cost"),
+                    request_text=metadata.get("request_text"),
+                    response_text=metadata.get("response_text"),
                     payload={
                         "player": player_label,
                         "clue": clue,
@@ -573,6 +581,8 @@ class ChainLexGame:
                     latency_ms=metadata["latency_ms"],
                     cost=metadata.get("openrouter_cost"),
                     upstream_cost=metadata.get("upstream_cost"),
+                    request_text=metadata.get("request_text"),
+                    response_text=metadata.get("response_text"),
                     payload={
                         "clue": clue,
                         "number": number,
@@ -637,6 +647,8 @@ class ChainLexGame:
                     latency_ms=metadata["latency_ms"],
                     cost=metadata.get("openrouter_cost"),
                     upstream_cost=metadata.get("upstream_cost"),
+                    request_text=metadata.get("request_text"),
+                    response_text=metadata.get("response_text"),
                     payload={
                         "clue": clue,
                         "number": number,

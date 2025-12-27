@@ -89,6 +89,8 @@ uv run based chainlex cost-estimate
 
 **Schedule**: Each pair plays 4 games (2 home, 2 away) for fairness. Output is Bradley-Terry compatible.
 
+> **Note**: 4 games per matchup yields wide confidence intervals (~±75 rating points). For tighter CIs, increase games per pair (20+ recommended).
+
 ### Codenames Tournament
 
 ```bash
@@ -109,11 +111,22 @@ uv run based codenames retry --schedule logs/eval/schedule.yml
 ### Bradley-Terry Ranking
 
 ```bash
-# Generate leaderboard from results
-uv run based analytics leaderboard --results logs/chainlex/eval/results.csv
+# Generate leaderboard from results (basic format)
+uv run based analytics leaderboard -r logs/chainlex/eval/results.csv
+
+# Use detailed_results.csv for home/away splits analysis
+uv run based analytics leaderboard -r logs/chainlex/eval/detailed_results.csv
 ```
 
-Output `results.csv` is compatible with [arena-rank](https://github.com/lmarena/arena-rank).
+**Output**:
+- `leaderboard.csv` - Full rankings with ratings and confidence intervals
+- `leaderboard.png` - Forest plot visualization
+
+**Features**:
+- **Tie handling**: Ties map to 0.5 wins (per [arena-rank](https://github.com/lmarena/arena-rank) standard)
+- **Home/Away splits**: Auto-detected when using `detailed_results.csv` (shows per-model home vs away performance)
+- **Confidence intervals**: 95% CI via sandwich estimator
+- **Baseline rating**: 1600 (matches standard ELO conventions)
 
 ## DSPy Prompt Optimization
 
@@ -168,6 +181,9 @@ based-eval/
 │   ├── adapters/               # OpenRouter client
 │   └── inputs/model_mappings.yml
 └── logs/                       # Game logs
+    ├── controllog/             # Unified analytics (all games)
+    ├── chainlex/               # ChainLex game-specific logs
+    └── eval/                   # Tournament results
 ```
 
 ## Shared Infrastructure
@@ -179,11 +195,20 @@ Double-entry accounting for structured event logging:
 ```python
 from shared import controllog as cl
 
+# IMPORTANT: Always use Path("logs") for unified analytics
 cl.init(project_id="codenames", log_dir=Path("logs"))
-cl.model_prompt(task_id=task_id, agent_id="spymaster", ...)
-cl.model_completion(task_id=task_id, wall_ms=latency, cost_money=cost, ...)
+cl.model_prompt(task_id=task_id, agent_id="spymaster", request_text=prompt, ...)
+cl.model_completion(task_id=task_id, wall_ms=latency, cost_money=cost, response_text=response, ...)
 cl.state_move(task_id=task_id, from_="WIP", to="DONE")
+cl.game_complete(task_id=task_id, game_id=game_id, outcome="model_away", ...)  # Game summary
 ```
+
+**Event Types**:
+- `model_prompt` / `model_completion` - AI calls with tokens, cost, timing, and full request/response text
+- `state_move` - State transitions (NEW→WIP→DONE)
+- `game_complete` - Game-level summary for leaderboards and analytics (ChainLex)
+
+The SDK writes to `logs/controllog/<YYYY-MM-DD>/events.jsonl` and `postings.jsonl`. All games must use `Path("logs")` (not game-specific paths) so `uv run based analytics upload` can find all data.
 
 ### MotherDuck Integration
 
@@ -196,12 +221,23 @@ uv run based analytics trial-balance
 ## Development
 
 ```bash
-# Tests
-PYTHONPATH=".:connections/src" uv run pytest tests/
+# Run all tests
+uv run pytest tests/
+
+# Run specific game tests
+uv run pytest tests/test_chainlex_game.py tests/test_chainlex_player.py -v  # ChainLex
+uv run pytest tests/test_game.py -v                                         # Codenames
+uv run pytest tests/test_controllog.py -v                                   # Controllog SDK
 
 # Format
 uv run black . && uv run isort .
 ```
+
+### Test Coverage
+- **ChainLex**: 55 tests (game logic, player parsing, controllog events)
+- **Codenames**: 7 tests (game logic)
+- **Controllog**: 9 tests (event builders, text inclusion)
+- **Metadata/Adapter**: 6 tests (cost extraction, metadata storage)
 
 ## License
 
