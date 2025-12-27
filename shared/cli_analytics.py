@@ -437,7 +437,12 @@ def leaderboard(
     total_games = len(df)
     unique_models = set(df["model_a"].unique()) | set(df["model_b"].unique())
     
+    # Count ties
+    tie_count = len(df[df["winner"].isin(["tie", "both_bad"])])
+    
     console.print(f"Total games: {total_games}")
+    console.print(f"  - Decisive: {total_games - tie_count}")
+    console.print(f"  - Ties: {tie_count} (counted as 0.5 for each model in BT ratings)")
     console.print(f"Unique models: {len(unique_models)}")
     console.print(f"Significance level: {significance}")
     
@@ -476,17 +481,20 @@ def leaderboard(
     
     # Show win rates
     console.print("\n[bold]Win Rates:[/bold]")
+    console.print("[dim]Note: Ties are counted as 0.5 wins for each model in Bradley-Terry ratings[/dim]")
     
     win_table = Table(title="Model Win Rates")
     win_table.add_column("Model", style="cyan")
     win_table.add_column("Wins", justify="right")
+    win_table.add_column("Ties", justify="right", style="yellow")
     win_table.add_column("Losses", justify="right")
-    win_table.add_column("Total", justify="right")
+    win_table.add_column("Games", justify="right")
     win_table.add_column("Win %", style="green", justify="right")
     
-    # Calculate win rates
+    # Calculate win rates (including ties)
     win_counts = {}
     loss_counts = {}
+    tie_counts = {}
     
     for _, row in df.iterrows():
         model_a = row["model_a"]
@@ -498,6 +506,7 @@ def leaderboard(
             if m not in win_counts:
                 win_counts[m] = 0
                 loss_counts[m] = 0
+                tie_counts[m] = 0
         
         if winner == "model_a":
             win_counts[model_a] += 1
@@ -505,23 +514,29 @@ def leaderboard(
         elif winner == "model_b":
             win_counts[model_b] += 1
             loss_counts[model_a] += 1
-        # ties don't count as win or loss
+        elif winner in ("tie", "both_bad"):
+            # Ties count for both models
+            tie_counts[model_a] += 1
+            tie_counts[model_b] += 1
     
-    # Sort by win rate
+    # Sort by win rate (counting ties as 0.5 wins, matching BT model)
     win_rates = []
     for model in unique_models:
         wins = win_counts.get(model, 0)
         losses = loss_counts.get(model, 0)
-        total = wins + losses
-        rate = (wins / total * 100) if total > 0 else 0
-        win_rates.append((model, wins, losses, total, rate))
+        ties = tie_counts.get(model, 0)
+        total = wins + losses + ties
+        # Win rate: (wins + 0.5*ties) / total to match BT model treatment
+        rate = ((wins + 0.5 * ties) / total * 100) if total > 0 else 0
+        win_rates.append((model, wins, ties, losses, total, rate))
     
-    win_rates.sort(key=lambda x: x[4], reverse=True)
+    win_rates.sort(key=lambda x: x[5], reverse=True)
     
-    for model, wins, losses, total, rate in win_rates[:top_n]:
+    for model, wins, ties, losses, total, rate in win_rates[:top_n]:
         win_table.add_row(
             model,
             str(wins),
+            str(ties),
             str(losses),
             str(total),
             f"{rate:.1f}%",
