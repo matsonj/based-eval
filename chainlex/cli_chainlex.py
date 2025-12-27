@@ -754,9 +754,9 @@ def optimize(
             console.print(f"Test score: {results['test_score']}")
         else:
             console.print("\n[bold green]✅ Optimization complete![/bold green]")
-            console.print(f"Baseline score: {results['baseline_score']:.2f}")
-            console.print(f"Optimized score: {results['optimized_score']:.2f}")
-            console.print(f"Improvement: {results['improvement']:+.2f} ({results['improvement_pct']:+.1f}%)")
+            console.print(f"Baseline score: {results['baseline_score_raw']:.1f} (normalized: {results['baseline_score_normalized']:.3f})")
+            console.print(f"Optimized score: {results['optimized_score_raw']:.1f} (normalized: {results['optimized_score_normalized']:.3f})")
+            console.print(f"Improvement: {results['improvement_raw']:+.1f} ({results['improvement_pct_raw']:+.1f}%)")
             console.print(f"\nPipeline saved to: {output / 'optimized_pipeline.json'}")
             
             # Export optimized prompts back to markdown

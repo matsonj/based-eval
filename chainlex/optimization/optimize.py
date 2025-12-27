@@ -25,89 +25,90 @@ logger = logging.getLogger(__name__)
 
 def gepa_feedback_metric(example, prediction, trace=None, pred_name=None, pred_trace=None):
     """GEPA-compatible metric that provides textual feedback for evolution.
-    
+
     GEPA uses this feedback to understand WHY a score was low and evolve
     better instructions.
-    
-    Returns:
-        - ScoreWithFeedback dict when pred_name is provided (GEPA feedback mode)
-        - Float score otherwise (standard evaluation mode)
+
+    Uses the same normalized scoring as the rest of the system for consistency.
     """
-    # Parse board state
-    friendly_words = set(
-        word.strip().upper() 
-        for word in str(example.friendly_words).split(',')
-    )
-    bystanders = set(
-        word.strip().upper() 
-        for word in str(example.bystanders).split(',')
-    )
-    assassin = str(example.assassin).strip().upper()
-    
-    # Get guesses from prediction
-    guesses = prediction.guesses if hasattr(prediction, 'guesses') else []
-    if isinstance(guesses, str):
-        guesses = [g.strip().upper() for g in guesses.split(',')]
-    else:
-        guesses = [g.upper() for g in guesses]
-    
-    # Get clue info
-    clue = getattr(prediction, 'clue', 'UNKNOWN')
-    clue_number = getattr(prediction, 'clue_number', 0)
-    
-    # Calculate score and identify what went wrong
-    score = 0
-    correct_count = 0
-    feedback_parts = []
-    hit_assassin = False
-    hit_bystander = False
-    
-    for i, guess in enumerate(guesses):
-        if guess == assassin:
-            score += ASSASSIN_PENALTY
-            hit_assassin = True
-            feedback_parts.append(f"CRITICAL: Guess '{guess}' hit the ASSASSIN! The clue '{clue}' led to the assassin word.")
-            break
-        elif guess in bystanders:
-            score += BYSTANDER_PENALTY
-            hit_bystander = True
-            feedback_parts.append(f"Guess '{guess}' was a BYSTANDER. The clue '{clue}' accidentally associated with a neutral word.")
-            break
-        elif guess in friendly_words:
-            correct_count += 1
-            score += correct_count
-    
-    # Normalize score to 0-1
-    max_score = 36  # 1+2+3+4+5+6+7+8
-    if hit_assassin:
-        normalized_score = 0.0
-    elif hit_bystander:
-        normalized_score = 0.1 + 0.1 * (correct_count / 8)  # 0.1 to 0.2
-    else:
-        normalized_score = 0.5 + 0.5 * (score / max_score)  # 0.5 to 1.0
-    
+    # Use the normalized metric for consistent scoring
+    score = normalized_metric(example, prediction, trace)
+
     # If GEPA is asking for predictor-level feedback, return dict
     if pred_name is not None:
-        # Generate feedback for GEPA
-        if not feedback_parts:
-            if correct_count == 0:
-                feedback_parts.append(f"The clue '{clue}' ({clue_number}) didn't connect with any guessed words.")
-            elif correct_count < clue_number:
-                feedback_parts.append(f"The clue '{clue}' ({clue_number}) only led to {correct_count} correct guesses out of {clue_number} intended.")
-            else:
-                feedback_parts.append(f"Good! The clue '{clue}' ({clue_number}) successfully connected to {correct_count} friendly words.")
-        
-        # Add specific predictor feedback
-        if pred_name == "clue_giver" and hit_assassin:
-            feedback_parts.append("IMPROVE CLUE GIVER: Must verify clue does NOT associate with assassin word before giving it.")
-        elif pred_name == "guesser" and hit_assassin:
-            feedback_parts.append("IMPROVE GUESSER: Be more conservative - stop guessing if uncertain rather than risk hitting assassin.")
-        
+        # Parse board state for detailed feedback
+        friendly_words = set(
+            word.strip().upper()
+            for word in str(example.friendly_words).split(',')
+        )
+        bystanders = set(
+            word.strip().upper()
+            for word in str(example.bystanders).split(',')
+        )
+        assassin = str(example.assassin).strip().upper()
+
+        # Get guesses from prediction
+        guesses = prediction.guesses if hasattr(prediction, 'guesses') else []
+        if isinstance(guesses, str):
+            guesses = [g.strip().upper() for g in guesses.split(',')]
+        else:
+            guesses = [g.upper() for g in guesses]
+
+        # Get clue info
+        clue = getattr(prediction, 'clue', 'UNKNOWN')
+        clue_number = getattr(prediction, 'clue_number', 0)
+
+        # Analyze what happened
+        feedback_parts = []
+        hit_assassin = any(guess == assassin for guess in guesses)
+        hit_bystander = any(guess in bystanders for guess in guesses)
+        correct_count = sum(1 for guess in guesses if guess in friendly_words)
+
+        # Generate detailed feedback
+        if hit_assassin:
+            assassin_pos = next(i for i, guess in enumerate(guesses) if guess == assassin)
+            feedback_parts.append(f"CRITICAL FAILURE: Assassin '{assassin}' was guessed at position {assassin_pos + 1}. ")
+            feedback_parts.append(f"The clue '{clue}' dangerously associated with the assassin word. ")
+            if pred_name == "clue_giver":
+                feedback_parts.append("CLUE GIVER: You must explicitly verify your clue cannot lead to the assassin. Consider safer, more specific connections.")
+            else:  # guesser
+                feedback_parts.append("GUESSER: You guessed too aggressively. When uncertain, stop before risking the assassin.")
+
+        elif hit_bystander:
+            bystander_guess = next(guess for guess in guesses if guess in bystanders)
+            bystander_pos = next(i for i, guess in enumerate(guesses) if guess == bystander_guess)
+            feedback_parts.append(f"Bystander hit: '{bystander_guess}' at position {bystander_pos + 1} ended the turn prematurely. ")
+            if correct_count > 0:
+                feedback_parts.append(f"You got {correct_count} correct guesses first, but the bystander penalty canceled the gains. ")
+            feedback_parts.append(f"The clue '{clue}' had unintended associations with neutral words.")
+
+        elif correct_count == 0:
+            feedback_parts.append(f"FAILURE: No correct guesses. The clue '{clue}' ({clue_number}) failed to connect with any friendly words. ")
+            feedback_parts.append("Consider more direct or obvious associations between friendly words.")
+
+        elif correct_count < clue_number:
+            feedback_parts.append(f"UNDERPERFORMANCE: Clue '{clue}' promised {clue_number} words but only {correct_count} were guessed correctly. ")
+            feedback_parts.append("Your associations were too subtle or the guesser couldn't make the connection.")
+
+        else:  # Success case
+            if correct_count >= clue_number:
+                feedback_parts.append(f"SUCCESS: Clue '{clue}' ({clue_number}) successfully connected to {correct_count} friendly words! ")
+                if correct_count > clue_number:
+                    feedback_parts.append(f"Bonus: Guesser found {correct_count - clue_number} extra words.")
+
+        # Add strategic advice based on score ranges
+        if score < 0.3:
+            feedback_parts.append("Overall: This approach needs significant improvement. Focus on assassin avoidance above all else.")
+        elif score < 0.6:
+            feedback_parts.append("Overall: Making progress but still hitting penalties. Work on cleaner clue/association quality.")
+        else:
+            feedback_parts.append("Overall: Good performance! Continue refining for even better results.")
+
         feedback = " ".join(feedback_parts)
-        return {"score": normalized_score, "feedback": feedback}
-    
+        return {"score": score, "feedback": feedback}
+
     # Standard evaluation - just return the score
-    return normalized_score
+    return score
 
 
 def _extract_score(result) -> float:
@@ -192,40 +193,100 @@ def create_training_examples(
     base_seed: int = 42,
 ) -> List[dspy.Example]:
     """Generate training examples for DSPy optimization.
-    
-    Each example is a board state that the pipeline will be evaluated on.
+
+    Creates diverse board states including some with challenging configurations
+    that are more likely to test assassin avoidance and clue quality.
     """
     words = load_words(words_file)
     examples = []
-    
+
     for i in range(num_examples):
-        board_data = generate_board(words, seed=base_seed + i)
-        
+        # Use different seeds to ensure diversity
+        seed = base_seed + i * 31  # Use larger multiplier for more diversity
+        board_data = generate_board(words, seed=seed)
+
         example = dspy.Example(
             board=", ".join(board_data["board"]),
             friendly_words=", ".join(board_data["friendly_words"]),
             bystanders=", ".join(board_data["bystanders"]),
             assassin=board_data["assassin"],
         ).with_inputs("board", "friendly_words", "bystanders", "assassin")
-        
+
         examples.append(example)
-    
+
+    # Add some curated challenging examples if we have enough words
+    if len(words) >= 20:  # Ensure we have enough words for curated examples
+        curated_examples = create_curated_challenging_examples(words, base_seed + 10000)
+        examples.extend(curated_examples[:min(10, num_examples // 5)])  # Add up to 10% curated examples
+
+    return examples
+
+
+def create_curated_challenging_examples(words: List[str], seed: int) -> List[dspy.Example]:
+    """Create challenging examples designed to test specific failure modes.
+
+    These examples are crafted to have assassins that are semantically close
+    to friendly words, making assassin avoidance more difficult.
+    """
+    examples = []
+    random.seed(seed)
+
+    # Example 1: Assassin that's a type of the friendly words
+    # (e.g., friendly words are animals, assassin is another animal)
+    animal_words = [w for w in words if w.upper() in {
+        'LION', 'TIGER', 'BEAR', 'WOLF', 'EAGLE', 'SHARK', 'SNAKE', 'ELEPHANT',
+        'HORSE', 'DOG', 'CAT', 'BIRD', 'FISH', 'SPIDER', 'BEE', 'ANT'
+    }]
+
+    if len(animal_words) >= 10:
+        board_words = random.sample(words, 16)
+        animal_friendly = [w for w in board_words if w.upper() in {w.upper() for w in animal_words}][:6]
+        if len(animal_friendly) >= 4:
+            # Add more animals to make it challenging
+            remaining_animals = [w for w in animal_words if w not in board_words][:2]
+            for animal in remaining_animals:
+                # Replace a random word with another animal
+                idx = random.randint(0, 15)
+                board_words[idx] = animal
+
+            # Make sure we have at least 4 animal friends
+            animal_positions = [i for i, w in enumerate(board_words) if w.upper() in {w.upper() for w in animal_words}]
+            if len(animal_positions) >= 5:
+                friendly_positions = set(random.sample(animal_positions, 5))
+                bystander_positions = set(random.sample([i for i in range(16) if i not in friendly_positions], 7))
+                assassin_position = random.choice([i for i in range(16) if i not in friendly_positions and i not in bystander_positions])
+
+                friendly_words = [board_words[i] for i in friendly_positions]
+                bystanders = [board_words[i] for i in bystander_positions]
+                assassin = board_words[assassin_position]
+
+                examples.append(dspy.Example(
+                    board=", ".join(board_words),
+                    friendly_words=", ".join(friendly_words),
+                    bystanders=", ".join(bystanders),
+                    assassin=assassin,
+                ).with_inputs("board", "friendly_words", "bystanders", "assassin"))
+
+    # Example 2: Assassin that's conceptually related to friendly words
+    # (This is harder to implement generically, so we'll create a simple version)
+
     return examples
 
 
 def run_optimization(
     output_dir: Path,
     model: str = "openai/gpt-4o-mini",
-    num_train_examples: int = 30,
-    num_eval_examples: int = 10,
+    num_train_examples: int = 50,  # Increased default for better optimization
+    num_eval_examples: int = 20,   # Increased for more stable evaluation
     num_threads: int = 4,
-    max_bootstrapped_demos: int = 4,
-    max_labeled_demos: int = 4,
+    max_bootstrapped_demos: int = 8,  # Increased for more examples
+    max_labeled_demos: int = 8,      # Increased for more examples
     seed: int = 42,
     words_file: str = "inputs/names.yaml",
     clue_giver_prompt: Optional[str] = None,
     guesser_prompt: Optional[str] = None,
     dry_run: bool = False,
+    optimizer_budget: str = "medium",  # New parameter for optimizer intensity
 ) -> Dict[str, Any]:
     """Run DSPy optimization on ChainLex-1 pipeline.
     
@@ -258,14 +319,17 @@ def run_optimization(
     api_key = os.getenv("OPENROUTER_API_KEY")
     if not api_key:
         raise ValueError("OPENROUTER_API_KEY environment variable not set")
-    
+
+    # Enable caching for optimization efficiency, but use deterministic settings
     lm = dspy.LM(
         model=f"openrouter/{model}",
         api_key=api_key,
         api_base="https://openrouter.ai/api/v1",
-        cache=False,  # Disable caching to ensure fresh results
+        cache=True,  # Enable caching for efficiency during optimization
+        temperature=0.0,  # Deterministic generation for reproducibility
+        max_tokens=2048,  # Ensure sufficient context
     )
-    dspy.configure(lm=lm, cache=False)  # Also disable global cache
+    dspy.configure(lm=lm)
     
     # Generate training and evaluation examples
     logger.info("Generating training examples...")
@@ -317,83 +381,124 @@ def run_optimization(
         guesser_prompt=guesser_prompt,
     )
     
-    # Evaluate baseline with raw metric (for human-readable scores)
+    # Evaluate baseline with normalized metric (consistent with optimization)
     logger.info("Evaluating baseline performance...")
     baseline_evaluator = dspy.Evaluate(
         devset=eval_examples,
-        metric=chainlex_metric,
+        metric=normalized_metric,  # Use same metric as optimization
         num_threads=num_threads,
         display_progress=True,
     )
     baseline_result = baseline_evaluator(pipeline)
-    # Extract score from EvaluationResult if needed
     baseline_score = _extract_score(baseline_result)
-    logger.info(f"Baseline score: {baseline_score}")
+    logger.info(".3f")
+
+    # Also compute raw score for human readability
+    raw_baseline_evaluator = dspy.Evaluate(
+        devset=eval_examples,
+        metric=chainlex_metric,
+        num_threads=num_threads,
+        display_progress=False,  # Don't show progress again
+    )
+    raw_baseline_result = raw_baseline_evaluator(pipeline)
+    raw_baseline_score = _extract_score(raw_baseline_result)
+    logger.info(".1f")
     
     # Try GEPA (Genetic Evolution of Prompts Algorithm) for instruction optimization
     # GEPA uses reflection and textual feedback to evolve better prompts
     logger.info("Running GEPA optimization (evolutionary prompt optimization with feedback)...")
-    
+
     try:
         from dspy.teleprompt import GEPA
-        
-        # Create reflection LM (should be a strong model)
+
+        # Create reflection LM (use same model but with deterministic settings for consistency)
         reflection_lm = dspy.LM(
-            model=f"openrouter/{model}",  # Use same model for reflection
+            model=f"openrouter/{model}",
             api_key=api_key,
             api_base="https://openrouter.ai/api/v1",
-            temperature=0.7,
+            temperature=0.0,  # Deterministic for reflection
             cache=False,
         )
-        
+
         optimizer = GEPA(
             metric=gepa_feedback_metric,  # Use feedback-aware metric
-            auto="light",  # Budget: "light", "medium", or "heavy"
+            auto=optimizer_budget,  # Configurable optimization budget
             reflection_lm=reflection_lm,
             num_threads=num_threads,
             failure_score=0.0,
             perfect_score=1.0,
             seed=seed,
         )
-        
+
         optimized_pipeline = optimizer.compile(
             pipeline,
             trainset=train_examples,
             valset=eval_examples,
         )
-        
-    except Exception as e:
-        # Fall back to BootstrapFewShot if GEPA fails
-        logger.warning(f"GEPA failed ({e}), falling back to BootstrapFewShot")
-        optimizer = dspy.BootstrapFewShot(
-            metric=normalized_metric,
-            max_bootstrapped_demos=max_bootstrapped_demos,
-            max_labeled_demos=max_labeled_demos,
-            max_rounds=1,
-        )
-        
-        optimized_pipeline = optimizer.compile(
-            pipeline,
-            trainset=train_examples,
-        )
+
+    except ImportError:
+        logger.warning("GEPA not available, falling back to MIPROv2 (Multi-step Instruction Proposal)")
+        try:
+            from dspy.teleprompt import MIPROv2
+
+            optimizer = MIPROv2(
+                metric=normalized_metric,
+                auto=optimizer_budget,
+                num_threads=num_threads,
+                seed=seed,
+            )
+
+            optimized_pipeline = optimizer.compile(
+                pipeline,
+                trainset=train_examples,
+                valset=eval_examples,
+                max_bootstrapped_demos=max_bootstrapped_demos,
+                max_labeled_demos=max_labeled_demos,
+            )
+
+        except Exception as e:
+            logger.warning(f"MIPROv2 failed ({e}), falling back to BootstrapFewShot")
+            optimizer = dspy.BootstrapFewShot(
+                metric=normalized_metric,
+                max_bootstrapped_demos=max_bootstrapped_demos,
+                max_labeled_demos=max_labeled_demos,
+                max_rounds=2,  # Increased from 1 for better optimization
+            )
+
+            optimized_pipeline = optimizer.compile(
+                pipeline,
+                trainset=train_examples,
+            )
     
     # Evaluate optimized pipeline
     logger.info("Evaluating optimized performance...")
     optimized_result = baseline_evaluator(optimized_pipeline)
     optimized_score = _extract_score(optimized_result)
-    logger.info(f"Optimized score: {optimized_score}")
-    
+    logger.info(".3f")
+
+    # Also compute raw optimized score
+    raw_optimized_result = raw_baseline_evaluator(optimized_pipeline)
+    raw_optimized_score = _extract_score(raw_optimized_result)
+    logger.info(".1f")
+
     # Save optimized pipeline
     pipeline_path = output_dir / "optimized_pipeline.json"
     optimized_pipeline.save(str(pipeline_path))
     logger.info(f"Saved optimized pipeline to {pipeline_path}")
-    
+
     # Calculate improvement
     improvement = optimized_score - baseline_score
+    raw_improvement = raw_optimized_score - raw_baseline_score
+
     if baseline_score != 0:
         improvement_pct = (improvement / abs(baseline_score)) * 100
     else:
         improvement_pct = 0.0
+
+    if raw_baseline_score != 0:
+        raw_improvement_pct = (raw_improvement / abs(raw_baseline_score)) * 100
+    else:
+        raw_improvement_pct = 0.0
     
     # Save optimization results
     results = {
@@ -404,10 +509,14 @@ def run_optimization(
         "num_eval_examples": num_eval_examples,
         "max_bootstrapped_demos": max_bootstrapped_demos,
         "max_labeled_demos": max_labeled_demos,
-        "baseline_score": baseline_score,
-        "optimized_score": optimized_score,
-        "improvement": improvement,
-        "improvement_pct": improvement_pct,
+        "baseline_score_normalized": baseline_score,
+        "baseline_score_raw": raw_baseline_score,
+        "optimized_score_normalized": optimized_score,
+        "optimized_score_raw": raw_optimized_score,
+        "improvement_normalized": improvement,
+        "improvement_pct_normalized": improvement_pct,
+        "improvement_raw": raw_improvement,
+        "improvement_pct_raw": raw_improvement_pct,
     }
     
     results_path = output_dir / "optimization_results.json"
