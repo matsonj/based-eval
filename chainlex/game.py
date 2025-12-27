@@ -180,6 +180,54 @@ class ChainLexGame:
         except Exception as e:
             logger.debug(f"Failed to emit model events: {e}")
 
+    def _emit_game_complete(
+        self,
+        model_away: str,
+        model_home: str,
+        outcome: str,
+        winner_model: Optional[str],
+        score_away: int,
+        score_home: int,
+        margin: int,
+        correct_guesses_away: int,
+        correct_guesses_home: int,
+        total_guesses: int,
+        wall_ms: int,
+        cost_money: Optional[float] = None,
+        upstream_cost_money: Optional[float] = None,
+        payload: Optional[Dict] = None,
+    ) -> None:
+        """Emit game_complete summary event for leaderboards and analytics."""
+        if not self._controllog_initialized:
+            return
+        try:
+            cl.game_complete(
+                task_id=self._task_id,
+                project_id="chainlex",
+                game_id=self.game_id,
+                model_away=model_away,
+                model_home=model_home,
+                outcome=outcome,
+                winner_model=winner_model,
+                score_away=score_away,
+                score_home=score_home,
+                margin=margin,
+                correct_guesses_away=correct_guesses_away,
+                correct_guesses_home=correct_guesses_home,
+                total_guesses=total_guesses,
+                wall_ms=wall_ms,
+                cost_money=cost_money,
+                upstream_cost_money=upstream_cost_money,
+                run_id=self._run_id,
+                payload={
+                    "game_id": self.game_id,
+                    "seed": self.seed,
+                    **(payload or {}),
+                },
+            )
+        except Exception as e:
+            logger.debug(f"Failed to emit game_complete event: {e}")
+
     def load_words(self) -> List[str]:
         """Load words from YAML file (cached for performance)."""
         global _WORDS_CACHE
@@ -783,6 +831,32 @@ class ChainLexGame:
             "score_home": score_home,
             "duration_sec": duration,
         })
+
+        # Emit game_complete summary event for leaderboards/analytics
+        total_guesses_away = len(result_away.get("guesses", []))
+        total_guesses_home = len(result_home.get("guesses", []))
+        self._emit_game_complete(
+            model_away=model_away,
+            model_home=model_home,
+            outcome=winner,  # "model_away", "model_home", or "tie"
+            winner_model=winner_model,
+            score_away=score_away,
+            score_home=score_home,
+            margin=result["margin"],
+            correct_guesses_away=result_away["correct_guesses"],
+            correct_guesses_home=result_home["correct_guesses"],
+            total_guesses=total_guesses_away + total_guesses_home,
+            wall_ms=int(duration * 1000),
+            cost_money=self.total_cost if self.total_cost > 0 else None,
+            upstream_cost_money=self.total_upstream_cost if self.total_upstream_cost > 0 else None,
+            payload={
+                "end_reason_away": result_away["end_reason"],
+                "end_reason_home": result_home["end_reason"],
+                "clue_away": result_away.get("clue"),
+                "clue_home": result_home.get("clue"),
+                "both_hit_assassin": both_hit_assassin,
+            },
+        )
 
         logger.info(f"Game completed. Winner: {winner}, Scores: {score_away} vs {score_home}")
         return result

@@ -20,10 +20,7 @@ def plot_leaderboard(
     item_name: str = "Model",
     rating_name: str = "BT Rating",
 ):
-    """Generate a leaderboard chart similar to arena-rank examples.
-    
-    Creates a horizontal bar chart with confidence intervals.
-    """
+    """Generate a leaderboard chart - forest plot style with dots and CI ranges."""
     try:
         import matplotlib.pyplot as plt
         import pandas as pd
@@ -36,52 +33,89 @@ def plot_leaderboard(
     # Create DataFrame and sort
     df = pd.DataFrame(results).sort_values("ratings", ascending=False).head(top_n)
     
-    # Create figure
-    fig, ax = plt.subplots(figsize=(14, 8))
-    
     # Get data
     competitors = df["competitors"].values
     ratings = df["ratings"].values
     lower = df["rating_lower"].values
     upper = df["rating_upper"].values
     
-    # Calculate error bars
-    errors_lower = ratings - lower
-    errors_upper = upper - ratings
-    errors = np.array([errors_lower, errors_upper])
+    # Calculate sensible x-axis range
+    x_min = lower.min() - 30
+    x_max = upper.max() + 30
     
-    # Y positions (reversed so highest rating is at top)
-    y_pos = np.arange(len(competitors))
+    # Y positions (inverted so #1 is at top)
+    y_pos = np.arange(len(competitors))[::-1]
     
-    # Create horizontal bar chart
-    bars = ax.barh(y_pos, ratings, xerr=errors, capsize=3, 
-                   color='#4285f4', edgecolor='#2c5282', linewidth=1,
-                   error_kw={'elinewidth': 1, 'capthick': 1, 'ecolor': '#666666'})
+    # Set up figure with clean white background
+    fig, ax = plt.subplots(figsize=(10, 12), facecolor='#fafafa')
+    ax.set_facecolor('#fafafa')
     
-    # Customize appearance
+    # Draw horizontal CI lines first (behind dots)
+    for i, (y, lo, hi) in enumerate(zip(y_pos, lower, upper)):
+        ax.hlines(y, lo, hi, color='#cbd5e1', linewidth=6, zorder=1)
+    
+    # Color dots by performance tier
+    dot_colors = []
+    for i, rating in enumerate(ratings):
+        if i < 3:  # Top 3
+            dot_colors.append('#10b981')  # Emerald
+        elif i < 8:  # Top tier
+            dot_colors.append('#3b82f6')  # Blue
+        elif i < 15:  # Mid tier
+            dot_colors.append('#8b5cf6')  # Purple
+        else:  # Lower tier
+            dot_colors.append('#ef4444')  # Red
+    
+    # Draw dots
+    ax.scatter(ratings, y_pos, s=200, c=dot_colors, zorder=3, edgecolors='white', linewidths=2)
+    
+    # Add model names and ratings on the left
+    for i, (y, name, rating, lo, hi) in enumerate(zip(y_pos, competitors, ratings, lower, upper)):
+        # Rank badge
+        rank = len(competitors) - y
+        rank_color = '#10b981' if rank <= 3 else '#64748b'
+        ax.text(x_min - 8, y, f'{rank}', va='center', ha='right',
+                fontsize=11, fontweight='700', color=rank_color)
+        
+        # Rating value (right side)
+        ax.text(x_max + 5, y, f'{rating:.0f}', va='center', ha='left',
+                fontsize=11, fontweight='600', color='#374151', family='monospace')
+    
+    # Y-axis labels (model names)
     ax.set_yticks(y_pos)
-    ax.set_yticklabels(competitors)
-    ax.invert_yaxis()  # Highest at top
-    ax.set_xlabel(rating_name, fontsize=12)
-    ax.set_ylabel(item_name, fontsize=12)
-    ax.set_title(title, fontsize=14, fontweight='bold', pad=20)
+    ax.set_yticklabels(competitors, fontsize=11, color='#1f2937', fontweight='500')
     
-    # Add rating values on bars
-    for i, (bar, rating) in enumerate(zip(bars, ratings)):
-        ax.text(bar.get_width() + 5, bar.get_y() + bar.get_height()/2, 
-                f'{rating:.1f}', va='center', fontsize=9, color='#333333')
+    # X-axis
+    ax.set_xlim(x_min - 60, x_max + 60)
+    ax.set_xlabel(rating_name, fontsize=12, fontweight='600', color='#374151', labelpad=15)
+    ax.tick_params(axis='x', colors='#64748b', labelsize=10)
     
-    # Style
+    # Title
+    ax.set_title(title, fontsize=18, fontweight='700', color='#111827', pad=25, loc='left')
+    
+    # Subtitle with CI explanation
+    ax.text(0.0, 1.02, '95% confidence intervals shown', transform=ax.transAxes,
+            fontsize=10, color='#6b7280', style='italic')
+    
+    # Clean up spines
     ax.spines['top'].set_visible(False)
     ax.spines['right'].set_visible(False)
-    ax.grid(axis='x', linestyle='--', alpha=0.3)
+    ax.spines['left'].set_visible(False)
+    ax.spines['bottom'].set_color('#e5e7eb')
+    
+    # Subtle horizontal grid
+    ax.xaxis.grid(True, linestyle='-', alpha=0.3, color='#e5e7eb')
+    ax.set_axisbelow(True)
+    
+    # Remove y-axis line
+    ax.tick_params(axis='y', length=0)
     
     # Adjust layout
     plt.tight_layout()
     
     # Save
-    plt.savefig(output_path, dpi=150, bbox_inches='tight', 
-                facecolor='white', edgecolor='none')
+    plt.savefig(output_path, dpi=150, bbox_inches='tight',
+                facecolor='#fafafa', edgecolor='none')
     plt.close()
     
     return True
@@ -426,13 +460,27 @@ def leaderboard(
     # Load results
     df = pd.read_csv(results_file)
     
-    # Validate required columns
-    required_cols = ["model_a", "model_b", "winner"]
-    missing_cols = [c for c in required_cols if c not in df.columns]
-    if missing_cols:
-        console.print(f"[red]Error: Missing required columns: {missing_cols}[/red]")
-        console.print(f"[dim]Expected columns: {required_cols}[/dim]")
+    # Detect format: model_a/model_b or model_home/model_away
+    has_ab_format = "model_a" in df.columns and "model_b" in df.columns
+    has_home_away_format = "model_home" in df.columns and "model_away" in df.columns
+    
+    if not has_ab_format and not has_home_away_format:
+        console.print("[red]Error: Missing required columns[/red]")
+        console.print("[dim]Expected either: model_a, model_b, winner[/dim]")
+        console.print("[dim]Or: model_home, model_away, winner[/dim]")
         raise typer.Exit(1)
+    
+    # Normalize to model_a/model_b format for Bradley-Terry
+    if has_home_away_format and not has_ab_format:
+        console.print("[dim]Detected home/away format, normalizing for Bradley-Terry...[/dim]")
+        # Save original winner for home/away splits analysis
+        df["winner_original"] = df["winner"]
+        # Create model_a/model_b columns (away=a, home=b to match existing convention)
+        df["model_a"] = df["model_away"]
+        df["model_b"] = df["model_home"]
+        # Convert winner values: model_away -> model_a, model_home -> model_b
+        winner_map = {"model_away": "model_a", "model_home": "model_b", "tie": "tie", "both_bad": "both_bad"}
+        df["winner"] = df["winner"].map(winner_map)
     
     total_games = len(df)
     unique_models = set(df["model_a"].unique()) | set(df["model_b"].unique())
@@ -448,7 +496,7 @@ def leaderboard(
     
     # Create dataset and model
     dataset = PairDataset.from_pandas(df)
-    model = BradleyTerry(n_competitors=len(dataset.competitors))
+    model = BradleyTerry(n_competitors=len(dataset.competitors), init_rating=1600)
     
     # Compute ratings and confidence intervals
     console.print("\n[dim]Computing Bradley-Terry ratings...[/dim]")
@@ -544,6 +592,96 @@ def leaderboard(
     
     console.print(win_table)
     
+    # Show home/away splits if detailed data is available
+    if "model_home" in df.columns and "model_away" in df.columns:
+        console.print("\n[bold]Home/Away Splits:[/bold]")
+        
+        split_table = Table(title="Model Performance by Position")
+        split_table.add_column("Model", style="cyan")
+        split_table.add_column("Home W", justify="right", style="green")
+        split_table.add_column("Home T", justify="right", style="yellow")
+        split_table.add_column("Home L", justify="right", style="red")
+        split_table.add_column("Home %", justify="right")
+        split_table.add_column("Away W", justify="right", style="green")
+        split_table.add_column("Away T", justify="right", style="yellow")
+        split_table.add_column("Away L", justify="right", style="red")
+        split_table.add_column("Away %", justify="right")
+        split_table.add_column("Δ", justify="right", style="magenta")
+        
+        # Use original winner values for home/away analysis
+        winner_col = "winner_original" if "winner_original" in df.columns else "winner"
+        
+        # Calculate home/away stats
+        home_wins = {}
+        home_losses = {}
+        home_ties = {}
+        away_wins = {}
+        away_losses = {}
+        away_ties = {}
+        
+        for _, row in df.iterrows():
+            home_model = row["model_home"]
+            away_model = row["model_away"]
+            winner = row[winner_col]
+            
+            # Initialize if needed
+            for m in [home_model, away_model]:
+                if m not in home_wins:
+                    home_wins[m] = 0
+                    home_losses[m] = 0
+                    home_ties[m] = 0
+                    away_wins[m] = 0
+                    away_losses[m] = 0
+                    away_ties[m] = 0
+            
+            if winner == "model_home":
+                home_wins[home_model] += 1
+                away_losses[away_model] += 1
+            elif winner == "model_away":
+                away_wins[away_model] += 1
+                home_losses[home_model] += 1
+            elif winner in ("tie", "both_bad"):
+                home_ties[home_model] += 1
+                away_ties[away_model] += 1
+        
+        # Build split stats and sort by overall win rate
+        split_stats = []
+        for model in unique_models:
+            hw = home_wins.get(model, 0)
+            hl = home_losses.get(model, 0)
+            ht = home_ties.get(model, 0)
+            home_total = hw + hl + ht
+            home_rate = ((hw + 0.5 * ht) / home_total * 100) if home_total > 0 else 0
+            
+            aw = away_wins.get(model, 0)
+            al = away_losses.get(model, 0)
+            at = away_ties.get(model, 0)
+            away_total = aw + al + at
+            away_rate = ((aw + 0.5 * at) / away_total * 100) if away_total > 0 else 0
+            
+            # Overall rate for sorting
+            total = home_total + away_total
+            overall_rate = ((hw + aw + 0.5 * (ht + at)) / total * 100) if total > 0 else 0
+            
+            # Home advantage (positive = better at home)
+            delta = home_rate - away_rate
+            
+            split_stats.append((model, hw, ht, hl, home_rate, aw, at, al, away_rate, delta, overall_rate))
+        
+        split_stats.sort(key=lambda x: x[10], reverse=True)  # Sort by overall rate
+        
+        for model, hw, ht, hl, home_rate, aw, at, al, away_rate, delta, _ in split_stats[:top_n]:
+            delta_str = f"+{delta:.1f}" if delta > 0 else f"{delta:.1f}"
+            delta_style = "green" if delta > 0 else ("red" if delta < 0 else "dim")
+            split_table.add_row(
+                model,
+                str(hw), str(ht), str(hl), f"{home_rate:.1f}%",
+                str(aw), str(at), str(al), f"{away_rate:.1f}%",
+                f"[{delta_style}]{delta_str}[/{delta_style}]",
+            )
+        
+        console.print(split_table)
+    
     # Save full leaderboard to CSV
     output_file = results_file.parent / "leaderboard.csv"
     leaderboard_df.to_csv(output_file, index=False)
@@ -557,7 +695,7 @@ def leaderboard(
         results=results,
         output_path=chart_file,
         top_n=top_n,
-        title="Codenames Tournament - Bradley-Terry Ratings",
+        title="Bradley-Terry Ratings",
         item_name="Model",
         rating_name="BT Rating",
     ):

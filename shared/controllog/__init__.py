@@ -17,6 +17,7 @@ from .builders import (
     model_completion,
     state_move,
     utility,
+    game_complete,
 )
 
 __all__ = [
@@ -30,5 +31,6 @@ __all__ = [
     "model_completion",
     "state_move",
     "utility",
+    "game_complete",
 ]
 
