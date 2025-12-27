@@ -26,6 +26,13 @@ app = typer.Typer(help="Run ChainLex-1 games for AI evaluation")
 console = Console()
 
 
+def _format_score(score: int) -> str:
+    """Format score with parentheses for negative numbers (accounting notation)."""
+    if score < 0:
+        return f"({abs(score)})"
+    return str(score)
+
+
 def _load_model_mappings() -> dict:
     """Load model mappings from shared infrastructure."""
     try:
@@ -380,7 +387,7 @@ def run_eval(
     add_model: Optional[str] = typer.Option(None, "--add-model", help="Add a single new model to existing evaluation (plays against all canonical models)"),
     games_per_matchup: int = typer.Option(4, "--games", "-g", help="Number of games per matchup (split evenly home/away)"),
     threads: int = typer.Option(16, "--threads", "-t", help="Number of parallel threads"),
-    seed: int = typer.Option(42, "--seed", help="Base random seed"),
+    seed: int = typer.Option(676767, "--seed", help="Base random seed"),
     words_file: str = typer.Option("inputs/names.yaml", help="Path to words YAML file"),
     output: Path = typer.Option(Path("logs/chainlex/eval"), "--output", "-o", help="Output directory"),
     clue_giver_prompt: str = typer.Option("chainlex/prompts/clue_giver.md"),
@@ -447,6 +454,12 @@ def run_eval(
     log_dir.mkdir(exist_ok=True)
     setup_logging(log_dir, verbose)
     
+    # Generate fixed seeds upfront - every matchup uses the same seeds
+    # Each seed is played twice (once per home/away configuration)
+    # With 4 games: seed 0 for games 1&2 (swapped), seed 1 for games 3&4 (swapped)
+    num_unique_boards = games_per_matchup // 2
+    game_seeds = [seed + i for i in range(num_unique_boards)]
+    
     # Generate matchups
     matchups = []
     
@@ -454,52 +467,42 @@ def run_eval(
         # Add-model mode: only matchups between new model and opponents
         console.print(f"[yellow]ADD MODE: Running {new_model} against {len(opponent_models)} canonical models[/yellow]")
         for opponent in sorted(opponent_models):
-            # Split games evenly: half with new model away, half with new model home
-            games_as_away = games_per_matchup // 2
-            games_as_home = games_per_matchup - games_as_away
-            
-            # New model as away (opponent as home)
-            for game_idx in range(games_as_away):
+            # For each seed, play two games with swapped home/away
+            for board_idx, board_seed in enumerate(game_seeds):
+                # Game A: new_model away, opponent home
                 matchups.append({
                     "model_away": new_model,
                     "model_home": opponent,
-                    "seed": seed + game_idx,
-                    "game_idx": game_idx,
+                    "seed": board_seed,
+                    "game_idx": board_idx * 2,
                 })
-            
-            # New model as home (opponent as away)
-            for game_idx in range(games_as_home):
+                # Game B: opponent away, new_model home (same board)
                 matchups.append({
                     "model_away": opponent,
                     "model_home": new_model,
-                    "seed": seed + games_as_away + game_idx,
-                    "game_idx": games_as_away + game_idx,
+                    "seed": board_seed,
+                    "game_idx": board_idx * 2 + 1,
                 })
     else:
         # Full round-robin mode
         eval_models_sorted = sorted(eval_models)
         for i, model_1 in enumerate(eval_models_sorted):
             for model_2 in eval_models_sorted[i + 1:]:
-                # Split games evenly: first half model_1 away, second half model_2 away
-                games_as_away_1 = games_per_matchup // 2
-                games_as_away_2 = games_per_matchup - games_as_away_1  # Handles odd numbers
-                
-                # model_1 as away (model_2 as home)
-                for game_idx in range(games_as_away_1):
+                # For each seed, play two games with swapped home/away
+                for board_idx, board_seed in enumerate(game_seeds):
+                    # Game A: model_1 away, model_2 home
                     matchups.append({
                         "model_away": model_1,
                         "model_home": model_2,
-                        "seed": seed + game_idx,
-                        "game_idx": game_idx,
+                        "seed": board_seed,
+                        "game_idx": board_idx * 2,
                     })
-                
-                # model_2 as away (model_1 as home)
-                for game_idx in range(games_as_away_2):
+                    # Game B: model_2 away, model_1 home (same board)
                     matchups.append({
                         "model_away": model_2,
                         "model_home": model_1,
-                        "seed": seed + games_as_away_1 + game_idx,
-                        "game_idx": games_as_away_1 + game_idx,
+                        "seed": board_seed,
+                        "game_idx": board_idx * 2 + 1,
                     })
     
     total_games = len(matchups)
@@ -518,6 +521,7 @@ def run_eval(
     console.print(f"Games per matchup: {games_per_matchup}")
     console.print(f"Total games: {total_games}")
     console.print(f"Threads: {threads}")
+    console.print(f"Unique boards: {len(game_seeds)} (seeds: {game_seeds})")
     
     if dry_run:
         console.print(f"\n[yellow]DRY RUN - showing schedule only[/yellow]\n")
@@ -666,7 +670,7 @@ def run_eval(
                     score_away = result.get("score_away", 0)
                     score_home = result.get("score_home", 0)
                     
-                    msg = f"[green]✅ {completed}/{total_games} | {matchup['model_away']} (away) vs {matchup['model_home']} (home) | {score_away}-{score_home} | Winner: {winner} | ${game_cost:.4f}[/green]"
+                    msg = f"[green]✅ {completed}/{total_games} | {matchup['model_away']} (away) vs {matchup['model_home']} (home) | {_format_score(score_away)}-{_format_score(score_home)} | Winner: {winner} | ${game_cost:.4f}[/green]"
                     progress.console.print(msg)
                 else:
                     with lock:
@@ -1072,7 +1076,7 @@ def _run_cost_estimation_game(
 
 @app.command("cost-estimate")
 def cost_estimate(
-    seed: int = typer.Option(42, help="Random seed for board generation"),
+    seed: int = typer.Option(676767, help="Random seed for board generation"),
     threads: int = typer.Option(16, "--threads", "-t", help="Number of parallel threads"),
     output: Path = typer.Option(
         Path("logs/chainlex/cost_estimate"),
