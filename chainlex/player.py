@@ -239,20 +239,45 @@ class AIPlayer:
 
         for line in lines:
             line = line.strip()
-            # Handle both plain and markdown formatted responses
-            if line.startswith("CLUE:") or line.startswith("**CLUE:**"):
-                clue = line.replace("**CLUE:**", "").replace("CLUE:", "").strip().strip("\"'")
-            elif line.startswith("NUMBER:") or line.startswith("**NUMBER:**"):
-                number_str = line.replace("**NUMBER:**", "").replace("NUMBER:", "").strip()
-                try:
-                    number = int(number_str)
-                except ValueError:
-                    number = 1
-            elif ":" in line and len(line.split(":")) == 2:
-                # Try to parse "clue: number" format
+            # Remove leading bullet points and dashes
+            if line.startswith("- "):
+                line = line[2:].strip()
+            
+            # Handle various markdown/plain formats for CLUE
+            # Formats: "CLUE:", "**CLUE:**", "**CLUE**:", "CLUE :"
+            line_upper = line.upper()
+            if line_upper.startswith("CLUE") or line_upper.startswith("**CLUE"):
+                # Extract everything after the colon
+                if ":" in line:
+                    clue_part = line.split(":", 1)[1].strip()
+                    # Clean up markdown and quotes
+                    clue = clue_part.strip("*\"' ")
+                    if clue:
+                        continue  # Found clue, move to next line
+            
+            # Handle various formats for NUMBER
+            if line_upper.startswith("NUMBER") or line_upper.startswith("**NUMBER"):
+                if ":" in line:
+                    number_part = line.split(":", 1)[1].strip()
+                    # Extract just the number, ignore any trailing text
+                    number_str = ""
+                    for char in number_part:
+                        if char.isdigit():
+                            number_str += char
+                        elif number_str:  # Stop at first non-digit after finding digits
+                            break
+                    if number_str:
+                        try:
+                            number = int(number_str)
+                        except ValueError:
+                            number = 1
+                    continue
+            
+            # Fallback: try to parse "clue: number" format
+            if ":" in line and len(line.split(":")) == 2:
                 parts = line.split(":")
                 if parts[1].strip().isdigit():
-                    clue = parts[0].strip().strip("\"'")
+                    clue = parts[0].strip().strip("\"'*")
                     number = int(parts[1].strip())
 
         # Ensure valid number
