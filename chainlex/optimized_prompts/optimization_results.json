@@ -1,17 +1,23 @@
 {
-  "timestamp": "2025-12-27T19:48:23.065077Z",
-  "model": "anthropic/claude-haiku-4.5",
+  "timestamp": "2025-12-28T00:02:49.303672Z",
+  "model": "google/gemini-3-flash-preview",
+  "blend_mode": true,
+  "blend_models": [
+    "google/gemini-3-flash-preview",
+    "openai/gpt-5-mini",
+    "anthropic/claude-haiku-4.5"
+  ],
   "seed": 42,
   "num_train_examples": 30,
   "num_eval_examples": 10,
   "max_bootstrapped_demos": 4,
   "max_labeled_demos": 4,
-  "baseline_score_normalized": 0.3038,
-  "baseline_score_raw": -0.8,
-  "optimized_score_normalized": 0.5875,
-  "optimized_score_raw": 6.3,
-  "improvement_normalized": 0.2837,
-  "improvement_pct_normalized": 93.38380513495721,
-  "improvement_raw": 7.1,
-  "improvement_pct_raw": 887.4999999999998
+  "baseline_score_normalized": 0.4836,
+  "baseline_score_raw": 3.1,
+  "optimized_score_normalized": 0.5832999999999999,
+  "optimized_score_raw": 6.0,
+  "improvement_normalized": 0.09969999999999996,
+  "improvement_pct_normalized": 20.616211745243994,
+  "improvement_raw": 2.9,
+  "improvement_pct_raw": 93.54838709677419
 }
