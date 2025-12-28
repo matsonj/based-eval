@@ -6,8 +6,8 @@ Key differences from Codenames:
 - One round only
 - Smaller board (16 words: 8 friendly, 7 bystanders, 1 assassin)
 - Triangular scoring: nth correct guess = n points
-- Bystander: -5 points (ends turn)
-- Assassin: -28 points (ends game)
+- Bystander: -1 point (ends turn)
+- Assassin: Instant loss (ends game)
 """
 
 from chainlex.game import ChainLexGame

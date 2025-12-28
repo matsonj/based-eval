@@ -1,17 +1,18 @@
 """Scoring metrics for ChainLex-1 DSPy optimization.
 
-Implements the same scoring as the game:
-- Correct guesses: triangular scoring (1+2+3+...)
-- Bystander: -5 points
-- Assassin: -28 points
+Uses the GameEngine from game_engine.py to ensure consistent scoring
+between the optimizer and the production game.
 """
 
 from typing import List, Set
 
+# Import the shared game engine - single source of truth
+from chainlex.game_engine import GameEngine, BoardState
 
-# Scoring constants (match game.py)
-BYSTANDER_PENALTY = -5
-ASSASSIN_PENALTY = -28
+
+# Re-export constants from GameEngine for backward compatibility
+BYSTANDER_PENALTY = GameEngine.BYSTANDER_PENALTY
+ASSASSIN_PENALTY = GameEngine.ASSASSIN_PENALTY
 
 
 def score_guesses(
@@ -22,6 +23,8 @@ def score_guesses(
 ) -> int:
     """Score a list of guesses according to ChainLex-1 rules.
     
+    This is a thin wrapper around GameEngine.score_guesses for backward compatibility.
+    
     Args:
         guesses: Ordered list of guesses (most confident first)
         friendly_words: Set of target words
@@ -31,33 +34,21 @@ def score_guesses(
     Returns:
         Final score (can be negative)
     """
-    score = 0
-    correct_count = 0
+    board_state = BoardState(
+        board=[],  # Not used for scoring
+        friendly_words={w.upper() for w in friendly_words},
+        bystanders={w.upper() for w in bystanders},
+        assassin=assassin.upper(),
+    )
     
-    for guess in guesses:
-        guess_upper = guess.upper()
-        
-        if guess_upper == assassin.upper():
-            # Assassin - catastrophic
-            score += ASSASSIN_PENALTY
-            break
-        elif guess_upper in {w.upper() for w in bystanders}:
-            # Bystander - penalty and stop
-            score += BYSTANDER_PENALTY
-            break
-        elif guess_upper in {w.upper() for w in friendly_words}:
-            # Correct - triangular scoring
-            correct_count += 1
-            score += correct_count
-        # else: word not on board, skip (shouldn't happen)
-    
-    return score
+    result = GameEngine.score_guesses(guesses, board_state)
+    return result.score
 
 
 def chainlex_metric(example, prediction, trace=None) -> float:
     """DSPy metric function for ChainLex-1 optimization.
     
-    Evaluates a prediction by scoring the guesses against the known board state.
+    Uses GameEngine.score_guesses for consistent scoring with production.
     
     Args:
         example: DSPy example with board state (friendly_words, bystanders, assassin)
@@ -67,16 +58,13 @@ def chainlex_metric(example, prediction, trace=None) -> float:
     Returns:
         Score as a float (higher is better)
     """
-    # Parse friendly words, bystanders, assassin from example
-    friendly_words = set(
-        word.strip().upper() 
-        for word in str(example.friendly_words).split(',')
+    # Create BoardState from DSPy example
+    board_state = BoardState.from_strings(
+        board=str(example.board) if hasattr(example, 'board') else "",
+        friendly_words=str(example.friendly_words),
+        bystanders=str(example.bystanders),
+        assassin=str(example.assassin),
     )
-    bystanders = set(
-        word.strip().upper() 
-        for word in str(example.bystanders).split(',')
-    )
-    assassin = str(example.assassin).strip().upper()
     
     # Get guesses from prediction
     guesses = prediction.guesses if hasattr(prediction, 'guesses') else []
@@ -85,26 +73,23 @@ def chainlex_metric(example, prediction, trace=None) -> float:
     if isinstance(guesses, str):
         guesses = [g.strip() for g in guesses.split(',')]
     
-    # Score the guesses
-    score = score_guesses(guesses, friendly_words, bystanders, assassin)
+    # Score using the game engine
+    result = GameEngine.score_guesses(guesses, board_state)
     
-    return float(score)
+    return float(result.score)
 
 
 def max_possible_score(num_friendly: int = 8) -> int:
-    """Calculate maximum possible score (all friendly words correct).
-    
-    Triangular number: 1 + 2 + 3 + ... + n = n(n+1)/2
-    """
-    return num_friendly * (num_friendly + 1) // 2
+    """Calculate maximum possible score (all friendly words correct)."""
+    return GameEngine.max_possible_score(num_friendly)
 
 
 def normalized_metric(example, prediction, trace=None) -> float:
     """Normalized version of the metric (0-1 scale for well-behaved optimization).
     
     Maps score to [0, 1] range where:
-    - 0 = assassin hit (-28)
-    - 0.1 = bystander hit with no correct (-5)
+    - 0 = assassin hit (instant loss)
+    - 0.1 = bystander hit with no correct (-1)
     - 0.5 = score of 0
     - 1.0 = perfect score (36)
     
@@ -113,20 +98,19 @@ def normalized_metric(example, prediction, trace=None) -> float:
     raw_score = chainlex_metric(example, prediction, trace)
     max_score = max_possible_score()
     
-    # Handle catastrophic outcomes
-    if raw_score <= ASSASSIN_PENALTY:
+    # Handle catastrophic outcomes (assassin = instant loss)
+    if raw_score <= -100:  # Assassin threshold
         return 0.0
     
-    # Normalize: map [-5, 36] to [0.1, 1.0]
-    # Using linear interpolation
-    min_normal_score = BYSTANDER_PENALTY  # -5
+    # Normalize: map [BYSTANDER_PENALTY, 36] to [0.1, 1.0]
+    min_normal_score = BYSTANDER_PENALTY  # -1 in gameplay mode
     
     if raw_score < 0:
         # Negative scores (bystander hit): map to [0.1, 0.5]
-        # -5 -> 0.1, 0 -> 0.5
+        if min_normal_score == 0:
+            return 0.5
         return 0.1 + 0.4 * (raw_score - min_normal_score) / (-min_normal_score)
     else:
         # Positive scores: map to [0.5, 1.0]
         # 0 -> 0.5, 36 -> 1.0
         return 0.5 + 0.5 * (raw_score / max_score)
-

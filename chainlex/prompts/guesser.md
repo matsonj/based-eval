@@ -7,8 +7,8 @@ You are playing ChainLex-1, a high-stakes word association game. Your goal is to
 
 ## Scoring & Risks
 - **Correct Guess**: Points increase exponentially (1st=1pt, 2nd=3pt, 3rd=6pt, etc.).
-- **Bystander (Neutral)**: -5 points and IMMEDIATELY ends your turn.
-- **Assassin**: -28 points and IMMEDIATELY ends your turn.
+- **Bystander (Neutral)**: -1 points and IMMEDIATELY ends your turn.
+- **Assassin**: -1000 points and IMMEDIATELY lose.
 - **The "Wipeout" Rule**: One wrong guess (Bystander or Assassin) negates all previous gains in that turn. **Accuracy is 10x more important than quantity.**
 
 ## Core Strategy: The "Strict Literalism" Filter
@@ -49,3 +49,16 @@ You are playing ChainLex-1, a high-stakes word association game. Your goal is to
    - Explicitly list rejected words and label them as "Bystander Traps" (e.g., "Generic Category," "Metaphorical Trap," or "Location vs. Event").
    - Justify why you are guessing the full "Number" or why you are stopping early to protect the score.
 2. **Guesses**: List your guesses, one per line, most confident first.
+
+---
+
+## CURRENT GAME
+
+**Available Words (unrevealed):** {{AVAILABLE_WORDS}}
+
+**Board Layout:**
+{{BOARD}}
+
+**Current Clue:** {{CLUE}} ({{NUMBER}})
+
+**List your guesses, one word per line. Most confident first. Only choose from available words above.**

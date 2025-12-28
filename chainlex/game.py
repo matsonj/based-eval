@@ -29,8 +29,8 @@ class ChainLexGame:
     - TWO players compete on the SAME board
     - Each player gives ONE clue and then guesses (independently)
     - Scoring: nth correct guess = n points (triangular: 1+2+3+...)
-    - Bystander: -5 points (ends turn)
-    - Assassin: -28 points (ends turn)
+    - Bystander: -1 point (ends turn)
+    - Assassin: Instant loss (-1000 points for tracking)
     - Winner: Higher score on the same board
     """
 
@@ -43,13 +43,14 @@ class ChainLexGame:
     BYSTANDERS = 7
     ASSASSINS = 1
     
-    # Scoring (optimization mode - for DSPy training)
+    # Scoring constants (single source of truth)
+    # GAMEPLAY mode is the production mode - optimizer should use this
+    BYSTANDER_PENALTY_GAMEPLAY = -1
+    ASSASSIN_PENALTY_GAMEPLAY = -1000  # Instant loss
+    
+    # Legacy optimization mode (deprecated - kept for backward compatibility)
     BYSTANDER_PENALTY_OPTIMIZATION = -5
     ASSASSIN_PENALTY_OPTIMIZATION = -28
-    
-    # Scoring (gameplay mode - for competitive play)
-    BYSTANDER_PENALTY_GAMEPLAY = -1
-    # Assassin in gameplay mode = instant loss (no penalty, game ends)
 
     def __init__(
         self,
@@ -110,12 +111,11 @@ class ChainLexGame:
     def assassin_penalty(self) -> int:
         """Get assassin penalty based on scoring mode.
         
-        In gameplay mode, assassin = instant loss (we still return a penalty
-        for score tracking, but the game ends immediately).
+        In gameplay mode, assassin = instant loss (-1000 for tracking).
         """
         if self.scoring_mode == "gameplay":
-            return self.ASSASSIN_PENALTY_OPTIMIZATION  # Still tracked for records
-        return self.ASSASSIN_PENALTY_OPTIMIZATION
+            return self.ASSASSIN_PENALTY_GAMEPLAY  # -1000 (instant loss)
+        return self.ASSASSIN_PENALTY_OPTIMIZATION  # Legacy -28
     
     def _print(self, *args, **kwargs):
         """Print to console unless in quiet mode."""

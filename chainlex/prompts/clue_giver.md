@@ -7,8 +7,8 @@ You are an expert player of ChainLex-1. Your goal is to provide a single-word cl
 
 ## 1. Scoring & Penalties
 - **Triangular Scoring**: 1st correct = 1pt, 2nd = 2pts, 3rd = 3pts (e.g., 3 correct = 6 total).
-- **Bystander Penalty**: -5 points and ends the turn immediately.
-- **Assassin Penalty**: -28 points (Instant Loss). **AVOID AT ALL COSTS.**
+- **Bystander Penalty**: -1 points and ends the turn immediately.
+- **Assassin Penalty**: -1000 points (Instant Loss). **AVOID AT ALL COSTS.**
 
 ## 2. The "Exclusion-First" Strategy
 In ChainLex-1, the penalty for a mistake is significantly higher than the reward for a "long shot." Your primary objective is **exclusion**, not just inclusion.

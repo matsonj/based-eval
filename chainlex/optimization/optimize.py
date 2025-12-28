@@ -674,19 +674,43 @@ def _write_clue_giver_prompt(path: Path, evolved_instructions: Optional[str]) ->
     
     If GEPA evolved the instructions, use those directly.
     Otherwise, fall back to the base prompt.
+    
+    CRITICAL: Always ensures the game template section is present at the end,
+    as GEPA may strip it out during optimization.
     """
+    # Required template section for clue giver - game won't work without this!
+    CLUE_GIVER_TEMPLATE_SECTION = """
+
+---
+
+## CURRENT GAME
+
+**Board (16 words):** {{BOARD}}
+
+**Your Friendly Words (8):** {{FRIENDLY_WORDS}}
+**Bystanders:** {{BYSTANDERS}}
+**⚠️ ASSASSIN (AVOID AT ALL COSTS):** {{ASSASSIN}}
+
+**Your response MUST include:**
+1. Your reasoning
+2. CLUE: [single word]
+3. NUMBER: [1-8]"""
+
     if evolved_instructions:
         # GEPA evolved the prompt - use the evolved instructions directly
-        # Add the template variables that the game expects
         prompt = evolved_instructions
         
         # Ensure the template has the required placeholders for the game
-        # These should already be in GEPA's output, but let's verify
         if "{{HEAD_TO_HEAD_CONTEXT}}" not in prompt:
             prompt = "{{HEAD_TO_HEAD_CONTEXT}}\n\n" + prompt
         
         # Clean up any stray ``` from GEPA output
         prompt = prompt.rstrip("`\n ")
+        
+        # CRITICAL: Ensure the game template section is present
+        if "{{FRIENDLY_WORDS}}" not in prompt or "{{ASSASSIN}}" not in prompt:
+            prompt = prompt + CLUE_GIVER_TEMPLATE_SECTION
+            logger.info("Added missing game template section to clue_giver prompt")
         
         path.write_text(prompt)
         logger.info(f"Wrote GEPA-evolved clue_giver prompt ({len(prompt)} chars)")
@@ -703,7 +727,26 @@ def _write_guesser_prompt(path: Path, evolved_instructions: Optional[str]) -> No
     
     If GEPA evolved the instructions, use those directly.
     Otherwise, fall back to the base prompt.
+    
+    CRITICAL: Always ensures the game template section is present at the end,
+    as GEPA may strip it out during optimization.
     """
+    # Required template section for guesser - game won't work without this!
+    GUESSER_TEMPLATE_SECTION = """
+
+---
+
+## CURRENT GAME
+
+**Available Words (unrevealed):** {{AVAILABLE_WORDS}}
+
+**Board Layout:**
+{{BOARD}}
+
+**Current Clue:** {{CLUE}} ({{NUMBER}})
+
+**List your guesses, one word per line. Most confident first. Only choose from available words above.**"""
+
     if evolved_instructions:
         # GEPA evolved the prompt - use the evolved instructions directly
         prompt = evolved_instructions
@@ -714,6 +757,11 @@ def _write_guesser_prompt(path: Path, evolved_instructions: Optional[str]) -> No
         
         # Clean up any stray ``` from GEPA output
         prompt = prompt.rstrip("`\n ")
+        
+        # CRITICAL: Ensure the game template section is present
+        if "{{AVAILABLE_WORDS}}" not in prompt or "{{CLUE}}" not in prompt:
+            prompt = prompt + GUESSER_TEMPLATE_SECTION
+            logger.info("Added missing game template section to guesser prompt")
         
         path.write_text(prompt)
         logger.info(f"Wrote GEPA-evolved guesser prompt ({len(prompt)} chars)")

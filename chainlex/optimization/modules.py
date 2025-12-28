@@ -1,12 +1,15 @@
 """DSPy modules for ChainLex-1 optimization.
 
 Loads prompts from markdown files and defines signatures that can be optimized using DSPy.
+Uses GameEngine for shared parsing logic with the production game.
 """
 
 from pathlib import Path
 from typing import Optional
 
 import dspy
+
+from chainlex.game_engine import GameEngine
 
 
 def _load_prompt(prompt_name: str) -> str:
@@ -45,8 +48,8 @@ class ClueGiverSignature(dspy.Signature):
     
     board: str = dspy.InputField(desc="All 16 words on the board")
     friendly_words: str = dspy.InputField(desc="Your target words")
-    bystanders: str = dspy.InputField(desc="Neutral words (-5 penalty)")
-    assassin: str = dspy.InputField(desc="Word to avoid (-28 penalty)")
+    bystanders: str = dspy.InputField(desc="Neutral words (-1 penalty, ends turn)")
+    assassin: str = dspy.InputField(desc="Word to avoid (instant loss)")
     
     reasoning: str = dspy.OutputField(desc="Your reasoning")
     clue: str = dspy.OutputField(desc="Single word clue")
@@ -137,20 +140,15 @@ class Guesser(dspy.Module):
             number=number,
         )
         
-        # Parse guesses into a list
-        guesses_str = str(result.guesses).strip()
+        # Use GameEngine for consistent parsing with the real game
         board_words = set(word.strip().upper() for word in board.split(','))
         
-        guesses = []
-        for guess in guesses_str.replace(';', ',').split(','):
-            clean_guess = guess.strip().strip('"\'').upper()
-            # Only include valid board words
-            if clean_guess in board_words and clean_guess not in guesses:
-                guesses.append(clean_guess)
-        
-        # Limit to number + 1 (plus-one rule)
-        max_guesses = min(number + 1, 9)
-        guesses = guesses[:max_guesses]
+        # Parse using GameEngine (shared logic with production game)
+        guesses = GameEngine.parse_guesses_from_response(
+            str(result.guesses),
+            board_words,
+            max_guesses=number,  # No plus-one rule in ChainLex-1
+        )
         
         return dspy.Prediction(
             reasoning=result.reasoning,

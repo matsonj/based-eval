@@ -5,6 +5,7 @@ from typing import Dict, List, Optional, Tuple
 
 from shared.adapters.openrouter_adapter import OpenRouterAdapter
 from codenames.prompt_manager import PromptManager
+from chainlex.game_engine import GameEngine
 
 logger = logging.getLogger(__name__)
 
@@ -138,6 +139,7 @@ class AIPlayer:
             response, metadata = self.adapter.call_model_with_metadata(self.model_name, prompt)
 
             # Parse response for guesses
+            logger.debug(f"Raw AI response: {response}")
             guesses = self._parse_guesser_response(response, board_state, number)
             
             # Check if we got empty guesses and should retry
@@ -231,101 +233,26 @@ class AIPlayer:
             return True, f"Referee error - allowing clue: {e}"
 
     def _parse_clue_giver_response(self, response: str) -> Tuple[str, int]:
-        """Parse AI response for clue giver clue and number."""
-        lines = response.strip().split("\n")
-
-        clue = "UNKNOWN"
-        number = 1
-
-        for line in lines:
-            line = line.strip()
-            # Remove leading bullet points and dashes
-            if line.startswith("- "):
-                line = line[2:].strip()
-            
-            # Handle various markdown/plain formats for CLUE
-            # Formats: "CLUE:", "**CLUE:**", "**CLUE**:", "CLUE :"
-            line_upper = line.upper()
-            if line_upper.startswith("CLUE") or line_upper.startswith("**CLUE"):
-                # Extract everything after the colon
-                if ":" in line:
-                    clue_part = line.split(":", 1)[1].strip()
-                    # Clean up markdown and quotes
-                    clue = clue_part.strip("*\"' ")
-                    if clue:
-                        continue  # Found clue, move to next line
-            
-            # Handle various formats for NUMBER
-            if line_upper.startswith("NUMBER") or line_upper.startswith("**NUMBER"):
-                if ":" in line:
-                    number_part = line.split(":", 1)[1].strip()
-                    # Extract just the number, ignore any trailing text
-                    number_str = ""
-                    for char in number_part:
-                        if char.isdigit():
-                            number_str += char
-                        elif number_str:  # Stop at first non-digit after finding digits
-                            break
-                    if number_str:
-                        try:
-                            number = int(number_str)
-                        except ValueError:
-                            number = 1
-                    continue
-            
-            # Fallback: try to parse "clue: number" format
-            if ":" in line and len(line.split(":")) == 2:
-                parts = line.split(":")
-                if parts[1].strip().isdigit():
-                    clue = parts[0].strip().strip("\"'*")
-                    number = int(parts[1].strip())
-
-        # Ensure valid number
-        if number < 1:
-            number = 1
-        if number > 8:
-            number = 8
-
-        return clue, number
+        """Parse AI response for clue giver clue and number.
+        
+        Delegates to GameEngine.parse_clue_from_response for consistent parsing
+        between the game and the optimizer.
+        """
+        return GameEngine.parse_clue_from_response(response)
 
     def _parse_guesser_response(
         self, response: str, board_state: Dict, max_number: int
     ) -> List[str]:
-        """Parse AI response for guesser guesses."""
+        """Parse AI response for guesser guesses.
+        
+        Delegates to GameEngine.parse_guesses_from_response for consistent parsing
+        between the game and the optimizer.
+        """
         available_words = set(
             word for word in board_state["board"]
             if not board_state["revealed"].get(word, False)
         )
-        guesses = []
-
-        lines = response.strip().split("\n")
-
-        for line in lines:
-            line = line.strip()
-
-            # Skip empty lines and obvious non-guess lines
-            if not line or line.startswith("#") or line.startswith("//"):
-                continue
-
-            # Look for words in the line
-            words = line.replace(",", " ").replace(";", " ").split()
-            for word in words:
-                clean_word = word.strip(".,;:\"'()[]{}").upper()
-
-                # Check if this word is an available word
-                for available_word in available_words:
-                    if clean_word == available_word.upper():
-                        if available_word not in guesses:
-                            guesses.append(available_word)
-                            # Limit guesses to number + 1 (plus-one rule)
-                            if len(guesses) >= max_number + 1:
-                                return guesses
-
-        # If no valid guesses found, return first available word
-        if not guesses and available_words:
-            guesses = [next(iter(available_words))]
-
-        return guesses[:max_number + 1]
+        return GameEngine.parse_guesses_from_response(response, available_words, max_number)
 
     def _parse_referee_response(self, response: str) -> Tuple[bool, str]:
         """Parse AI response for referee validation."""
