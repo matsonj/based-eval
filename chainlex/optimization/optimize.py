@@ -18,7 +18,8 @@ import dspy
 import yaml
 
 from chainlex.optimization.modules import ChainLexPipeline
-from chainlex.optimization.metrics import chainlex_metric, normalized_metric, score_guesses, BYSTANDER_PENALTY, ASSASSIN_PENALTY
+from chainlex.optimization.metrics import chainlex_metric, normalized_metric, BYSTANDER_PENALTY, ASSASSIN_PENALTY
+from chainlex.game_engine import GameEngine, BoardState
 
 logger = logging.getLogger(__name__)
 
@@ -29,23 +30,20 @@ def gepa_feedback_metric(example, prediction, trace=None, pred_name=None, pred_t
     GEPA uses this feedback to understand WHY a score was low and evolve
     better instructions.
 
-    Uses the same normalized scoring as the rest of the system for consistency.
+    Uses GameEngine for consistent scoring with the production game.
     """
     # Use the normalized metric for consistent scoring
     score = normalized_metric(example, prediction, trace)
 
     # If GEPA is asking for predictor-level feedback, return dict
     if pred_name is not None:
-        # Parse board state for detailed feedback
-        friendly_words = set(
-            word.strip().upper()
-            for word in str(example.friendly_words).split(',')
+        # Parse board state using GameEngine's canonical method
+        board_state = BoardState.from_strings(
+            board=str(example.board) if hasattr(example, 'board') else "",
+            friendly_words=str(example.friendly_words),
+            bystanders=str(example.bystanders),
+            assassin=str(example.assassin),
         )
-        bystanders = set(
-            word.strip().upper()
-            for word in str(example.bystanders).split(',')
-        )
-        assassin = str(example.assassin).strip().upper()
 
         # Get guesses from prediction
         guesses = prediction.guesses if hasattr(prediction, 'guesses') else []
@@ -58,16 +56,19 @@ def gepa_feedback_metric(example, prediction, trace=None, pred_name=None, pred_t
         clue = getattr(prediction, 'clue', 'UNKNOWN')
         clue_number = getattr(prediction, 'clue_number', 0)
 
-        # Analyze what happened
+        # Use GameEngine to score guesses (single source of truth)
+        turn_result = GameEngine.score_guesses(guesses, board_state)
+        
+        # Extract analysis from turn result
         feedback_parts = []
-        hit_assassin = any(guess == assassin for guess in guesses)
-        hit_bystander = any(guess in bystanders for guess in guesses)
-        correct_count = sum(1 for guess in guesses if guess in friendly_words)
+        hit_assassin = turn_result.hit_assassin
+        hit_bystander = turn_result.hit_bystander
+        correct_count = turn_result.correct_count
 
         # Generate detailed feedback
         if hit_assassin:
-            assassin_pos = next(i for i, guess in enumerate(guesses) if guess == assassin)
-            feedback_parts.append(f"CRITICAL FAILURE: Assassin '{assassin}' was guessed at position {assassin_pos + 1}. ")
+            assassin_pos = next(i for i, guess in enumerate(guesses) if guess == board_state.assassin)
+            feedback_parts.append(f"CRITICAL FAILURE: Assassin '{board_state.assassin}' was guessed at position {assassin_pos + 1}. ")
             feedback_parts.append(f"The clue '{clue}' dangerously associated with the assassin word. ")
             if pred_name == "clue_giver":
                 feedback_parts.append("CLUE GIVER: You must explicitly verify your clue cannot lead to the assassin. Consider safer, more specific connections.")
@@ -75,7 +76,7 @@ def gepa_feedback_metric(example, prediction, trace=None, pred_name=None, pred_t
                 feedback_parts.append("GUESSER: You guessed too aggressively. When uncertain, stop before risking the assassin.")
 
         elif hit_bystander:
-            bystander_guess = next(guess for guess in guesses if guess in bystanders)
+            bystander_guess = next(guess for guess in guesses if guess in board_state.bystanders)
             bystander_pos = next(i for i, guess in enumerate(guesses) if guess == bystander_guess)
             feedback_parts.append(f"Bystander hit: '{bystander_guess}' at position {bystander_pos + 1} ended the turn prematurely. ")
             if correct_count > 0:

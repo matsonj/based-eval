@@ -22,6 +22,8 @@ uv run based analytics leaderboard -r logs/chainlex/eval/detailed_results.csv
 
 # DSPy optimization
 uv run based chainlex optimize --model gemini-3-flash --num-train 50
+uv run based chainlex optimize --model gemini-3-flash --blend  # Round-robin across 3 models
+uv run based chainlex optimize --model gemini-3-flash --budget small  # light/medium/large/insane
 uv run based chainlex deploy-prompts
 
 # Development
@@ -40,14 +42,26 @@ uv run black . && uv run isort .
 1. **Board Setup**: 16 words (8 friendly, 7 bystanders, 1 assassin)
 2. **Away Turn**: First player gives clue + guesses (blind to opponent)
 3. **Home Turn**: Second player knows opponent's score, adapts strategy
-4. **Scoring**: Triangular (1+2+3+...), bystander=-5, assassin=-28
+4. **Scoring**: Triangular (1+2+3+...), bystander=-1, assassin=instant loss
 5. **Win**: Higher score wins; both hit assassin = tie
+
+### GameEngine (Single Source of Truth)
+All scoring and parsing logic lives in `chainlex/game_engine.py`:
+- `GameEngine.score_guesses()` - Canonical scoring function
+- `GameEngine.parse_clue_from_response()` - Canonical clue parser
+- `GameEngine.parse_guesses_from_response()` - Canonical guess parser
+- `BoardState` dataclass for consistent board representation
+
+This ensures optimizer and game use identical rules (no drift).
 
 ### Key Design Principles
 - **Stateless AI Calls**: Each OpenRouter request independent
 - **External Prompts**: All prompts in Markdown files (`prompts/`)
 - **Home/Away Mechanic**: Second player advantage amplifies model intelligence differences
 - **Append Mode**: `--add-model` appends to existing results.csv
+- **Single Source of Truth**: All game logic (scoring, parsing) in `game_engine.py`
+- **No Optimizer Drift**: Optimizer uses GameEngine, not duplicate logic
+- **Puzzle Pool Separation**: Training puzzles never leak to eval/run
 
 ## Code Conventions
 - Type hints throughout
@@ -69,8 +83,11 @@ uv run based chainlex prompt clue_giver --seed 42
 
 ### Modifying Prompts
 - Edit `prompts/*.md` files
-- Template vars: `{{BOARD}}`, `{{CLUE}}`, `{{HEAD_TO_HEAD_CONTEXT}}`
+- Template vars: `{{BOARD}}`, `{{CLUE}}`, `{{HEAD_TO_HEAD_CONTEXT}}`, `{{AVAILABLE_WORDS}}`
 - Test with `--verbose` flag
+- **Critical**: Guesser prompt MUST include template section at end with `{{AVAILABLE_WORDS}}`, `{{CLUE}}`, `{{NUMBER}}`
+- Parser looks for `## Guesses` section - ensure prompts instruct model to use this format
+- Parser strips `*`, backticks, and markdown formatting from extracted words
 
 ### Debugging
 1. `--verbose` for full AI exchanges
@@ -89,8 +106,8 @@ uv run based chainlex prompt clue_giver --seed 42
 | Clue giver | Spymaster | Clue Giver |
 | Guesser | Operative | Guesser |
 | Target word | Agent | Friendly Word |
-| Neutral | Bystander (-0) | Bystander (-5) |
-| Instant loss | Assassin | Assassin (-28) |
+| Neutral | Bystander (-0) | Bystander (-1) |
+| Instant loss | Assassin | Assassin (instant loss) |
 | Advantage | First turn | Home (2nd, knows score) |
 
 ## File Structure
@@ -98,8 +115,20 @@ uv run based chainlex prompt clue_giver --seed 42
 ```
 codenames/          # Codenames game
 chainlex/           # ChainLex-1 game
-├── optimization/   # DSPy prompt optimization
-├── prompts/        # Role prompts (clue_giver.md, guesser.md)
+├── game.py             # Full game orchestration
+├── game_engine.py      # Shared scoring/parsing (SINGLE SOURCE OF TRUTH)
+├── player.py           # AI player wrapper (uses GameEngine)
+├── puzzle_generator.py # Semantic clustering puzzle generation
+├── puzzle_loader.py    # Training/eval puzzle pool loader
+├── optimization/       # DSPy prompt optimization (uses GameEngine)
+│   ├── optimize.py     # GEPA/MIPROv2 optimization
+│   ├── modules.py      # DSPy modules (uses GameEngine parsing)
+│   └── metrics.py      # Scoring metrics (uses GameEngine scoring)
+├── prompts/            # Role prompts (clue_giver.md, guesser.md)
+├── inputs/             # Puzzle pools
+│   ├── puzzles_training.yaml  # 50 training puzzles (optimizer only)
+│   ├── puzzles_eval.yaml      # 50 eval puzzles (eval/run commands)
+│   └── word_pool.yaml         # Words with semantic categories
 └── optimized_prompts/  # DSPy output
 connections/        # Connections game
 shared/             # Infrastructure (controllog, adapters, utils)
@@ -109,6 +138,28 @@ logs/
 ├── chainlex/       # ChainLex game-specific logs (box_scores, etc.)
 ├── codenames/      # Codenames game-specific logs
 └── eval/           # Tournament results
+```
+
+## Puzzle Pools
+
+ChainLex uses separate puzzle pools to prevent data leakage during optimization:
+
+| Pool | File | Size | Used By |
+|------|------|------|---------|
+| Training | `puzzles_training.yaml` | 50 | `optimize` command only |
+| Eval | `puzzles_eval.yaml` | 50 | `eval` and `run` commands |
+
+**Puzzle Generation** (`generate-puzzles` command):
+- Uses semantic embeddings (sentence-transformers) for word clustering
+- Validates puzzles for cohesion, bystander confusion, assassin proximity
+- Difficulty tiers: easy (0.45-0.6 cohesion), medium (0.35-0.45), hard (0.25-0.35)
+
+```bash
+# Generate new puzzle pools
+uv run based chainlex generate-puzzles
+
+# List puzzles in a pool
+uv run based chainlex list-puzzles --pool training
 ```
 
 ## Controllog Convention

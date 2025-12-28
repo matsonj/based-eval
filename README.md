@@ -28,8 +28,9 @@ uv run based chainlex run --model-away gpt-4o --model-home gemini-3-flash
 - **16 words**: 8 friendly, 7 bystanders, 1 assassin
 - **Single round**: One clue + guesses per player
 - **Home advantage**: Second player (home) knows opponent's score
-- **Scoring**: Triangular (1+2+3+... max 36), bystander=-5, assassin=-28
-- **DSPy optimization**: GEPA-based prompt evolution (79% improvement achieved)
+- **Scoring**: Triangular (1+2+3+... max 36), bystander=-1, assassin=instant loss
+- **DSPy optimization**: GEPA-based prompt evolution with puzzle pools
+- **Puzzle pools**: Separate training (50) and eval (50) puzzles with semantic clustering
 
 ### 🔗 Connections
 
@@ -133,15 +134,32 @@ uv run based analytics leaderboard -r logs/chainlex/eval/detailed_results.csv
 ChainLex-1 includes GEPA (Genetic Evolution of Prompts Algorithm) for prompt optimization:
 
 ```bash
-# Optimize prompts
+# Generate puzzle pools (50 training + 50 eval with semantic clustering)
+uv run based chainlex generate-puzzles
+
+# Optimize prompts (uses training pool only)
 uv run based chainlex optimize --model gemini-3-flash --num-train 50
+
+# Optimize with model blending (round-robin across multiple models)
+uv run based chainlex optimize --model gemini-3-flash --blend
+
+# Control optimization intensity
+uv run based chainlex optimize --model gemini-3-flash --budget small  # light, medium, large, insane
 
 # Deploy optimized prompts
 uv run based chainlex deploy-prompts
 
 # Rollback to originals
 uv run based chainlex rollback-prompts
+
+# List available puzzles
+uv run based chainlex list-puzzles --pool training
 ```
+
+**Puzzle Architecture**:
+- Training pool (`chainlex/inputs/puzzles_training.yaml`): Used only by optimizer
+- Eval pool (`chainlex/inputs/puzzles_eval.yaml`): Used by `eval` and `run` commands
+- Semantic clustering ensures meaningful difficulty through word similarity metrics
 
 ## Analytics
 
@@ -172,7 +190,14 @@ based-eval/
 ├── chainlex/                   # ChainLex-1 game
 │   ├── cli_chainlex.py         # CLI (run, eval, optimize, cost-estimate)
 │   ├── game.py                 # Game logic (home/away)
+│   ├── game_engine.py          # Shared scoring/parsing (single source of truth)
+│   ├── puzzle_generator.py     # Semantic clustering puzzle generation
+│   ├── puzzle_loader.py        # Training/eval puzzle pool loader
 │   ├── prompts/                # Role prompts
+│   ├── inputs/                 # Puzzle pools and word data
+│   │   ├── puzzles_training.yaml  # 50 training puzzles (optimizer only)
+│   │   ├── puzzles_eval.yaml      # 50 eval puzzles (eval/run commands)
+│   │   └── word_pool.yaml         # Curated words with semantic categories
 │   └── optimization/           # DSPy optimization
 ├── connections/                # Connections game
 │   └── src/connections_eval/   # Game logic and CLI

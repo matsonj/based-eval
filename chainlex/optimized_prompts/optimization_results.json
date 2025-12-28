@@ -1,5 +1,5 @@
 {
-  "timestamp": "2025-12-28T00:02:49.303672Z",
+  "timestamp": "2025-12-28T01:34:13.468961Z",
   "model": "google/gemini-3-flash-preview",
   "blend_mode": true,
   "blend_models": [
@@ -12,12 +12,12 @@
   "num_eval_examples": 10,
   "max_bootstrapped_demos": 4,
   "max_labeled_demos": 4,
-  "baseline_score_normalized": 0.4836,
-  "baseline_score_raw": 3.1,
-  "optimized_score_normalized": 0.5832999999999999,
-  "optimized_score_raw": 6.0,
-  "improvement_normalized": 0.09969999999999996,
-  "improvement_pct_normalized": 20.616211745243994,
-  "improvement_raw": 2.9,
-  "improvement_pct_raw": 93.54838709677419
+  "baseline_score_normalized": 0.5196999999999999,
+  "baseline_score_raw": 4.2,
+  "optimized_score_normalized": 0.5847,
+  "optimized_score_raw": 6.1,
+  "improvement_normalized": 0.06500000000000006,
+  "improvement_pct_normalized": 12.507215701366187,
+  "improvement_raw": 1.8999999999999995,
+  "improvement_pct_raw": 45.23809523809522
 }
