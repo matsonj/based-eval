@@ -29,8 +29,6 @@ canonical_models:
   - qwen3-max
   - kimi-k2
   # Added (pending Connections eval verification)
-  - o3-mini
-  - o4-mini
   - glm-4.7
   - minimax-m2.1
 
@@ -87,7 +85,6 @@ models:
     glm-4.6: "z-ai/glm-4.6"
     glm-4.7: "z-ai/glm-4.7"
     kimi-k2-thinking: "moonshotai/kimi-k2-thinking"
-    sherlock-think-alpha: "openrouter/sherlock-think-alpha"
 
   non_thinking:
     # OpenAI standard models
@@ -145,8 +142,6 @@ models:
     # Other models
     kimi: "moonshotai/kimi-k2"
     kimi-k2: "moonshotai/kimi-k2-0905"
-    sonoma-dusk: "openrouter/sonoma-dusk-alpha"
-    sonoma-sky: "openrouter/sonoma-sky-alpha"
     sherlock-dash-alpha: "openrouter/sherlock-dash-alpha"
     step3: "stepfun-ai/step3"
     cydonia-24b-v4.1: "thedrummer/cydonia-24b-v4.1"

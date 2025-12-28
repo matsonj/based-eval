@@ -88,7 +88,11 @@ uv run based chainlex eval --add-model new-model-name
 uv run based chainlex cost-estimate
 ```
 
-**Schedule**: Each pair plays 4 games (2 home, 2 away) for fairness. Output is Bradley-Terry compatible.
+**Schedule**: Each pair plays 4 games for balanced evaluation:
+- 1 hard puzzle × 2 (home/away swap)
+- 1 easy puzzle × 2 (home/away swap)
+
+Output is Bradley-Terry compatible.
 
 > **Note**: 4 games per matchup yields wide confidence intervals (~±75 rating points). For tighter CIs, increase games per pair (20+ recommended).
 

@@ -116,9 +116,9 @@ def run(
     
     Away model goes first. Home model goes second and knows the away model's score.
     
-    Scoring modes:
-      - gameplay: Assassin = instant loss, Bystander = -1 (competitive play)
-      - optimization: Assassin = -28, Bystander = -5 (for DSPy training)
+    Scoring (gameplay mode - default):
+      - Bystander: -1 point (ends turn)
+      - Assassin: Instant loss (-1000 for tracking)
     """
     
     _validate_api_keys_and_models(model_away, model_home)
@@ -436,9 +436,9 @@ def run_eval(
     Use --dry-run to preview the matchup schedule and estimated cost.
     Use --add-model to add a new model to an existing evaluation (appends to results.csv).
     
-    Scoring modes:
-      - gameplay: Assassin = instant loss, Bystander = -1 (competitive play)
-      - optimization: Assassin = -28, Bystander = -5 (for DSPy training)
+    Scoring (gameplay mode - default):
+      - Bystander: -1 point (ends turn)
+      - Assassin: Instant loss (-1000 for tracking)
     """
     if not dry_run and not os.getenv("OPENROUTER_API_KEY"):
         console.print("[red]Error: OPENROUTER_API_KEY not set. Try `source .env`[/red]")
@@ -503,68 +503,80 @@ def run_eval(
         console.print(f"[yellow]⚠️ EVAL puzzle pool not found, using legacy random generation[/yellow]")
         console.print(f"[dim]Run 'uv run based chainlex generate-puzzles' to create puzzle pools[/dim]")
     
-    # Generate fixed seeds upfront - every matchup uses the same seeds
-    # Each seed is played twice (once per home/away configuration)
-    # With 4 games: seed 0 for games 1&2 (swapped), seed 1 for games 3&4 (swapped)
-    num_unique_boards = games_per_matchup // 2
-    game_seeds = [seed + i for i in range(num_unique_boards)]
+    # Load one hard puzzle and one easy puzzle for balanced evaluation
+    # Each puzzle is played twice (home/away swap) = 4 games total per matchup
+    # This ensures models are tested on both difficulty levels
+    board_puzzles: Dict[str, Optional[Dict]] = {}
+    puzzle_difficulties = ["hard", "easy"]  # One hard, one easy per matchup
     
-    # Load puzzles for each unique board (if using puzzle pool)
-    board_puzzles: Dict[int, Optional[Dict]] = {}
     if eval_pool_size > 0:
-        for board_seed in game_seeds:
-            puzzle = puzzle_loader.get_puzzle(seed=board_seed)
-            board_puzzles[board_seed] = puzzle
+        for difficulty in puzzle_difficulties:
+            puzzle = puzzle_loader.get_puzzle(seed=seed, difficulty=difficulty)
+            puzzle_id = puzzle.get("puzzle_id", difficulty)
+            board_puzzles[difficulty] = puzzle
+            console.print(f"  - {difficulty.capitalize()} puzzle: {puzzle_id}")
+    else:
+        # Legacy mode: use random seeds
+        num_unique_boards = games_per_matchup // 2
+        game_seeds = [seed + i for i in range(num_unique_boards)]
+        for i, board_seed in enumerate(game_seeds):
+            difficulty = puzzle_difficulties[i % len(puzzle_difficulties)]
+            board_puzzles[difficulty] = None  # Will use seed-based generation
     
     # Generate matchups
+    # Each matchup plays 4 games: hard puzzle (2 games, swapped) + easy puzzle (2 games, swapped)
     matchups = []
     
     if append_mode and new_model:
         # Add-model mode: only matchups between new model and opponents
         console.print(f"[yellow]ADD MODE: Running {new_model} against {len(opponent_models)} canonical models[/yellow]")
         for opponent in sorted(opponent_models):
-            # For each seed, play two games with swapped home/away
-            for board_idx, board_seed in enumerate(game_seeds):
-                puzzle = board_puzzles.get(board_seed)
+            # For each difficulty, play two games with swapped home/away
+            for board_idx, difficulty in enumerate(puzzle_difficulties):
+                puzzle = board_puzzles.get(difficulty)
                 # Game A: new_model away, opponent home
                 matchups.append({
                     "model_away": new_model,
                     "model_home": opponent,
-                    "seed": board_seed,
+                    "seed": seed,
                     "game_idx": board_idx * 2,
                     "puzzle": puzzle,
+                    "difficulty": difficulty,
                 })
                 # Game B: opponent away, new_model home (same board)
                 matchups.append({
                     "model_away": opponent,
                     "model_home": new_model,
-                    "seed": board_seed,
+                    "seed": seed,
                     "game_idx": board_idx * 2 + 1,
                     "puzzle": puzzle,
+                    "difficulty": difficulty,
                 })
     else:
         # Full round-robin mode
         eval_models_sorted = sorted(eval_models)
         for i, model_1 in enumerate(eval_models_sorted):
             for model_2 in eval_models_sorted[i + 1:]:
-                # For each seed, play two games with swapped home/away
-                for board_idx, board_seed in enumerate(game_seeds):
-                    puzzle = board_puzzles.get(board_seed)
+                # For each difficulty, play two games with swapped home/away
+                for board_idx, difficulty in enumerate(puzzle_difficulties):
+                    puzzle = board_puzzles.get(difficulty)
                     # Game A: model_1 away, model_2 home
                     matchups.append({
                         "model_away": model_1,
                         "model_home": model_2,
-                        "seed": board_seed,
+                        "seed": seed,
                         "game_idx": board_idx * 2,
                         "puzzle": puzzle,
+                        "difficulty": difficulty,
                     })
                     # Game B: model_2 away, model_1 home (same board)
                     matchups.append({
                         "model_away": model_2,
                         "model_home": model_1,
-                        "seed": board_seed,
+                        "seed": seed,
                         "game_idx": board_idx * 2 + 1,
                         "puzzle": puzzle,
+                        "difficulty": difficulty,
                     })
     
     total_games = len(matchups)
@@ -583,7 +595,7 @@ def run_eval(
     console.print(f"Games per matchup: {games_per_matchup}")
     console.print(f"Total games: {total_games}")
     console.print(f"Threads: {threads}")
-    console.print(f"Unique boards: {len(game_seeds)} (seeds: {game_seeds})")
+    console.print(f"Puzzle selection: 1 hard + 1 easy (2 games each, swapped home/away)")
     
     if dry_run:
         console.print(f"\n[yellow]DRY RUN - showing schedule only[/yellow]\n")
@@ -593,14 +605,14 @@ def run_eval(
         schedule_table.add_column("#", style="dim", justify="right")
         schedule_table.add_column("Away (1st)", style="cyan")
         schedule_table.add_column("Home (2nd)", style="magenta")
-        schedule_table.add_column("Seed", style="dim")
+        schedule_table.add_column("Difficulty", style="yellow")
         
         for i, matchup in enumerate(matchups, 1):
             schedule_table.add_row(
                 str(i),
                 matchup["model_away"],
                 matchup["model_home"],
-                str(matchup["seed"]),
+                matchup.get("difficulty", "random"),
             )
         
         console.print(schedule_table)
@@ -1377,8 +1389,12 @@ def _run_cost_estimation_game(
     prompt_files: Dict[str, str],
     lock: threading.Lock,
     is_home: bool = False,
+    puzzle: Optional[Dict[str, Any]] = None,
 ) -> Tuple[str, Optional[Dict[str, Any]], Optional[str]]:
-    """Run a single cost estimation game: model vs gemini-3-flash with randomized home/away."""
+    """Run a single cost estimation game: model vs gemini-3-flash with randomized home/away.
+    
+    Uses real ChainLexGame with gameplay scoring for accurate cost measurement.
+    """
     try:
         if is_home:
             # Model plays as home (second, knows opponent score)
@@ -1395,6 +1411,8 @@ def _run_cost_estimation_game(
             player_home=player_home,
             quiet=True,
             seed=seed,
+            scoring_mode="gameplay",  # Use gameplay scoring (-1 bystander, instant loss assassin)
+            puzzle=puzzle,  # Use puzzle from EVAL pool if provided
             **prompt_files,
         )
         
@@ -1470,6 +1488,21 @@ def cost_estimate(
     console.print(f"Seed: {seed}")
     console.print(f"Threads: {threads}")
     
+    # Load puzzle from EVAL pool (same pool used by eval and run commands)
+    from chainlex.puzzle_loader import PuzzleLoader, PuzzlePool
+    
+    puzzle_loader = PuzzleLoader(pool=PuzzlePool.EVAL)
+    eval_pool_size = puzzle_loader.get_puzzle_count()
+    
+    puzzle = None
+    if eval_pool_size > 0:
+        # Use the same puzzle for all models (consistent comparison)
+        puzzle = puzzle_loader.get_puzzle(seed=seed)
+        console.print(f"[green]📦 Using puzzle from EVAL pool (puzzle_id: {puzzle.get('puzzle_id', 'unknown')})[/green]")
+    else:
+        console.print(f"[yellow]⚠️ EVAL puzzle pool not found, using legacy random generation[/yellow]")
+        console.print(f"[dim]Run 'uv run based chainlex generate-puzzles' to create puzzle pools[/dim]")
+    
     prompt_files = {
         "clue_giver_prompt": clue_giver_prompt,
         "guesser_prompt": guesser_prompt,
@@ -1499,6 +1532,7 @@ def cost_estimate(
                 prompt_files,
                 lock,
                 is_home,
+                puzzle,  # Pass puzzle from EVAL pool
             )
             futures[future] = (model, is_home)
         

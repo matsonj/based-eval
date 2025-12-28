@@ -54,6 +54,13 @@ All scoring and parsing logic lives in `chainlex/game_engine.py`:
 
 This ensures optimizer and game use identical rules (no drift).
 
+### Eval Puzzle Selection
+Each matchup plays 4 games on 2 puzzles (balanced difficulty):
+1. **Hard puzzle** × 2 games (home/away swap)
+2. **Easy puzzle** × 2 games (home/away swap)
+
+This ensures models are tested on both difficulty levels for fair comparison.
+
 ### Key Design Principles
 - **Stateless AI Calls**: Each OpenRouter request independent
 - **External Prompts**: All prompts in Markdown files (`prompts/`)
@@ -62,6 +69,7 @@ This ensures optimizer and game use identical rules (no drift).
 - **Single Source of Truth**: All game logic (scoring, parsing) in `game_engine.py`
 - **No Optimizer Drift**: Optimizer uses GameEngine, not duplicate logic
 - **Puzzle Pool Separation**: Training puzzles never leak to eval/run
+- **Difficulty Balance**: Eval uses 1 hard + 1 easy puzzle per matchup
 
 ## Code Conventions
 - Type hints throughout
@@ -147,7 +155,12 @@ ChainLex uses separate puzzle pools to prevent data leakage during optimization:
 | Pool | File | Size | Used By |
 |------|------|------|---------|
 | Training | `puzzles_training.yaml` | 50 | `optimize` command only |
-| Eval | `puzzles_eval.yaml` | 50 | `eval` and `run` commands |
+| Eval | `puzzles_eval.yaml` | 50 | `eval`, `run`, `cost-estimate` |
+
+**Puzzle Selection** (eval command):
+- Selects 1 hard + 1 easy puzzle per matchup
+- Each puzzle played twice (home/away swap) = 4 games total
+- Ensures balanced difficulty testing
 
 **Puzzle Generation** (`generate-puzzles` command):
 - Uses semantic embeddings (sentence-transformers) for word clustering
@@ -160,6 +173,9 @@ uv run based chainlex generate-puzzles
 
 # List puzzles in a pool
 uv run based chainlex list-puzzles --pool training
+
+# List only hard puzzles
+uv run based chainlex list-puzzles --pool eval --difficulty hard
 ```
 
 ## Controllog Convention

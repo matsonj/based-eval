@@ -61,7 +61,7 @@ class ChainLexGame:
         guesser_prompt: str = "",
         quiet: bool = False,
         seed: Optional[int] = None,
-        scoring_mode: str = "optimization",  # "optimization" or "gameplay"
+        scoring_mode: str = "gameplay",  # "gameplay" (production) or "optimization" (legacy)
         puzzle: Optional[Dict[str, Any]] = None,  # Pre-defined puzzle from pool
     ):
         self.words_file = words_file
